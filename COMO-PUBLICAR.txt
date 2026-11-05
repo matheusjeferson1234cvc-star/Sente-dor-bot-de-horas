@@ -1,0 +1,60 @@
+CENTRAL DE HORAS — COMO TESTAR E PUBLICAR NA VERCEL
+=====================================================
+
+IMPORTANTE
+Esta versão é uma demonstração da interface. Os servidores, membros,
+horas e permissões são fictícios. O botão "Entrar com Discord" fica
+desativado até existir um backend com OAuth2 do Discord e Supabase.
+NÃO publique tokens, segredos ou senhas junto com estes arquivos.
+
+1. TESTAR NO COMPUTADOR
+- Extraia o arquivo central-de-horas.zip.
+- Abra a pasta "central-de-horas".
+- Clique duas vezes em index.html para visualizar a demonstração.
+- Escolha um perfil e pressione "Explorar painel".
+- Navegue por Início, Ranking, Membros, Relatórios e Permissões.
+
+2. TESTAR NO CELULAR
+- Você pode publicar gratuitamente pela Vercel seguindo abaixo.
+- Depois, abra o link gerado no navegador do celular.
+- Se abrir index.html diretamente no celular, ele poderá ser bloqueado
+  pelo visualizador de arquivos; publicar é a opção mais confiável.
+
+3. ENVIAR PARA O GITHUB PELO NAVEGADOR
+- Entre em https://github.com e faça login (ou crie uma conta).
+- Crie um repositório novo com o nome central-de-horas.
+- Na página do repositório, abra "Add file" > "Upload files".
+- Extraia o ZIP no seu dispositivo e selecione os arquivos DENTRO da
+  pasta central-de-horas, não o arquivo ZIP.
+- Envie index.html, style.css, app.js, favicon.svg, vercel.json e
+  README.md (COMO-PUBLICAR.txt é opcional).
+- Os arquivos devem ficar na RAIZ do repositório, não em uma subpasta.
+- Conclua a operação usando "Commit changes" (ou o rótulo equivalente).
+
+4. PUBLICAR NA VERCEL
+- Acesse https://vercel.com e entre com GitHub.
+- Abra "Add New" > "Project" (ou "New Project").
+- Escolha/import o repositório "central-de-horas".
+- Em "Framework Preset", selecione "Other".
+- Em "Root Directory", use "." (a raiz do repositório).
+- Desative/ignore o Build Command: este site não precisa de build.
+- Em "Output Directory", utilize "." ou deixe no padrão de "Other"
+  quando não houver uma pasta public.
+- Clique em "Deploy".
+- Quando concluir, abra a URL do tipo https://...vercel.app.
+
+5. ALTERAR O SITE MAIS TARDE
+- Atualize os arquivos no repositório GitHub.
+- A Vercel normalmente publica uma nova versão automaticamente após
+  cada commit na branch de produção.
+
+6. O QUE FALTA PARA O SISTEMA REAL
+- Login Discord OAuth2 no servidor (não no JavaScript público).
+- Banco Supabase/Postgres com registros e permissões por servidor.
+- Conexão segura do bot que está na Discloud ao banco.
+- API protegida para dados reais, validação de cargos e ranking ao vivo.
+
+AJUDA
+- Guia oficial do GitHub: https://docs.github.com/en/repositories/working-with-files/managing-files/adding-a-file-to-a-repository
+- Guia oficial da Vercel: https://vercel.com/docs/git
+- Configuração estática: https://vercel.com/docs/builds/configure-a-build
