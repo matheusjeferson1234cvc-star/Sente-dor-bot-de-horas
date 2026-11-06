@@ -1,0 +1,28 @@
+CENTRAL DE HORAS V5.1 - COMO ENVIAR PELO CELULAR AO GITHUB
+
+OS DOIS ARQUIVOS ZIP NAO TEM PASTAS DENTRO. NAO ENVIE O ZIP DIRETAMENTE AO GITHUB: EXTRAIA PRIMEIRO.
+
+PARTE 1 - ARQUIVOS DO SITE
+1. Extraia "central-de-horas-v5.1-arquivos-do-site.zip".
+2. No GitHub, abra o repositório conectado ao projeto Vercel central-de-horas1.
+3. Na raiz do repositório, use Add file > Upload files.
+4. Selecione todos os arquivos EXTRAÍDOS (index.html, real.js, vercel.json etc.), substituindo os antigos.
+5. Conclua com Commit changes, na branch main.
+
+PARTE 2 - ARQUIVOS DA API (NECESSÁRIO, NÃO PODE FICAR NA RAIZ)
+1. Na raiz do repositório, abra Add file > Create new file.
+2. No nome do arquivo digite "api/README.md". O GitHub criará a pasta api automaticamente.
+3. No conteúdo digite: "Funções protegidas do site." e clique Commit changes.
+4. Entre na pasta api recém-criada, no GitHub.
+5. Toque Add file > Upload files e selecione TODOS os .js EXTRAÍDOS de "central-de-horas-v5.1-arquivos-da-api.zip".
+6. Clique Commit changes.
+
+No final devem existir index.html na RAIZ do repositório E api/health.js e api/bot-sync.js dentro da pasta api/.
+A pasta api é OBRIGATÓRIA para a Vercel reconhecer as funções (senão dá 404).
+
+TESTE DEPOIS DA IMPLANTACAO
+https://central-de-horas1.vercel.app/api/health
+Se funcionar, retorna JSON com ok:true.
+
+SEGURANÇA
+Nunca envie tokens Discord, SUPABASE_SECRET_KEY, SESSION_SECRET ou BOT_SYNC_SECRET como arquivos no GitHub. Use as variáveis privadas da Vercel.
