@@ -1,16 +1,32 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b0912" />
-    <meta name="description" content="Central de Horas — painel de acompanhamento de pontos e rankings dos servidores Discord." />
-    <title>Central de Horas | Painel</title>
-    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./style.css" />
-  </head>
-  <body>
-    <div id="app"></div>
-    <script src="./app.js" defer></script>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#100b18" />
+  <meta name="description" content="Central de Horas: acompanhamento real de ponto, turnos, ranking e fiscalização por servidor Discord." />
+  <title>Central de Horas | Painel Discord</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/dashboard.css" />
+  <script defer src="/real.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="brand"><span class="brand-ico">◷</span><div><strong>Central de Horas</strong><small>Controle de ponto • Discord RP</small></div></div>
+      <div class="top-right"><span id="syncStatus" class="status">Aguardando conexão</span><button type="button" id="logout" class="button ghost" hidden>Sair</button></div>
+    </header>
+    <section class="intro"><h1>Seu controle de horas, <em>em um só lugar.</em></h1><p>Consulte os cartões registrados pelo bot, os turnos, as horas extras e o ranking real do servidor.</p></section>
+    <section id="auth" class="panel auth" aria-live="polite"><p>Verificando o acesso pelo Discord...</p></section>
+    <section id="content" hidden>
+      <div class="toolbar panel"><label>Servidor autorizado <select id="guild" aria-label="Servidor Discord"></select></label><div class="tools"><label>Período <select id="period"><option value="week">Esta semana</option><option value="month">Este mês</option><option value="all">Todo histórico</option></select></label><button class="button" id="reload" type="button">Atualizar</button></div></div>
+      <section class="stat-grid" id="stats" aria-label="Resumo das horas"></section>
+      <div class="panel content-panel"><nav class="tabs" aria-label="Seções do painel"><button type="button" data-tab="ranking" class="active">🏆 Ranking</button><button type="button" data-tab="turno">🕒 Turnos</button><button type="button" data-tab="ativos">🟢 Em serviço</button><button type="button" data-tab="cancelados">🚫 Cancelamentos</button><button type="button" data-tab="relatorios">📋 Relatórios</button><button type="button" data-tab="membros">👥 Membros</button><button type="button" data-tab="permissoes" id="permissionsTab" hidden>🔐 Permissões</button></nav>
+        <div class="filters" id="filters"></div><div id="rows" aria-live="polite"></div>
+      </div>
+      <p class="foot">As horas exibidas vêm do bot na Discloud e são sincronizadas periodicamente. A meta é de 2 horas normais por dia de segunda a sábado; horas extras não completam essa meta. Dados em andamento são separados dos validados.</p>
+    </section>
+    <footer>Central de Horas • <a href="/demo.html">Abrir demonstração antiga</a></footer>
+  </main>
+</body>
 </html>

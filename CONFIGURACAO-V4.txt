@@ -1,0 +1,26 @@
+CENTRAL DE HORAS - V4
+
+SITE NA VERCEL (Settings > Environment Variables > Production):
+SUPABASE_URL = URL do projeto Supabase
+SUPABASE_SECRET_KEY = sb_secret_... (nova chave secreta, nunca publicar)
+DISCORD_CLIENT_ID = ID do aplicativo Discord
+DISCORD_CLIENT_SECRET = segredo OAuth2 do aplicativo
+DISCORD_REDIRECT_URI = https://central-de-horas1.vercel.app/api/callback
+DISCORD_BOT_TOKEN = mesmo token do bot na Discloud
+BOT_OWNER_DISCORD_ID = ID do proprietário do bot
+SESSION_SECRET = segredo aleatório longo exclusivo
+BOT_SYNC_SECRET = segredo aleatório longo compartilhado com o bot
+
+DISCLOUD (variáveis privadas):
+DISCORD_TOKEN = token do bot Discord (já existente)
+CENTRAL_API_URL = https://central-de-horas1.vercel.app
+BOT_SYNC_SECRET = exatamente o mesmo segredo definido na Vercel
+
+Discord Developer Portal > OAuth2 > Redirects:
+https://central-de-horas1.vercel.app/api/callback
+
+O banco precisa conter as tabelas do arquivo supabase.sql.
+Depois de alterar variáveis, faça Redeploy na Vercel e reinicie o bot.
+Não envie tokens, segredos ou arquivos .env preenchidos.
+Teste: https://central-de-horas1.vercel.app/api/health
+A integração real depende das credenciais e de teste após a implantação.
