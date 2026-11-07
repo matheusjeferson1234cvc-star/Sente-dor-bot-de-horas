@@ -50,7 +50,20 @@ function presence(){const filters=$('filters'),rows=$('rows'),date=state.presenc
  const tone=item.status==='falta'?'bad':['cumpriu','justificada','folga'].includes(item.status)?'good':'';
  rows.append(person(item.m,`${statusText[item.status]||item.status} · ${fmt(item.minutes)} normais · ${item.streak} falta(s) consecutiva(s)`,statusText[item.status]||item.status,tone));
  }
- if(state.data?.isBotOwner){const b=el('button','Simular análise de faltas (sem alterações)','button ghost');b.onclick=()=>{const remaining=lines.filter(x=>x.streak>=2);note(rows,remaining.length?`${remaining.length} pessoa(s) com dois ou mais dias consecutivos registrados como falta. Prévia apenas: nenhum cargo ou advertência foi aplicado.`:'Simulação: não há sequência de duas faltas confirmadas entre os membros desse turno. Nenhuma ação foi executada.','warning-note')};rows.append(b)}
+ if(state.data?.isBotOwner||state.canEdit){
+  const b=el('button','Simular advertências pelo site (sem aplicar)','button ghost');
+  const outcome=el('div',undefined,'warning-note');
+  b.onclick=async()=>{b.disabled=true;outcome.replaceChildren(el('p','Conferindo faltas, folgas e justificativas...'));
+   try{const result=await api('warnings-preview?guildId='+encodeURIComponent(state.guild));
+    outcome.replaceChildren(el('strong',`${result.approvals.length} autorização(ões) possível(is) · Simulação segura`));
+    const people=members();for(const item of result.approvals.slice(0,30)){
+      outcome.append(person(people.get(item.userId)||{user_id:item.userId},`${item.evidenceDays.join(' e ')} · turno ${item.shift}`, 'Avaliação', ''));
+    }
+    if(!result.approvals.length)outcome.append(el('p','Nenhuma dupla de faltas consecutivas confirmadas está elegível no momento.'));
+    outcome.append(el('small','Esta consulta NÃO atribui cargo, não registra advertência e não envia mensagens.'));
+   }catch(e){outcome.replaceChildren(el('p',e.message,'error'))}finally{b.disabled=false}
+  };rows.append(b,outcome);
+ }
 }
 function monthly(){const rows=$('rows'),filters=$('filters'),month=state.month||today().slice(0,7),all=cards().filter(c=>c.status==='Validado'&&ymd(c.started_at).slice(0,7)===month);const map=members();
  filters.append(el('p',`Mês selecionado: ${month}. Contadores recomeçam em zero a cada mês sem apagar os meses anteriores.`, 'hint'));
@@ -62,7 +75,7 @@ function monthly(){const rows=$('rows'),filters=$('filters'),month=state.month||
 }
 function justificationHistory(){const rows=$('rows'),all=state.data?.justifications||[],map=members();rows.append(el('h3','Justificativas registradas','section-title'));
  for(const j of all.slice(0,250)){rows.append(person(map.get(j.user_id)||{user_id:j.user_id},`${j.day} · ${j.shift} · ${j.reason}`,j.status==='approved'?'Aprovada':j.status==='rejected'?'Recusada':'Em análise',j.status==='approved'?'good':j.status==='rejected'?'bad':''))}
- if(!all.length)note(rows,'Nenhuma justificativa sincronizada. Use o painel de justificativas no Discord para enviar e analisar.');
+ if(!all.length)note(rows,'Nenhuma justificativa sincronizada. Use o painel de justificativas no Discord para enviar e analisar.');else rows.append(el('p','Aprovada: falta abonada e fora das advertências. Pendente: bloqueia advertências durante a análise. Recusada: falta não abonada.','hint'));
 }
 function warnings(){const rows=$('rows'),all=state.data?.warnings||[],map=members();rows.append(el('h3','Histórico de advertências','section-title'));
  for(const w of all.slice(0,250))rows.append(person(map.get(w.user_id)||{user_id:w.user_id},`${w.day} · ${w.shift} · ${w.reason}`,`Nível ${w.level} · ${w.status==='active'?'Ativa':'Revogada'}`,w.status==='active'?'bad':'good'));

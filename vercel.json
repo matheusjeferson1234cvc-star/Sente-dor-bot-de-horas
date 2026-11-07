@@ -1,3 +1,13 @@
 {
-  "version": 2
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/time-off",
+      "destination": "/api/index?centralRoute=time-off"
+    },
+    {
+      "source": "/api/warnings-preview",
+      "destination": "/api/index?centralRoute=warnings-preview"
+    }
+  ]
 }
