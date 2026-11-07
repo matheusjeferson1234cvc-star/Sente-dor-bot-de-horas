@@ -1,0 +1,106 @@
+CENTRAL DE HORAS • ATUALIZAÇÃO FINAL DE TESTE
+Bot v3.4.0 (Discloud) + Site v5.3.0 (Vercel) + Supabase
+===================================================
+
+ANTES DE ATUALIZAR
+1. NÃO exclua o projeto existente nem crie outro.
+2. Faça BACKUP do banco local do bot: data/database.json (e database.json.bak, se houver).
+   Não substitua o histórico por uma pasta data vazia.
+3. Faça backup do repositório/site atual para poder voltar se necessário.
+4. NÃO coloque tokens ou segredos no GitHub nem nesta conversa.
+
+PASSO 1 — BANCO SUPABASE
+Abra Supabase > SQL Editor, copie o conteúdo de supabase.sql do ZIP do SITE
+COMPLETO e execute. O script cria as novas tabelas de presença, justificativas
+e advertências e acrescenta as colunas de folgas e modo de ponto. O script
+usa CREATE/ALTER IF NOT EXISTS e foi feito para conservar as tabelas antigas.
+Se aparecer erro, pare, registre somente a mensagem e corrija antes de continuar.
+
+PASSO 2 — GITHUB/VERCEL PELO CELULAR
+Use SITE-RAIZ-GITHUB.zip: extraia e envie seus arquivos para a RAIZ do
+repositório já ligado à Vercel. Não envie o ZIP fechado.
+Entre na pasta "api" já criada no repositório e envie TODOS os arquivos
+extraídos de API-GITHUB.zip para dentro dela. NÃO mova a API para a raiz.
+Estrutura:
+  index.html, real.js, dashboard.css, package.json, vercel.json,
+  supabase.sql, ...
+  api/index.js, api/health.js, api/bot-sync.js, api/login.js,
+  api/callback.js, api/me.js, api/data.js, api/bot-config.js,
+  api/time-off.js, api/roles.js, api/settings.js, ...
+No projeto Vercel, configure Root Directory como a raiz (.).
+Depois do commit na branch de produção, aguarde o novo deployment Ready.
+
+PASSO 3 — VARIÁVEIS PRIVADAS DA VERCEL (Production)
+SUPABASE_URL               URL do seu projeto Supabase
+SUPABASE_SECRET_KEY        chave secreta do Supabase (ou SUPABASE_SERVICE_ROLE_KEY)
+DISCORD_CLIENT_ID          ID da aplicação Discord
+DISCORD_CLIENT_SECRET      Client Secret OAuth2, não o token do bot
+DISCORD_REDIRECT_URI       https://central-de-horas1.vercel.app/api/callback
+SESSION_SECRET             senha aleatória forte, privada
+DISCORD_BOT_TOKEN          token do MESMO bot que está na Discloud
+BOT_OWNER_DISCORD_ID       ID numérico da SUA conta pessoal no Discord
+BOT_SYNC_SECRET            EXATAMENTE a mesma senha da Discloud
+
+No Discord Developer Portal > OAuth2 > Redirects, mantenha:
+https://central-de-horas1.vercel.app/api/callback
+Nunca salve essas variáveis nos arquivos do repositório.
+Após salvar ou alterar variáveis, faça uma nova implantação na Vercel.
+
+PASSO 4 — BOT NA DISCLOUD
+Use BOT-DISCLOUD-v3.4.zip para atualizar a aplicação existente.
+Conserve data/database.json e faça backup ANTES de enviar.
+Variáveis da Discloud:
+DISCORD_TOKEN             token do bot que já funciona
+CENTRAL_API_URL           https://central-de-horas1.vercel.app
+BOT_SYNC_SECRET           MESMA senha da Vercel
+BOT_OWNER_DISCORD_ID      (opcional) ID numérico da sua conta; autoriza /testepresenca
+
+Ative Server Members Intent no Discord Developer Portal para o filtro por
+cargos de turno. Reinicie o bot. Não rode duas cópias do mesmo bot ao mesmo
+tempo usando o mesmo token.
+
+PASSO 5 — COMANDOS NOVOS E ANTIGOS
+/painelbateponto       Publica o painel de bate-ponto (Equipe OU Individual)
+/paineljustificativas  Publica o painel de justificativas com GIF dark
+/fiscalizarponto      Abre fiscalização para responsáveis/administração
+/testepresenca        SIMULA ausências sem dar advertência ou alterar cargos
+
+PASSO 6 — NOVAS CONFIGURAÇÕES DO BOT
+Abra o botão Configurações > Turnos: configure cargos, horários e logs;
+use Voltar para navegar. Em Modo de Ponto, escolha apenas Equipe ou
+Individual. No sistema de Justificativas e Advertências configure:
+ - canal de solicitações e análise
+ - canal de advertências automáticas
+ - cargos de Advertência 1, 2, 3, todos distintos
+ - Ativar advertência automática somente depois de configurar folgas no site,
+   conferir cargos/escala e rodar /testepresenca.
+
+As advertências são DESLIGADAS por padrão. Quando ativadas, só consideram
+novos dias com escala capturada, turno encerrado, folgas sincronizadas e
+faltas consecutivas sem justificativas pendentes ou aprovadas. Um dia de
+folga não conta como falta e interrompe a sequência. A administração pode
+revisar/revogar. Após nível 3, novas recorrências apenas avisam a gestão.
+O sistema não pune faltas históricas anteriores à ativação.
+
+PASSO 7 — TESTES FINAIS
+A. https://central-de-horas1.vercel.app/api/health
+   Esperado: ok:true, version:5.3.0; configured.supabase=true,
+   discordOAuth=true, botSync=true, discordBot=true.
+B. Login no site via Discord e lista de servidores autorizados.
+C. Abra CETS STORES e confirme membros, cartões e horas.
+D. Crie e finalize um cartão de teste. Aguarde até 1 minuto para a sincronização.
+E. Publique /paineljustificativas e peça justificativa de teste.
+F. Confira o canal de análise e aprovação; use /testepresenca em um dia
+   com escala registrada para simular sem alterar cargos.
+G. Teste o Modo Individual APÓS encerrar qualquer cartão de equipe existente.
+
+SE APARECER 404: confira que api/*.js está NA PASTA api do GitHub.
+SE APARECER 401: confira BOT_SYNC_SECRET nas duas hospedagens.
+SE APARECER SEM SERVIDOR: confira BOT_OWNER_DISCORD_ID ou o dono/cargos
+   autorizados, DISCORD_BOT_TOKEN e sincronização nos logs da Discloud.
+SE APARECER ERRO DO BANCO: verifique supabase.sql e variáveis privadas.
+
+TESTES FEITOS FORA DO SERVIDOR REAL
+Os testes locais usam simulações de Discord/Supabase. Eles não substituem
+um teste final na Discloud com as suas permissões e na Vercel com suas chaves.
+Nenhuma atualização foi publicada automaticamente em suas contas.
