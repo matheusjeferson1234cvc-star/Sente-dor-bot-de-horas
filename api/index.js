@@ -16,9 +16,24 @@ const db=async(table,options={})=>{
 };
 const discord=async(path,token)=>{const r=await fetch(`https://discord.com/api/v10${path}`,{headers:{Authorization:`Bot ${token||process.env.DISCORD_BOT_TOKEN}`}});if(!r.ok)throw Error(`Discord ${r.status}`);return r.json()};
 const validDate=v=>typeof v==='string'&&!Number.isNaN(Date.parse(v));
+const validDay=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
+const SHIFT=['manha','tarde','noite','madrugada','all'];
+const safeTimeOff=input=>{
+ if(!input||typeof input!=='object')throw Error('Folgas inválidas');
+ const weekly={};for(const shift of SHIFT){const days=input.weekly?.[shift]||[];
+  if(!Array.isArray(days)||days.length>7||!days.every(d=>Number.isInteger(d)&&d>=0&&d<=6))throw Error('Dias semanais inválidos');
+  weekly[shift]=[...new Set(days)];}
+ const dates=input.dates||[];if(!Array.isArray(dates)||dates.length>150||dates.some(d=>!d||!validDay(d.date)||!SHIFT.includes(d.shift)))throw Error('Datas de folga inválidas');
+ return {weekly,dates:[...new Map(dates.map(d=>[d.date+':'+d.shift,{date:d.date,shift:d.shift}])).values()]};
+};
 const authorized=async(guild,user)=>{
- if(user.id===process.env.BOT_OWNER_DISCORD_ID)return {view:true,edit:false};
- const g=await discord(`/guilds/${guild}`);if(g.owner_id===user.id)return {view:true,edit:true};
+ const globalOwner=user.id===process.env.BOT_OWNER_DISCORD_ID;
+ // Global owner can inspect all synchronized guilds. Editing requires guild ownership.
+ if(globalOwner&&!process.env.DISCORD_BOT_TOKEN)return {view:true,edit:false};
+ let info;
+ try{info=await discord(`/guilds/${guild}`)}catch(e){if(globalOwner)return {view:true,edit:false};throw e}
+ if(info.owner_id===user.id)return {view:true,edit:true};
+ if(globalOwner)return {view:true,edit:false};
  const member=await discord(`/guilds/${guild}/members/${user.id}`);
  const cfg=await db('guild_settings',{query:`?guild_id=eq.${encodeURIComponent(guild)}&select=roles`});
  const roles=cfg[0]?.roles?.allowed||[];
@@ -28,7 +43,13 @@ module.exports=async(req,res)=>{
  try{
   const path=req.centralRoute||(req.url||'').split('?')[0].replace(/^\/api\/?/,'');
   if(typeof req.body==='string'){try{req.body=JSON.parse(req.body)}catch{return json(res,400,{error:'JSON inválido'})}}
-  if(path==='health')return json(res,200,{ok:true,version:'5.2.0',configured:{supabase:!!(process.env.SUPABASE_URL&&(process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY)),discordOAuth:!!(process.env.DISCORD_CLIENT_ID&&process.env.DISCORD_CLIENT_SECRET&&process.env.DISCORD_REDIRECT_URI&&process.env.SESSION_SECRET),discordBot:!!process.env.DISCORD_BOT_TOKEN,botSync:!!process.env.BOT_SYNC_SECRET}});
+  if(path==='health')return json(res,200,{ok:true,version:'5.3.0',configured:{supabase:!!(process.env.SUPABASE_URL&&(process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY)),discordOAuth:!!(process.env.DISCORD_CLIENT_ID&&process.env.DISCORD_CLIENT_SECRET&&process.env.DISCORD_REDIRECT_URI&&process.env.SESSION_SECRET),discordBot:!!process.env.DISCORD_BOT_TOKEN,botSync:!!process.env.BOT_SYNC_SECRET}});
+  if(path==='bot-config'){
+   if(!process.env.BOT_SYNC_SECRET||!same(req.headers['x-bot-secret'],process.env.BOT_SYNC_SECRET))return json(res,401,{error:'Não autorizado'});
+   const guildId=String(req.query?.guildId||'');if(!/^\d{15,25}$/.test(guildId))return json(res,400,{error:'Servidor inválido'});
+   const rows=await db('guild_settings',{query:`?guild_id=eq.${guildId}&select=time_off,point_mode`});
+   return json(res,200,{timeOff:rows[0]?.time_off||{weekly:{all:[0]},dates:[]},pointMode:rows[0]?.point_mode||'team'});
+  }
   if(path==='bot-sync'){
    if(req.method!=='POST')return json(res,405,{error:'Método não permitido'});
    if(!process.env.BOT_SYNC_SECRET||!same(req.headers['x-bot-secret'],process.env.BOT_SYNC_SECRET))return json(res,401,{error:'Não autorizado'});
@@ -37,7 +58,8 @@ module.exports=async(req,res)=>{
    const gid=d.guildId;
    if(d.type==='bot-settings'){
     const old=await db('guild_settings',{query:`?guild_id=eq.${gid}&select=*`});
-    await db('guild_settings',{method:'POST',body:{guild_id:gid,name:old[0]?.name||'',roles:old[0]?.roles||{},shift_roles:d.shiftRoles||{},shift_hours:d.shiftHours||{}}});
+    if(old.length)await db('guild_settings',{method:'PATCH',query:`?guild_id=eq.${gid}`,body:{shift_roles:d.shiftRoles||{},shift_hours:d.shiftHours||{},point_mode:d.pointMode==='individual'?'individual':'team',updated_at:new Date().toISOString()}});
+    else await db('guild_settings',{method:'POST',body:{guild_id:gid,name:'',shift_roles:d.shiftRoles||{},shift_hours:d.shiftHours||{},point_mode:d.pointMode==='individual'?'individual':'team'}});
     return json(res,200,{ok:true});
    }
    if(d.type==='members'){
@@ -52,7 +74,26 @@ module.exports=async(req,res)=>{
     if(rows.length)await db('shift_cards',{method:'POST',body:rows});
     return json(res,200,{ok:true,count:rows.length});
    }
-   if(d.type==='guild')await db('guild_settings',{method:'POST',body:{guild_id:gid,name:String(d.name||'').slice(0,120)}});
+   if(d.type==='attendance'){
+    if(!Array.isArray(d.days)||d.days.length>50)return json(res,400,{error:'Lote inválido'});
+    const rows=d.days.filter(x=>/^\d{15,25}$/.test(String(x.userId))&&validDay(x.date)&&['manha','tarde','noite','madrugada'].includes(x.shift)&&['cumpriu','incompleta','falta','folga','justificada','pendente'].includes(x.status)).map(x=>({guild_id:gid,day:x.date,user_id:x.userId,shift:x.shift,status:x.status,minutes:Math.max(0,Math.floor(Number(x.minutes)||0))}));
+    if(rows.length)await db('attendance_days',{method:'POST',body:rows});return json(res,200,{ok:true,count:rows.length});
+   }
+   if(d.type==='justifications'){
+    if(!Array.isArray(d.justifications)||d.justifications.length>50)return json(res,400,{error:'Lote inválido'});
+    const rows=d.justifications.filter(x=>/^\d{15,25}$/.test(String(x.userId))&&validDay(x.date)&&['manha','tarde','noite','madrugada'].includes(x.shift)&&['pending','approved','rejected'].includes(x.status)&&x.id).map(x=>({guild_id:gid,id:String(x.id).slice(0,40),user_id:x.userId,shift:x.shift,day:x.date,reason:String(x.reason).slice(0,600),status:x.status,created_at:new Date(x.at).toISOString(),decided_at:x.decidedAt?new Date(x.decidedAt).toISOString():null,reviewer_id:x.reviewerId||null}));
+    if(rows.length)await db('absence_justifications',{method:'POST',body:rows});return json(res,200,{ok:true,count:rows.length});
+   }
+   if(d.type==='warnings'){
+    if(!Array.isArray(d.warnings)||d.warnings.length>50)return json(res,400,{error:'Lote inválido'});
+    const rows=d.warnings.filter(x=>/^\d{15,25}$/.test(String(x.userId))&&validDay(x.date)&&['manha','tarde','noite','madrugada'].includes(x.shift)&&['active','revoked'].includes(x.status)&&Number.isInteger(x.level)&&x.level>=1&&x.level<=3&&x.id).map(x=>({guild_id:gid,id:String(x.id).slice(0,40),user_id:x.userId,shift:x.shift,day:x.date,level:x.level,status:x.status,reason:String(x.reason||'').slice(0,500),created_at:new Date(x.at).toISOString(),revoked_at:x.revokedAt?new Date(x.revokedAt).toISOString():null,revoked_by:x.revokedBy||null}));
+    if(rows.length)await db('attendance_warnings',{method:'POST',body:rows});return json(res,200,{ok:true,count:rows.length});
+   }
+   if(d.type==='guild'){
+    const old=await db('guild_settings',{query:`?guild_id=eq.${gid}&select=guild_id`});
+    if(old.length)await db('guild_settings',{method:'PATCH',query:`?guild_id=eq.${gid}`,body:{name:String(d.name||'').slice(0,120)}});
+    else await db('guild_settings',{method:'POST',body:{guild_id:gid,name:String(d.name||'').slice(0,120)}});
+   }
    else if(d.type==='member'){
     if(!/^\d{15,25}$/.test(String(d.userId||'')))return json(res,400,{error:'userId inválido'});
     await db('guild_members',{method:'POST',body:{guild_id:gid,user_id:d.userId,display_name:String(d.displayName||'').slice(0,100),avatar_url:d.avatarUrl||null,role_ids:Array.isArray(d.roleIds)?d.roleIds:[]}});
@@ -94,17 +135,27 @@ module.exports=async(req,res)=>{
   if(!/^\d{15,25}$/.test(gid))return json(res,400,{error:'Servidor inválido'});
   const rights=await authorized(gid,user);if(!rights.view)return json(res,403,{error:'Sem acesso'});
   if(path==='data'&&req.method==='GET'){
-   const [members,cards,settings]=await Promise.all([
+   const [members,cards,settings,attendance,justifications,warnings]=await Promise.all([
     db('guild_members',{query:`?guild_id=eq.${gid}&select=*&limit=2000`}),
     db('shift_cards',{query:`?guild_id=eq.${gid}&select=*&order=started_at.desc&limit=3000`}),
-    db('guild_settings',{query:`?guild_id=eq.${gid}&select=*`})
+    db('guild_settings',{query:`?guild_id=eq.${gid}&select=*`}),
+    db('attendance_days',{query:`?guild_id=eq.${gid}&select=*&order=day.desc&limit=3000`}),
+    db('absence_justifications',{query:`?guild_id=eq.${gid}&select=*&order=created_at.desc&limit=800`}),
+    db('attendance_warnings',{query:`?guild_id=eq.${gid}&select=*&order=created_at.desc&limit=800`})
    ]);
-   return json(res,200,{members,cards,settings:settings[0]||null,canEdit:rights.edit});
+   return json(res,200,{members,cards,settings:settings[0]||null,attendance,justifications,warnings,canEdit:rights.edit,isBotOwner:user.id===process.env.BOT_OWNER_DISCORD_ID});
   }
   if(path==='roles'&&req.method==='GET'){
    if(!rights.edit)return json(res,403,{error:'Somente o dono do servidor pode escolher cargos'});
    const roles=await discord(`/guilds/${gid}/roles`);
    return json(res,200,{roles:roles.filter(r=>r.id!==gid&&!r.managed).sort((a,b)=>b.position-a.position).map(r=>({id:r.id,name:r.name}))});
+  }
+  if(path==='time-off'&&req.method==='POST'){
+   if(!rights.edit)return json(res,403,{error:'Somente o dono do servidor pode configurar folgas'});
+   const timeOff=safeTimeOff(req.body||{});
+   // PATCH is intentional: do not overwrite bot settings, roles or guild name.
+   await db('guild_settings',{method:'PATCH',query:`?guild_id=eq.${gid}`,body:{time_off:timeOff,updated_at:new Date().toISOString()}});
+   return json(res,200,{ok:true,timeOff});
   }
   if(path==='settings'&&req.method==='POST'){
    if(!rights.edit)return json(res,403,{error:'Só o dono do servidor configura'});
@@ -115,7 +166,7 @@ module.exports=async(req,res)=>{
    if(d.allowedRoles.some(r=>!allowed.has(r)))return json(res,400,{error:'Um cargo não pertence a este servidor'});
    const settings=await db('guild_settings',{query:`?guild_id=eq.${gid}&select=*`});
    if(!settings.length)return json(res,404,{error:'Servidor ainda não foi sincronizado'});
-   await db('guild_settings',{method:'POST',body:{guild_id:gid,name:settings[0].name||'',roles:{...(settings[0].roles||{}),allowed:d.allowedRoles},shift_roles:settings[0].shift_roles||{},shift_hours:settings[0].shift_hours||{},updated_at:new Date().toISOString()}});
+   await db('guild_settings',{method:'PATCH',query:`?guild_id=eq.${gid}`,body:{roles:{...(settings[0].roles||{}),allowed:d.allowedRoles},updated_at:new Date().toISOString()}});
    return json(res,200,{ok:true});
   }
   return json(res,404,{error:'Rota não encontrada'});
