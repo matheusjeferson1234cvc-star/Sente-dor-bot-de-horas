@@ -1,0 +1,20 @@
+ATUALIZACAO 5.2: Instrucoes mais recentes em COMECE-AQUI-V5.2.txt
+
+CENTRAL DE HORAS 5.1 — CORREÇÃO DE ROTAS VERCEL
+
+O site já carregava, mas a chamada /api/me respondia com HTML ou 404 (O servidor retornou uma resposta inválida).
+Esta versão usa arquivos de rota diretos em api/health.js, api/me.js, api/bot-sync.js, api/login.js, api/callback.js etc.
+NÃO disponibilize segredos no GitHub nem no HTML.
+
+PARA ATUALIZAR SEU PROJETO EXISTENTE central-de-horas1:
+1. Acesse o GitHub usado pela Vercel (branch main, como aparece na implantação).
+2. EXTRAIA este ZIP. Envie todos os arquivos E a pasta api/ INTEIRA para a RAIZ do repositório. Os caminhos devem ser api/health.js e api/bot-sync.js, não "central-de-horas/api/health.js".
+3. Substitua vercel.json, index.html, real.js, dashboard.css etc. Mantenha o projeto Vercel existente.
+4. Espere o Deploy ficar Ready. Teste https://central-de-horas1.vercel.app/api/health. Deve exibir {"ok":true,"configured":{...}}.
+5. Se continuar 404, confira no GitHub a pasta api/ e em Vercel > Deployments > Deployment > Functions se existe uma função /api/health. Veja o Root Directory em Settings > Build and Deployment.
+6. A API de sincronização NÃO é liberada para acesso anônimo: /api/bot-sync exige POST e o header X-Bot-Secret. Não desative proteções.
+7. As variáveis Vercel necessárias continuam: SUPABASE_URL, SUPABASE_SECRET_KEY (ou SERVICE_ROLE), DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, DISCORD_BOT_TOKEN, BOT_OWNER_DISCORD_ID, SESSION_SECRET, BOT_SYNC_SECRET. Não publique valores. A variável BOT_SYNC_SECRET deve ser igual na Discloud.
+8. Depois de atualizar variáveis na Vercel, faça Redeploy para aplicá-las.
+9. Faça backup dos arquivos existentes antes de substituir. Não precisa modificar o bot só para esta correção da rota da API.
+
+O teste local verifica rotas e regras de API; conexão real ainda depende de credenciais e publicação correta.

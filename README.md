@@ -1,3 +1,7 @@
+# Central de Horas v5.2 — site + API corrigidos
+
+Veja `COMECE-AQUI-V5.2.txt` para envio pelo GitHub no celular e configuração.
+
 # Central de Horas — painel de produção
 
 A página inicial (`index.html`) é o painel real com login Discord. A interface antiga de demonstração fica isolada em `/demo.html`.
