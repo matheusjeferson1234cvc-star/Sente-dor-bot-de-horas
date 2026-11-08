@@ -129,25 +129,34 @@ function openTab(tab){
 function renderNav(){
  const [title,description]=tabInfo[state.tab]||tabInfo.inicio;
  $('pageTitle').textContent=title;$('pageDescription').textContent=description;
+ $('pageEyebrow').textContent='PAINEL / '+title.toLocaleUpperCase('pt-BR');
+ $('headerContext').textContent='Área administrativa · '+title;
  $('ownerLabTab').hidden=!state.data?.isBotOwner;
  $('ownerBadge').hidden=!state.data?.isBotOwner;
  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));
  $('mobileMore').classList.toggle('active',!['inicio','presenca','ranking'].includes(state.tab));
 }
 function overview(){
- const rows=$('rows'),filters=$('filters'),data=state.data,people=state.data?.members||[],all=cards(),map=members();
- filters.append(el('p','Resumo do servidor selecionado. Para detalhes, escolha uma seção no menu lateral ou na barra inferior.','hint'));
- const banner=el('div',undefined,'overview-banner'),left=el('div');left.append(el('h3','Central de Horas • Painel ao vivo'),el('p','Integração Discord + Discloud + Supabase'));
- banner.append(left,el('div','◷','icon'));rows.append(banner);
+ const rows=$('rows'),filters=$('filters'),data=state.data,all=cards(),map=members();
+ const period=all.filter(inPeriod);const pending=(data.justifications||[]).filter(x=>x.status==='pending').length;
+ const now=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'long',year:'numeric'}).format(new Date());
+ const banner=el('div',undefined,'overview-banner'),left=el('div');
+ left.append(el('span','RESUMO OPERACIONAL','overview-kicker'),el('h3','Tudo o que importa, em um só painel.'),el('p',`Acompanhamento do servidor selecionado · ${now}`));
+ const logo=el('span',undefined,'icon');logo.innerHTML='<svg class="ico" aria-hidden="true"><use href="#ico-activity"/></svg>';
+ banner.append(left,logo);rows.append(banner);
  const grid=el('div',undefined,'overview-grid');
- const attendance=el('div',undefined,'overview-tile'),h=el('h3','Turnos e presença');attendance.append(h);
- const totalOfficial=new Set(shifts.flatMap(s=>official(s).map(m=>m.user_id)));
- attendance.append(el('p',`${totalOfficial.size} membro(s) com cargo de turno • ${all.filter(c=>c.status==='Ativo').length} registro(s) em andamento`,'muted-small'));
- const quick=el('div',undefined,'quick-actions');for(const [name,tab] of [['▣ Controle de presença','presenca'],['◷ Turnos','turno'],['▤ Histórico mensal','mensal']]){const b=el('button',name);b.type='button';b.onclick=()=>openTab(tab);quick.append(b)}attendance.append(quick);
- const recent=el('div',undefined,'overview-tile');recent.append(el('h3','Atividade recente'));
- const current=all.filter(c=>c.status!=='Cancelado').slice(0,4);for(const c of current)recent.append(person(map.get(c.user_id)||{user_id:c.user_id},`${c.shift} · ${c.kind} · ${c.status}`,fmt(c.duration_minutes),c.status==='Validado'?'good':''));
- if(!current.length)note(recent,'Ainda não há registros sincronizados.');grid.append(attendance,recent);rows.append(grid);
- if(data.isBotOwner){const area=el('div',undefined,'overview-tile');area.style.marginTop='15px';area.append(el('h3','Acesso do dono do sistema'),el('p','Você pode consultar todos os servidores sincronizados e experimentar as configurações no laboratório, sem modificar cargos nem advertências reais.','muted-small'));const b=el('button','◇ Abrir laboratório seguro','button');b.type='button';b.onclick=()=>openTab('laboratorio');area.append(b);rows.append(area)}
+ const team=el('div',undefined,'overview-tile');team.append(el('span','EQUIPE','overview-kicker'),el('h3','Presença e turnos'),el('p','Pessoas atualmente vinculadas aos cargos de turno.'));
+ const shiftBox=el('div',undefined,'shift-list');
+ for(const shift of shifts){const r=el('div',undefined,'shift-row'),label=el('span',undefined,'shift-label');label.append(el('span',undefined,'shift-dot'),el('span',shift));r.append(label,el('strong',String(official(shift).length)+(official(shift).length===1?' membro':' membros'),'shift-count'));shiftBox.append(r)}
+ team.append(shiftBox);
+ const quick=el('div',undefined,'quick-actions');for(const [label,tab] of [['Controle de presença','presenca'],['Ver membros','membros'],['Histórico mensal','mensal'],['Relatórios','relatorios']]){const b=el('button',label);b.type='button';b.onclick=()=>openTab(tab);quick.append(b)}team.append(quick);
+ const latest=el('div',undefined,'overview-tile');latest.append(el('span','MOVIMENTAÇÃO','overview-kicker'),el('h3','Registros recentes'),el('p','Últimos cartões sincronizados pelo bot, sem dados fictícios.'));
+ const current=[...all].filter(c=>c.status!=='Cancelado').sort((a,b)=>new Date(b.started_at)-new Date(a.started_at)).slice(0,4);
+ for(const c of current){latest.append(person(map.get(c.user_id)||{user_id:c.user_id},`${c.shift} · ${c.kind} · ${c.status}`,fmt(c.duration_minutes),c.status==='Validado'?'good':''))}
+ if(!current.length)note(latest,'Nenhum registro sincronizado até o momento.');
+ const noteLine=el('div',undefined,'overview-note');noteLine.append(el('span','Justificativas em análise'),el('strong',String(pending)));latest.append(noteLine);
+ grid.append(team,latest);rows.append(grid);
+ if(data.isBotOwner){const area=el('div',undefined,'overview-tile');area.style.marginTop='16px';area.append(el('span','ÁREA DO PROPRIETÁRIO','overview-kicker'),el('h3','Laboratório seguro'),el('p','Experimente parâmetros e verifique regras em modo de consulta, sem gravar alterações nos servidores.'));const b=el('button','Abrir laboratório de testes','button');b.type='button';b.onclick=()=>openTab('laboratorio');area.append(b);rows.append(area)}
 }
 function ownerLab(){
  const rows=$('rows'),filters=$('filters'),data=state.data;
@@ -173,7 +182,7 @@ function ownerLab(){
  const btn=el('button','▣ Abrir controle de presença','button ghost');btn.onclick=()=>openTab('presenca');guidance.append(btn);grid.append(guidance);
 }
 function render(){if(!state.data)return;const data=state.data,all=cards(),period=all.filter(inPeriod),map=members();$('period').value=state.period;$('month').value=state.month||today().slice(0,7);$('permissionsTab').hidden=!state.canEdit;renderNav();
-const summaries=[['Normais validadas',fmt(totaled(period,'Normal'))],['Extras validadas',fmt(totaled(period,'Extra'))],['Total validado',fmt(totaled(period))],['Em andamento',String(period.filter(active).length)+' registros']];$('stats').replaceChildren();for(const [label,val] of summaries){const box=el('div',undefined,'stat');box.append(el('span',label),el('strong',val));$('stats').append(box)}
+const summaries=[['Normais validadas',fmt(totaled(period,'Normal'))],['Extras validadas',fmt(totaled(period,'Extra'))],['Total validado',fmt(totaled(period))],['Em andamento',String(period.filter(active).length)+(period.filter(active).length===1?' registro':' registros')]];$('stats').replaceChildren();for(const [label,val] of summaries){const box=el('div',undefined,'stat');box.append(el('span',label),el('strong',val));$('stats').append(box)}
 const filters=$('filters'),rows=$('rows');filters.replaceChildren();rows.replaceChildren();
 if(data.missingSchema?.length)filters.append(el('p','Banco Supabase ainda não atualizado: execute ATUALIZAR-SUPABASE.sql para ativar presença, justificativas, advertências e folgas. As horas antigas continuam disponíveis.','error'));
 if(state.tab==='inicio')overview();
@@ -214,8 +223,8 @@ async function renderPermissions(filters,rows,data){filters.append(el('p','Somen
  box.append(field,save)
 }
 async function load(){if(!state.guild)return;const status=$('syncStatus');status.textContent='Sincronizando dados...';status.className='status';try{state.data=await api('data?guildId='+encodeURIComponent(state.guild));state.canEdit=!!state.data.canEdit;render();status.textContent=state.data?.missingSchema?.length?'Banco desatualizado · veja o aviso no painel':'Sincronizado · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});status.className=state.data?.missingSchema?.length?'status err':'status ok'}catch(e){$('rows').replaceChildren(el('p',e.message,'error'));status.textContent='Falha ao carregar';status.className='status err'}}
-async function start(){try{const me=await api('me');if(!me.user){$('auth').replaceChildren(el('p','Faça login pelo Discord para verificar seus servidores autorizados.'),(()=>{const a=el('a','Entrar com Discord','button');a.href='/api/login';return a})());$('syncStatus').textContent='Login necessário';return}
- $('auth').replaceChildren(el('p',`Conectado como ${me.user.name}`,'muted'));$('logout').hidden=false;$('logout').onclick=async()=>{try{await api('logout',{method:'POST'});location.reload()}catch(e){$('syncStatus').textContent=e.message}};
+async function start(){try{const me=await api('me');if(!me.user){$('auth').replaceChildren(el('p','Faça login pelo Discord para verificar seus servidores autorizados.'),(()=>{const a=el('a','Continuar com Discord','button');a.href='/api/login';return a})());$('syncStatus').textContent='Login necessário';return}
+ $('auth').replaceChildren(el('p',`Conectado como ${me.user.name}`,'muted'));$('logout').hidden=false;$('sidebarLogout').hidden=false;$('sidebarLogout').onclick=()=>$('logout').click();$('logout').onclick=async()=>{try{await api('logout',{method:'POST'});location.reload()}catch(e){$('syncStatus').textContent=e.message}};
  $('userBadge').hidden=false;$('userBadge').textContent='◉ '+me.user.name;
  const result=await api('guilds');state.guilds=result.guilds||[];if(!state.guilds.length){$('auth').append(el('p','Nenhum servidor sincronizado e autorizado apareceu ainda. Confirme se o bot está ligado, fez a primeira sincronização e se sua conta é dona do servidor ou tem cargo permitido.','muted'));$('syncStatus').textContent='Sem servidor autorizado';return}
  $('auth').hidden=true;$('content').hidden=false;document.body.classList.add('logged-in');$('sidebar').hidden=false;$('mobileBottom').hidden=false;$('openSidebar').hidden=false;const guild=$('guild');guild.replaceChildren();for(const g of state.guilds)guild.append(option(g.name||g.guild_id,g.guild_id));state.guild=state.guilds[0].guild_id;guild.value=state.guild;guild.onchange=()=>{state.guild=guild.value;state.roles=null;load()};$('period').onchange=e=>{state.period=e.target.value;render()};$('month').value=today().slice(0,7);state.month=$('month').value;$('month').onchange=e=>{state.month=e.target.value;state.period='month';render()};$('reload').onclick=load;document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));$('openSidebar').onclick=()=>setSidebarOpen(true);$('mobileMore').onclick=()=>setSidebarOpen(true);$('closeSidebar').onclick=()=>setSidebarOpen(false);$('sidebarOverlay').onclick=()=>setSidebarOpen(false);document.addEventListener('keydown',e=>{if(e.key==='Escape')setSidebarOpen(false)});await load();setInterval(()=>{if(!document.hidden&&state.guild)load().catch(()=>{})},60000);
