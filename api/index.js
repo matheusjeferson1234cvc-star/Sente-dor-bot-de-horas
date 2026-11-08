@@ -1,4 +1,5 @@
 const warningDecision=require('../warning-decision');
+const botSchema=require('../bot-config-schema');
 const crypto=require('node:crypto');
 const cookie=(req,key)=>Object.fromEntries((req.headers.cookie||'').split(';').map(x=>x.trim().split('=')))[key];
 const json=(res,status,data)=>{res.status(status).setHeader('Cache-Control','no-store');res.json(data)};
@@ -30,13 +31,14 @@ const safeTimeOff=input=>{
  return {weekly,dates:[...new Map(dates.map(d=>[d.date+':'+d.shift,{date:d.date,shift:d.shift}])).values()]};
 };
 const authorized=async(guild,user)=>{
- const globalOwner=user.id===process.env.BOT_OWNER_DISCORD_ID;
+ const globalOwner=!!process.env.BOT_OWNER_DISCORD_ID&&user.id===process.env.BOT_OWNER_DISCORD_ID;
+ const ownerCanEdit=globalOwner&&(process.env.BOT_OWNER_EDIT_GUILDS||'').split(/[\s,;]+/).includes(guild);
  // Global owner can inspect all synchronized guilds. Editing requires guild ownership.
  if(globalOwner&&!process.env.DISCORD_BOT_TOKEN)return {view:true,edit:false};
  let info;
  try{info=await discord(`/guilds/${guild}`)}catch(e){if(globalOwner)return {view:true,edit:false};throw e}
  if(info.owner_id===user.id)return {view:true,edit:true};
- if(globalOwner)return {view:true,edit:false};
+ if(globalOwner)return {view:true,edit:ownerCanEdit};
  // A permissão Administrador é atribuída pelo Discord aos cargos, não ao perfil OAuth.
  // Validação é feita no servidor com o token do bot; não confiar em cargos enviados pelo navegador.
  const [member,cfg,guildRoles]=await Promise.all([
@@ -56,7 +58,7 @@ module.exports=async(req,res)=>{
   if(typeof req.body==='string'){try{req.body=JSON.parse(req.body)}catch{return json(res,400,{error:'JSON inválido'})}}
   if(path==='health'){
    const configured={supabase:!!(process.env.SUPABASE_URL&&(process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY)),discordOAuth:!!(process.env.DISCORD_CLIENT_ID&&process.env.DISCORD_CLIENT_SECRET&&process.env.DISCORD_REDIRECT_URI&&process.env.SESSION_SECRET),discordBot:!!process.env.DISCORD_BOT_TOKEN,botSync:!!process.env.BOT_SYNC_SECRET};
-   const result={ok:true,version:'5.5.0',configured};
+   const result={ok:true,version:'5.8.0',configured};
    if(req.query?.check==='database'){
     if(!configured.supabase)return json(res,200,{...result,database:{ready:false,message:'Configurar SUPABASE_URL e SUPABASE_SECRET_KEY na Vercel'}});
     const names=['guild_settings','guild_members','shift_cards','attendance_days','absence_justifications','attendance_warnings'];
@@ -65,10 +67,11 @@ module.exports=async(req,res)=>{
    }
    return json(res,200,result);
   }
-  if(path==='bot-config'){
+  if(path==='bot-config'&&req.query?.scope!=='editor'){
+   if(req.method!=='GET')return json(res,405,{error:'Método não permitido'});
    if(!process.env.BOT_SYNC_SECRET||!same(req.headers['x-bot-secret'],process.env.BOT_SYNC_SECRET))return json(res,401,{error:'Não autorizado'});
    const guildId=String(req.query?.guildId||'');if(!/^\d{15,25}$/.test(guildId))return json(res,400,{error:'Servidor inválido'});
-   const rows=await db('guild_settings',{query:`?guild_id=eq.${guildId}&select=time_off,point_mode`});
+   const rows=await db('guild_settings',{query:`?guild_id=eq.${guildId}&select=time_off,point_mode,bot_config,bot_config_revision`});
    const [days,justifications,warnings]=await Promise.all([
     db('attendance_days',{query:`?guild_id=eq.${guildId}&select=day,user_id,shift,status&order=day.desc&limit=4000`}),
     db('absence_justifications',{query:`?guild_id=eq.${guildId}&select=day,user_id,shift,status&order=day.desc&limit=2000`}),
@@ -76,7 +79,7 @@ module.exports=async(req,res)=>{
    ]);
    const timeOff=rows[0]?.time_off||{weekly:{all:[0]},dates:[]};
    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-   return json(res,200,{timeOff,pointMode:rows[0]?.point_mode||'team',warningApprovals:warningDecision.evaluate({days,justifications,warnings,timeOff,today})});
+   return json(res,200,{timeOff,pointMode:rows[0]?.point_mode||'team',botConfig:rows[0]?.bot_config||null,configRevision:rows[0]?.bot_config_revision||0,warningApprovals:warningDecision.evaluate({days,justifications,warnings,timeOff,today})});
   }
   if(path==='bot-sync'){
    if(req.method!=='POST')return json(res,405,{error:'Método não permitido'});
@@ -84,10 +87,33 @@ module.exports=async(req,res)=>{
    const d=req.body||{};
    if(!/^\d{15,25}$/.test(String(d.guildId||'')))return json(res,400,{error:'guildId inválido'});
    const gid=d.guildId;
+   if(d.type==='config-ack'){
+    const revision=Number(d.revision);
+    if(!Number.isInteger(revision)||revision<0)return json(res,400,{error:'Revisão inválida'});
+    // O bot só pode confirmar a revisão que está armazenada. Nunca criar
+    // uma confirmação para uma configuração que não foi salva pelo site.
+    const current=await db('guild_settings',{query:`?guild_id=eq.${gid}&select=bot_config_revision,bot_config_applied_revision`});
+    if(!current.length||current[0].bot_config_revision!==revision)return json(res,409,{error:'Revisão desatualizada'});
+    if((current[0].bot_config_applied_revision||0)<=revision){
+     await db('guild_settings',{method:'PATCH',query:`?guild_id=eq.${gid}&bot_config_revision=eq.${revision}`,body:{bot_config_applied_revision:revision,bot_config_applied_at:new Date().toISOString()}});
+    }
+    return json(res,200,{ok:true});
+   }
    if(d.type==='bot-settings'){
     const old=await db('guild_settings',{query:`?guild_id=eq.${gid}&select=*`});
-    if(old.length)await db('guild_settings',{method:'PATCH',query:`?guild_id=eq.${gid}`,body:{shift_roles:d.shiftRoles||{},shift_hours:d.shiftHours||{},point_mode:d.pointMode==='individual'?'individual':'team',updated_at:new Date().toISOString()}});
-    else await db('guild_settings',{method:'POST',body:{guild_id:gid,name:'',shift_roles:d.shiftRoles||{},shift_hours:d.shiftHours||{},point_mode:d.pointMode==='individual'?'individual':'team'}});
+    // O site é a fonte das configurações após a primeira inicialização.
+    // O bot NÃO substitui uma revisão configurada pela administração no site.
+    const syncPatch={shift_roles:d.shiftRoles||{},shift_hours:d.shiftHours||{},point_mode:d.pointMode==='individual'?'individual':'team',updated_at:new Date().toISOString()};
+    if(old.length){
+     if(!old[0].bot_config&&d.fullConfig){
+      try{syncPatch.bot_config=botSchema.normalize(d.fullConfig)}catch(e){console.warn('Configuração inicial ignorada:',e.message)}
+     }
+     await db('guild_settings',{method:'PATCH',query:`?guild_id=eq.${gid}`,body:syncPatch});
+    }else{
+     const first={guild_id:gid,name:'',...syncPatch};
+     if(d.fullConfig)try{first.bot_config=botSchema.normalize(d.fullConfig)}catch(e){console.warn('Configuração inicial ignorada:',e.message)}
+     await db('guild_settings',{method:'POST',body:first});
+    }
     return json(res,200,{ok:true});
    }
    if(d.type==='members'){
@@ -187,6 +213,29 @@ module.exports=async(req,res)=>{
    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
    const approvals=warningDecision.evaluate({days,justifications,warnings,timeOff:settings[0]?.time_off||{},today});
    return json(res,200,{ok:true,dryRun:true,approvals,scanned:days.length,warning:'Esta simulação não altera cargos, registros nem envia avisos.'});
+  }
+  if(path==='bot-config'&&req.query?.scope==='editor'){
+   if(!rights.edit)return json(res,403,{error:'Somente o dono do servidor pode alterar as configurações do bot'});
+   const stored=await db('guild_settings',{query:`?guild_id=eq.${gid}&select=bot_config,bot_config_revision,bot_config_applied_revision,bot_config_applied_at`});
+   if(!stored.length)return json(res,404,{error:'Servidor ainda não sincronizado'});
+   const config=stored[0];
+   if(req.method==='GET'){
+    const [roles,channels]=await Promise.all([discord(`/guilds/${gid}/roles`),discord(`/guilds/${gid}/channels`)]);
+    return json(res,200,{config:config.bot_config||null,revision:config.bot_config_revision||0,appliedRevision:config.bot_config_applied_revision||0,appliedAt:config.bot_config_applied_at||null,
+     roles:roles.filter(r=>r.id!==gid&&!r.managed).map(r=>({id:r.id,name:r.name,position:r.position})).sort((a,b)=>b.position-a.position),
+     channels:channels.filter(c=>[0,5].includes(c.type)).map(c=>({id:c.id,name:c.name}))});
+   }
+   if(req.method!=='POST')return json(res,405,{error:'Método não permitido'});
+   if(req.headers.origin&&req.headers.host){try{if(new URL(req.headers.origin).host!==req.headers.host)return json(res,403,{error:'Origem não autorizada'})}catch{return json(res,403,{error:'Origem inválida'})}}
+   const payload=req.body||{};
+   if(!Number.isInteger(payload.revision)||payload.revision!==(config.bot_config_revision||0))return json(res,409,{error:'Configurações alteradas em outra sessão. Recarregue antes de salvar.'});
+   let normalized;
+   try{normalized=botSchema.normalize(payload.config)}catch(e){return json(res,400,{error:e.message})}
+   const [roles,channels]=await Promise.all([discord(`/guilds/${gid}/roles`),discord(`/guilds/${gid}/channels`)]);
+   try{botSchema.assertResources(normalized,roles,channels,gid)}catch(e){return json(res,400,{error:e.message})}
+   const patch=await db('guild_settings',{method:'PATCH',query:`?guild_id=eq.${gid}&bot_config_revision=eq.${payload.revision}`,body:{bot_config:normalized,bot_config_revision:payload.revision+1,updated_at:new Date().toISOString()}});
+   if(!patch.length)return json(res,409,{error:'Configuração desatualizada. Atualize a página e tente novamente.'});
+   return json(res,200,{ok:true,revision:payload.revision+1,applied:false,message:'Salvo. O bot aplicará após a próxima sincronização.'});
   }
   if(path==='roles'&&req.method==='GET'){
    if(!rights.edit)return json(res,403,{error:'Somente o dono do servidor pode escolher cargos'});
