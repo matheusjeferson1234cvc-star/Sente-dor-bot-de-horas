@@ -19,6 +19,21 @@ const db=async(table,options={})=>{
 const missingSchema=e=>/PGRST205|PGRST204|42P01|42703|could not find the table|schema cache|does not exist|column .* does not exist/i.test(String(e?.message||e));
 const supplemental=async(table,query,missing)=>{try{return await db(table,{query})}catch(e){if(!missingSchema(e))throw e;missing.push(table);return []}};
 const discord=async(path,token)=>{const r=await fetch(`https://discord.com/api/v10${path}`,{headers:{Authorization:`Bot ${token||process.env.DISCORD_BOT_TOKEN}`}});if(!r.ok)throw Error(`Discord ${r.status}`);return r.json()};
+// Diagnóstico da integração, sem expor segredos aos usuários.
+const editorDbError=(res,e)=>{
+ if(missingSchema(e))return json(res,409,{code:'BOT_CONFIG_SCHEMA_MISSING',error:'O Supabase está sem colunas da configuração do bot. Execute a atualização SQL v5.8 (bot_config e revisões) no projeto certo.'});
+ console.error('Configurações do bot / Supabase:',e);
+ return json(res,503,{code:'BOT_CONFIG_DATABASE_UNAVAILABLE',error:'Não foi possível ler as configurações no Supabase. Confira as variáveis SUPABASE_URL e SUPABASE_SECRET_KEY na Vercel e os logs da implantação.'});
+};
+const editorDiscordError=(res,e)=>{
+ const status=Number(String(e?.message||'').match(/Discord (\d{3})/)?.[1]||0);
+ if(status===401)return json(res,503,{code:'DISCORD_BOT_TOKEN_INVALID',error:'O Discord rejeitou o token do bot (401). Atualize DISCORD_BOT_TOKEN na Vercel com o token do mesmo bot instalado no servidor e faça Redeploy.'});
+ if(status===403||status===404)return json(res,503,{code:'DISCORD_BOT_NO_GUILD_ACCESS',error:'O bot não conseguiu acessar os cargos e canais deste servidor no Discord. Confira se o bot correto está no servidor selecionado.'});
+ if(status===429)return json(res,503,{code:'DISCORD_RATE_LIMIT',error:'O Discord limitou temporariamente a consulta. Aguarde um pouco e tente novamente.'});
+ console.error('Configurações do bot / Discord:',e);
+ return json(res,503,{code:'DISCORD_API_UNAVAILABLE',error:'Não foi possível consultar cargos e canais no Discord. Confira o token do bot e a conexão da Vercel.'});
+};
+const editorDiscordResources=async(gid)=>Promise.all([discord(`/guilds/${gid}/roles`),discord(`/guilds/${gid}/channels`)]);
 const validDate=v=>typeof v==='string'&&!Number.isNaN(Date.parse(v));
 const validDay=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
 const SHIFT=['manha','tarde','noite','madrugada','all'];
@@ -69,12 +84,14 @@ module.exports=async(req,res)=>{
   if(typeof req.body==='string'){try{req.body=JSON.parse(req.body)}catch{return json(res,400,{error:'JSON inválido'})}}
   if(path==='health'){
    const configured={supabase:!!(process.env.SUPABASE_URL&&(process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY)),discordOAuth:!!(process.env.DISCORD_CLIENT_ID&&process.env.DISCORD_CLIENT_SECRET&&process.env.DISCORD_REDIRECT_URI&&process.env.SESSION_SECRET),discordBot:!!process.env.DISCORD_BOT_TOKEN,botSync:!!process.env.BOT_SYNC_SECRET};
-   const result={ok:true,version:'5.8.4',configured};
+   const result={ok:true,version:'5.8.5',configured};
    if(req.query?.check==='database'){
     if(!configured.supabase)return json(res,200,{...result,database:{ready:false,message:'Configurar SUPABASE_URL e SUPABASE_SECRET_KEY na Vercel'}});
     const names=['guild_settings','guild_members','shift_cards','attendance_days','absence_justifications','attendance_warnings'];
     const checks=await Promise.all(names.map(async name=>{try{await db(name,{query:'?select=*&limit=0'});return [name,true]}catch(e){return [name,false]}}));
-    result.database={ready:checks.every(x=>x[1]),tables:Object.fromEntries(checks)};
+    let botConfigReady=false;
+    try{await db('guild_settings',{query:'?select=bot_config,bot_config_revision,bot_config_applied_revision,bot_config_applied_at&limit=0'});botConfigReady=true}catch{}
+    result.database={ready:checks.every(x=>x[1])&&botConfigReady,tables:Object.fromEntries(checks),botConfigReady};
    }
    return json(res,200,result);
   }
@@ -227,11 +244,15 @@ module.exports=async(req,res)=>{
   }
   if(path==='bot-config'&&req.query?.scope==='editor'){
    if(req.method!=='GET'&&!rights.edit)return json(res,403,{error:'Somente o dono ou quem tem a permissão Administrador no Discord pode salvar configurações'});
-   const stored=await db('guild_settings',{query:`?guild_id=eq.${gid}&select=bot_config,bot_config_revision,bot_config_applied_revision,bot_config_applied_at`});
-   if(!stored.length)return json(res,404,{error:'Servidor ainda não sincronizado'});
+   let stored;
+   try{stored=await db('guild_settings',{query:`?guild_id=eq.${gid}&select=bot_config,bot_config_revision,bot_config_applied_revision,bot_config_applied_at`})}
+   catch(e){return editorDbError(res,e)}
+   if(!stored.length)return json(res,404,{code:'GUILD_NOT_SYNCED',error:'Servidor ainda não sincronizado pelo bot. Confira BOT_SYNC_SECRET no bot e na Vercel.'});
    const config=stored[0];
+   if(!process.env.DISCORD_BOT_TOKEN)return json(res,503,{code:'DISCORD_BOT_TOKEN_MISSING',error:'Falta DISCORD_BOT_TOKEN nas variáveis da Vercel. Configure o token do bot, faça Redeploy e tente novamente.'});
    if(req.method==='GET'){
-    const [roles,channels]=await Promise.all([discord(`/guilds/${gid}/roles`),discord(`/guilds/${gid}/channels`)]);
+    let roles,channels;
+    try{[roles,channels]=await editorDiscordResources(gid)}catch(e){return editorDiscordError(res,e)}
     return json(res,200,{config:config.bot_config?botSchema.normalize(config.bot_config):null,canEdit:rights.edit,revision:config.bot_config_revision||0,appliedRevision:config.bot_config_applied_revision||0,appliedAt:config.bot_config_applied_at||null,
      roles:roles.filter(r=>r.id!==gid&&!r.managed).map(r=>({id:r.id,name:r.name,position:r.position})).sort((a,b)=>b.position-a.position),
      channels:channels.filter(c=>[0,5].includes(c.type)).map(c=>({id:c.id,name:c.name}))});
@@ -242,7 +263,8 @@ module.exports=async(req,res)=>{
    if(!Number.isInteger(payload.revision)||payload.revision!==(config.bot_config_revision||0))return json(res,409,{error:'Configurações alteradas em outra sessão. Recarregue antes de salvar.'});
    let normalized;
    try{normalized=botSchema.normalize(payload.config)}catch(e){return json(res,400,{error:e.message})}
-   const [roles,channels]=await Promise.all([discord(`/guilds/${gid}/roles`),discord(`/guilds/${gid}/channels`)]);
+   let roles,channels;
+    try{[roles,channels]=await editorDiscordResources(gid)}catch(e){return editorDiscordError(res,e)}
    try{botSchema.assertResources(normalized,roles,channels,gid)}catch(e){return json(res,400,{error:e.message})}
    const patch=await db('guild_settings',{method:'PATCH',query:`?guild_id=eq.${gid}&bot_config_revision=eq.${payload.revision}`,body:{bot_config:normalized,bot_config_revision:payload.revision+1,updated_at:new Date().toISOString()}});
    if(!patch.length)return json(res,409,{error:'Configuração desatualizada. Atualize a página e tente novamente.'});
