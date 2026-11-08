@@ -1,7 +1,7 @@
 'use strict';
 // O painel de produção lê exclusivamente a API autenticada. Dados fictícios ficam em /demo.html.
 const $=id=>document.getElementById(id);
-const state={guild:null,data:null,guilds:[],canEdit:false,tab:'inicio',period:'week',month:null,shift:'Noite',presenceDate:null,offShift:'all',search:'',status:'todos',kind:'todos',reportShift:'todos',roles:null};
+const state={guild:null,data:null,guilds:[],canEdit:false,tab:'inicio',period:'week',month:null,shift:'Noite',presenceDate:null,offShift:'all',search:'',status:'todos',kind:'todos',reportShift:'todos',roles:null,botEditor:null,botDraft:null,botLoading:false,botError:'',botDirty:false,botShift:'manha'};
 const shifts=['Manhã','Tarde','Noite','Madrugada'];
 const api=async (path,options={})=>{const r=await fetch('/api/'+path,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});let d;try{d=await r.json()}catch{throw Error('A API não respondeu em JSON. Confira se a pasta api foi publicada na raiz do projeto Vercel (possível erro 404).')}if(!r.ok)throw Error(d.error||`Erro HTTP ${r.status}`);return d};
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n};
@@ -99,11 +99,11 @@ function timeOff(){const filters=$('filters'),rows=$('rows'),off=state.data?.set
  if(!state.canEdit)rows.append(el('p','Somente o dono deste servidor pode alterar folgas. O dono global do sistema pode consultar e testar, sem editar servidores alheios.','warning-note'));
 }
 const tabInfo={
- inicio:['Central de módulos','Escolha uma área para gerenciar sua equipe'],
+ inicio:['Central de módulos','Escolha um sistema para acompanhar seus registros'],
  jornada:['Jornada e ponto','Acompanhe turnos, presença e horas registradas'],
- equipe:['Equipe e dados','Pessoas, rankings e relatórios organizados'],
+ resultados:['Resultados e relatórios','Ranking, membros e consultas em telas separadas'],
  administracao:['Administração','Justificativas, advertências, folgas e auditoria'],
- configuracoes:['Configurações','Permissões, servidores e ferramentas de manutenção'],
+ configuracoes:['Configurar bot','Todos os ajustes do bot organizados por assunto'],
  servidores:['Meus servidores','Consulte e alterne seus ambientes autorizados'],
  ranking:['Ranking','Horas validadas por membro e período'],
  presenca:['Controle de presença','Membros por turno, jornadas e ausências confirmadas'],
@@ -117,7 +117,12 @@ const tabInfo={
  relatorios:['Relatórios','Histórico com pesquisa e filtros'],
  membros:['Membros','Somente usuários com cargo de turno'],
  permissoes:['Permissões','Autorize cargos a acessar o painel'],
- laboratorio:['Laboratório do dono','Teste configurações com segurança, sem mudar dados reais']
+ laboratorio:['Laboratório do dono','Teste configurações com segurança, sem mudar dados reais'],
+ 'bot-geral':['Regras do ponto','Modo de ponto, fuso e tamanho da equipe'],
+ 'bot-turnos':['Turnos e cargos','Horários, cargos e responsáveis por turno'],
+ 'bot-canais':['Canais e cargos gerais','Auditoria, justificativas e advertências'],
+ 'bot-painel':['Painel do Discord','Título, descrição e GIF do painel'],
+ 'bot-alertas':['Advertências e notificações','Controle de avisos automáticos e mensagens']
 };
 // Os sistemas são agrupados por função. Cada ferramenta mantém sua tela independente.
 const moduleDefs={
@@ -126,7 +131,7 @@ const moduleDefs={
   ['turno','Escalas e turnos','Membros do turno e horas extras realizadas.','ico-clock'],
   ['ativos','Em serviço','Veja os cartões que estão em andamento.','ico-activity'],
   ['mensal','Histórico mensal','Consulte horas normais e extras de cada mês.','ico-calendar']]},
- equipe:{title:'Equipe e dados',intro:'Informações das pessoas, resultados e histórico de registros.',icon:'ico-users',items:[
+ resultados:{title:'Resultados e relatórios',intro:'Ranking, membros e histórico em sistemas separados.',icon:'ico-bar',items:[
   ['membros','Membros','Lista de integrantes por cargo e horas registradas.','ico-users'],
   ['ranking','Ranking','Classificação por horas normais e extras validadas.','ico-bar'],
   ['relatorios','Relatórios','Pesquisa de cartões, filtros e consulta de jornadas.','ico-file']]},
@@ -135,13 +140,18 @@ const moduleDefs={
   ['advertencias','Advertências','Consulte as advertências e seus níveis.','ico-alert'],
   ['folgas','Folgas','Configure folgas fixas e dias específicos, conforme suas permissões.','ico-calendar'],
   ['cancelados','Cancelamentos','Auditoria dos cartões de ponto cancelados.','ico-x']]},
- configuracoes:{title:'Configurações',intro:'Ajustes, permissões e seus ambientes de trabalho.',icon:'ico-settings',items:[
-  ['servidores','Meus servidores','Gerencie o ambiente selecionado sem ocupar a página inicial.','ico-users'],
-  ['permissoes','Permissões','Libere cargos para visualização no painel.','ico-settings'],
+ configuracoes:{title:'Configurar bot',intro:'Cada recurso tem seu próprio lugar. As alterações são aplicadas ao bot na próxima sincronização.',icon:'ico-settings',items:[
+  ['bot-geral','Regras do ponto','Ponto individual ou em equipe, convites e fuso.','ico-clock'],
+  ['bot-turnos','Turnos e cargos','Horários, cargos de turno, responsáveis e logs.','ico-calendar'],
+  ['bot-canais','Canais e cargos','Configure auditoria, canais e cargos de advertência.','ico-shield'],
+  ['bot-painel','Painel do Discord','Título, descrição e animação do painel publicado.','ico-file'],
+  ['bot-alertas','Avisos e notificações','Mensagens privadas, comprovantes e regras automáticas.','ico-alert'],
+  ['permissoes','Acesso ao site','Escolha cargos com acesso aos relatórios.','ico-settings'],
+  ['servidores','Trocar servidor','Escolha outro ambiente, se houver mais de um.','ico-users'],
   ['laboratorio','Laboratório do dono','Simule regras sem alterar registros reais.','ico-spark']]}
 };
 const parentTab=tab=>Object.keys(moduleDefs).find(key=>moduleDefs[key].items.some(item=>item[0]===tab))||null;
-const allowedFeature=tab=>(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner);
+const allowedFeature=tab=>(tab!=='permissoes'&&!tab.startsWith('bot-')||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner);
 function svgIcon(symbol){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('ico');svg.setAttribute('aria-hidden','true');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#'+symbol);svg.append(use);return svg}
 function moduleCard({tab,title,description,icon,meta}){
  const b=el('button',undefined,'feature-card');b.type='button';b.setAttribute('aria-label',`Abrir ${title}`);
@@ -157,7 +167,7 @@ function moduleHub(key){const def=moduleDefs[key],rows=$('rows');
  if(key==='configuracoes'&&!state.canEdit)rows.append(el('p','Alterações de folga e permissões dependem de ser dono do servidor. O acesso global ao laboratório é somente para testes seguros.','module-tip'));
 }
 function serversPage(){const rows=$('rows'),activeGuild=state.guild,top=el('div',undefined,'server-head');top.append(el('span','AMBIENTES AUTORIZADOS','module-kicker'),el('h2','Servidores vinculados'),el('p','O painel escolhe um servidor automaticamente. A troca só aparece aqui, sem atrapalhar as outras funções.'));rows.append(top);
- const list=el('div',undefined,'server-grid');for(const g of state.guilds){const b=el('button',undefined,'server-option'+(g.guild_id===activeGuild?' selected':''));b.type='button';const identity=el('span',undefined,'server-identity');const avatar=el('span',(g.name||'S').slice(0,1).toUpperCase(),'server-avatar');const txt=el('span');txt.append(el('strong',g.name||'Servidor sem nome'),el('small',g.guild_id===activeGuild?'Ambiente atual':'Servidor autorizado pelo Discord'));identity.append(avatar,txt);b.append(identity,el('span',g.guild_id===activeGuild?'Selecionado':'Selecionar','server-badge'));b.disabled=g.guild_id===activeGuild;b.onclick=async()=>{state.guild=g.guild_id;state.roles=null;$('guild').value=g.guild_id;await load();};list.append(b)}
+ const list=el('div',undefined,'server-grid');for(const g of state.guilds){const b=el('button',undefined,'server-option'+(g.guild_id===activeGuild?' selected':''));b.type='button';const identity=el('span',undefined,'server-identity');const avatar=el('span',(g.name||'S').slice(0,1).toUpperCase(),'server-avatar');const txt=el('span');txt.append(el('strong',g.name||'Servidor sem nome'),el('small',g.guild_id===activeGuild?'Ambiente atual':'Servidor autorizado pelo Discord'));identity.append(avatar,txt);b.append(identity,el('span',g.guild_id===activeGuild?'Selecionado':'Selecionar','server-badge'));b.disabled=g.guild_id===activeGuild;b.onclick=async()=>{state.guild=g.guild_id;state.roles=null;state.botEditor=null;state.botDraft=null;state.botDirty=false;state.botError='';$('guild').value=g.guild_id;await load();};list.append(b)}
  rows.append(list);if(state.guilds.length===1)rows.append(el('p','Só existe um servidor autorizado para esta conta; ele já está selecionado.','module-tip'));
 }
 function setSidebarOpen(open){
@@ -179,11 +189,11 @@ function renderNav(){
  $('ownerBadge').hidden=!state.data?.isBotOwner;
  const guildName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Servidor atual';
  $('sidebarGuildName').textContent=guildName;
- $('moduleBack').hidden=!parent;
- if(parent){$('backToModule').onclick=()=>openTab(parent);$('backToModule').textContent='← Voltar para '+tabInfo[parent][0];}
+ $('moduleBack').hidden=state.tab==='inicio';
+ if(state.tab!=='inicio'){const destination=parent||'inicio';$('backToModule').onclick=()=>openTab(destination);$('backToModule').textContent='← Voltar para '+(destination==='inicio'?'Início':tabInfo[destination][0]);}
  const group=parent||state.tab;
  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===group));
- $('mobileMore').classList.toggle('active',group==='configuracoes');
+ $('mobileMore').classList.toggle('active',false);
 }
 function overview(){
  const rows=$('rows'),data=state.data,all=cards();
@@ -196,16 +206,15 @@ function overview(){
  for(const [label,value,subtitle] of [
   ['Horas validadas',fmt(totaled(all.filter(inPeriod))), 'no período atual'],
   ['Em serviço',String(all.filter(active).length),'cartões ativos'],
-  ['Equipe',(new Set(shifts.flatMap(sh=>official(sh).map(m=>m.user_id)))).size+' membros','com turno vinculado'],
   ['Pendências',String(pending),'justificativas em análise']]){
   const tile=el('div',undefined,'snapshot-card');tile.append(el('span',label),el('strong',value),el('small',subtitle));snapshot.append(tile)}rows.append(snapshot);
  rows.append(el('div','ESCOLHA UM SISTEMA','module-section-label'));
  const cardsGrid=el('div',undefined,'home-module-grid');
  for(const [key,title,descr,ico,foot] of [
   ['jornada','Jornada e ponto','Presença, turnos, horas extras e histórico.','ico-clock','4 ferramentas'],
-  ['equipe','Equipe e dados','Membros, ranking e relatórios detalhados.','ico-users','3 ferramentas'],
+  ['resultados','Resultados e relatórios','Ranking, membros e filtros avançados.','ico-bar','3 ferramentas'],
   ['administracao','Administração','Justificativas, folgas, advertências e auditoria.','ico-shield','4 ferramentas'],
-  ['configuracoes','Configurações','Ambientes autorizados, permissões e testes.','ico-settings','Acesso protegido']]){
+  ['configuracoes','Configurar bot','Turnos, cargos, canais, painel e avisos.','ico-settings','Gestão integrada']]){
   const b=el('button',undefined,'home-module');b.type='button';const avatar=el('span',undefined,'home-module-icon');avatar.append(svgIcon(ico));const copy=el('span',undefined,'home-module-copy');copy.append(el('strong',title),el('small',descr),el('em',foot));const arrow=el('span',undefined,'home-module-arrow');arrow.append(svgIcon('ico-arrow'));b.append(avatar,copy,arrow);b.onclick=()=>openTab(key);cardsGrid.append(b)}rows.append(cardsGrid);
  rows.append(el('p','Cada módulo contém suas próprias telas, consultas e filtros. Os dados continuam sendo recebidos do bot e do Supabase.','module-tip'));
 }
@@ -232,6 +241,92 @@ function ownerLab(){
  const guidance=el('div',undefined,'owner-tool');guidance.append(el('span','ACESSO REAL','owner-label'),el('h3','Quem pode alterar o quê?'),el('p','O dono do sistema consulta todos os servidores e faz simulações seguras. O dono de cada servidor controla suas próprias folgas e cargos autorizados. Administradores têm acesso de consulta, conforme permissões do Discord.'));
  const btn=el('button','▣ Abrir controle de presença','button ghost');btn.onclick=()=>openTab('presenca');guidance.append(btn);grid.append(guidance);
 }
+// Edição real das configurações do bot. Os controles só são apresentados ao
+// dono do servidor; a API também valida permissões, cargos, canais e revisão.
+const botUrl=()=>`bot-config?scope=editor&guildId=${encodeURIComponent(state.guild)}`;
+async function fetchBotEditor(){
+ if(state.botLoading)return;const forGuild=state.guild;state.botLoading=true;
+ try{
+  const response=await api(botUrl());
+  if(forGuild!==state.guild)return;
+  state.botEditor=response;state.botDraft=response.config?JSON.parse(JSON.stringify(response.config)):null;
+  state.botDirty=false;state.botError='';
+ }catch(e){if(forGuild===state.guild)state.botError=e.message}
+ finally{state.botLoading=false;render()}
+}
+function botConfigPage(){
+ const rows=$('rows'),filters=$('filters');filters.hidden=false;
+ if(!state.canEdit){note(rows,'Somente o dono deste servidor pode alterar as configurações do bot.','warning-note');return}
+ if(!state.botEditor&&!state.botLoading){if(state.botError){note(rows,state.botError,'error');const retry=el('button','Tentar novamente','button');retry.onclick=()=>{state.botError='';fetchBotEditor()};rows.append(retry);return}note(rows,'Carregando configurações e cargos do Discord…');fetchBotEditor();return}
+ if(state.botLoading){note(rows,'Consultando configurações do Discord…');return}
+ const config=state.botDraft,editor=state.botEditor;
+ if(!config){note(rows,'Aguardando a sincronização do bot atualizado. Publique o bot v3.7 na Discloud e aguarde até 1 minuto antes de configurar.','warning-note');const r=el('button','Verificar novamente','button');r.onclick=()=>{state.botEditor=null;fetchBotEditor()};rows.append(r);return}
+ const intro=el('div',undefined,'bot-config-banner');intro.append(el('strong','Configuração vinculada ao Discord'),el('p','As mudanças são salvas no site e o bot as recebe na próxima sincronização (aproximadamente 1 minuto). Somente o dono deste servidor pode salvar.'));
+ const sync=el('span',editor.revision>editor.appliedRevision?'Aguardando confirmação do bot':editor.revision>0?'Configuração recebida pelo bot':'Configuração atual do bot','bot-sync-pill');intro.append(sync);rows.append(intro);
+ const grid=el('div',undefined,'bot-config-form');rows.append(grid);
+ const section=(heading,description)=>{const body=el('section',undefined,'bot-section');body.append(el('h3',heading),el('p',description,'bot-section-description'));grid.append(body);return body};
+ const update=()=>{state.botDirty=true;state.botError=''};
+ const field=(wrap,label,value,change,{type='text',max=150,min,maxNum,step}={})=>{const box=el('label',undefined,'bot-field'),text=el('span',label),i=el('input');i.type=type;if(type==='checkbox')i.checked=!!value;else i.value=value??'';if(max)i.maxLength=max;if(min!==undefined)i.min=min;if(maxNum!==undefined)i.max=maxNum;if(step)i.step=step;
+  i.onchange=()=>{change(type==='checkbox'?i.checked:type==='number'?Number(i.value):i.value);update()};box.append(text,i);wrap.append(box);return i};
+ const drop=(wrap,label,options,value,change)=>{const box=el('label',undefined,'bot-field'),title=el('span',label),sel=el('select');for(const [name,id] of options)sel.append(option(name,id));sel.value=value??'';sel.onchange=()=>{change(sel.value);update()};box.append(title,sel);wrap.append(box);return sel};
+ const roleOptions=[['Nenhum cargo',''],...editor.roles.map(r=>[r.name,r.id])];
+ const channelOptions=[['Nenhum canal',''],...editor.channels.map(c=>['#'+c.name,c.id])];
+ const rolesMulti=(wrap,label,selected,change)=>{const area=el('fieldset',undefined,'bot-check-group');area.append(el('legend',label));const holder=el('div',undefined,'bot-check-list'),picked=new Set(selected||[]);
+  for(const role of editor.roles){const lab=el('label',undefined,'bot-check'),check=el('input');check.type='checkbox';check.checked=picked.has(role.id);check.onchange=()=>{if(check.checked&&picked.size>=5){check.checked=false;alert('Escolha no máximo 5 cargos para este campo.');return}if(check.checked)picked.add(role.id);else picked.delete(role.id);change([...picked]);update()};lab.append(check,el('span',role.name));holder.append(lab)}
+  area.append(holder);wrap.append(area)};
+ const heading=(text)=>grid.append(el('h4',text,'bot-subheading'));
+ if(state.tab==='bot-geral'){
+  const c=section('Regras do registro de ponto','Defina como os cartões são abertos e a validade dos convites.');
+  drop(c,'Modo de ponto',[['Em equipe','team'],['Individual','individual']],config.pointMode,v=>config.pointMode=v);
+  field(c,'Fuso horário',config.timezone,v=>config.timezone=v,{max:60});
+  field(c,'Duração do convite (minutos)',config.inviteMinutes,v=>config.inviteMinutes=v,{type:'number',min:5,maxNum:60});
+  field(c,'Mínimo de integrantes',config.minMembers,v=>config.minMembers=v,{type:'number',min:2,maxNum:4});
+  field(c,'Máximo de integrantes',config.maxMembers,v=>config.maxMembers=v,{type:'number',min:2,maxNum:4});
+ }
+ if(state.tab==='bot-turnos'){
+  const c=section('Turnos e escalas','Configure um turno por vez. Você pode voltar para outro turno sem perder o que ainda não salvou.');
+  drop(c,'Turno',[['Manhã','manha'],['Tarde','tarde'],['Noite','noite'],['Madrugada','madrugada']],state.botShift,v=>{state.botShift=v;render()});
+  const t=config.shifts[state.botShift];
+  const fields=el('div',undefined,'bot-two-cols');c.append(fields);
+  field(fields,'Início (HH:MM)',t.start,v=>t.start=v,{type:'time'});
+  field(fields,'Fim (HH:MM)',t.end,v=>t.end=v,{type:'time'});
+  rolesMulti(c,'Cargos pertencentes ao turno',t.roleIds,v=>t.roleIds=v);
+  rolesMulti(c,'Responsáveis pelo turno',t.supervisorRoles,v=>t.supervisorRoles=v);
+  drop(c,'Canal de logs deste turno',channelOptions,t.logChannelId,v=>t.logChannelId=v||null);
+ }
+ if(state.tab==='bot-canais'){
+  const c=section('Canais e cargos gerais','Os canais e cargos são carregados do servidor Discord conectado.');
+  drop(c,'Cargo temporário: Em serviço',roleOptions,config.serviceRoleId,v=>config.serviceRoleId=v||null);
+  drop(c,'Canal de auditoria',channelOptions,config.auditChannelId,v=>config.auditChannelId=v||null);
+  drop(c,'Canal de análise das justificativas',channelOptions,config.justifications.reviewChannelId,v=>config.justifications.reviewChannelId=v||null);
+  drop(c,'Canal de logs das justificativas',channelOptions,config.justifications.logChannelId,v=>config.justifications.logChannelId=v||null);
+  drop(c,'Canal de advertências',channelOptions,config.justifications.warningChannelId,v=>config.justifications.warningChannelId=v||null);
+  for(let i=0;i<3;i++)drop(c,`Cargo da ${i+1}ª advertência`,roleOptions,config.justifications.warningRoles[i],v=>config.justifications.warningRoles[i]=v||null);
+ }
+ if(state.tab==='bot-painel'){
+  const c=section('Aparência do painel no Discord','Alterações no painel de ponto já publicado serão sincronizadas pelo bot.');
+  field(c,'Título do painel',config.panel.title,v=>config.panel.title=v,{max:100});
+  const lab=el('label',undefined,'bot-field');lab.append(el('span','Descrição do painel'));const ta=el('textarea');ta.rows=6;ta.maxLength=1600;ta.value=config.panel.description;ta.oninput=()=>{config.panel.description=ta.value;update()};lab.append(ta);c.append(lab);
+  field(c,'Link HTTPS de animação / GIF (opcional)',config.panel.customGif||'',v=>config.panel.customGif=v||null,{max:500});
+  c.append(el('p','Publicar um painel novo no canal ainda exige o comando do bot; editar um painel existente já é automático.','hint'));
+ }
+ if(state.tab==='bot-alertas'){
+  const c=section('Avisos e notificações','Defina o que o bot envia. Para advertências automáticas, primeiro configure os cargos e o canal necessários.');
+  field(c,'Enviar mensagens privadas de ponto',config.notifications.pointDm,v=>config.notifications.pointDm=v,{type:'checkbox'});
+  field(c,'Enviar comprovante com imagem',config.notifications.receiptImage,v=>config.notifications.receiptImage=v,{type:'checkbox'});
+  const enable=field(c,'Ativar advertências automáticas',config.justifications.autoWarnings,v=>config.justifications.autoWarnings=v,{type:'checkbox'});
+  enable.onchange=()=>{if(enable.checked&&!confirm('Ativar advertências automáticas? Depois de sincronizadas, o bot poderá aplicar os cargos de advertência conforme as regras de presença e justificativas.')){enable.checked=false;return}config.justifications.autoWarnings=enable.checked;update()};
+  c.append(el('p','Advertências automáticas requerem canal e três cargos configurados. A análise continua sujeita às regras de presença e às justificativas.','hint'));
+ }
+ const action=el('div',undefined,'bot-actions'),save=el('button','Salvar configurações do bot','button'),reload=el('button','Descartar alterações e recarregar','button ghost'),status=el('p',state.botError||'','bot-status');
+ save.type='button';save.onclick=async()=>{save.disabled=true;status.textContent='Validando e salvando…';try{
+  const result=await api(botUrl(),{method:'POST',body:JSON.stringify({revision:state.botEditor.revision,config:state.botDraft})});
+  state.botEditor.revision=result.revision;state.botEditor.config=JSON.parse(JSON.stringify(state.botDraft));state.botDirty=false;state.botError='';
+  status.textContent='Salvo! Aguardando o bot aplicar na próxima sincronização.';sync.textContent='Aguardando confirmação do bot';await load();
+ }catch(e){status.textContent=e.message;state.botError=e.message}finally{save.disabled=false}};
+ reload.type='button';reload.onclick=()=>{if(state.botDirty&&!confirm('Descartar as alterações ainda não salvas?'))return;state.botEditor=null;state.botDraft=null;state.botError='';fetchBotEditor()};
+ action.append(save,reload);grid.append(action,status);
+}
 function render(){if(!state.data)return;const data=state.data,all=cards(),period=all.filter(inPeriod),map=members();$('period').value=state.period;$('month').value=state.month||today().slice(0,7);renderNav();
 const summaries=[['Normais validadas',fmt(totaled(period,'Normal'))],['Extras validadas',fmt(totaled(period,'Extra'))],['Total validado',fmt(totaled(period))],['Em andamento',String(period.filter(active).length)+(period.filter(active).length===1?' registro':' registros')]];$('stats').replaceChildren();for(const [label,val] of summaries){const box=el('div',undefined,'stat');box.append(el('span',label),el('strong',val));$('stats').append(box)}
 const isHub=!!moduleDefs[state.tab]||state.tab==='inicio', hasPeriod=['ranking','mensal','relatorios','membros','ativos','cancelados'].includes(state.tab), hasStats=['ranking','relatorios'].includes(state.tab);
@@ -244,6 +339,7 @@ if(state.tab==='inicio')overview();
 else if(moduleDefs[state.tab])moduleHub(state.tab);
 else if(state.tab==='servidores')serversPage();
 else if(state.tab==='laboratorio')ownerLab();
+else if(state.tab.startsWith('bot-'))botConfigPage();
 else if(state.tab==='ranking'){
  filters.append(el('p','Top 10 do período, considerando somente horas validadas. Horas extras não entram na meta diária.','hint'));
  const totals=new Map();for(const c of period.filter(valid)){const x=totals.get(c.user_id)||{normal:0,extra:0};x[c.kind==='Extra'?'extra':'normal']+=Number(c.duration_minutes)||0;totals.set(c.user_id,x)}
@@ -284,6 +380,6 @@ async function start(){try{const me=await api('me');if(!me.user){$('auth').repla
  $('auth').replaceChildren(el('p',`Conectado como ${me.user.name}`,'muted'));$('logout').hidden=false;$('sidebarLogout').hidden=false;$('sidebarLogout').onclick=()=>$('logout').click();$('logout').onclick=async()=>{try{await api('logout',{method:'POST'});location.reload()}catch(e){$('syncStatus').textContent=e.message}};
  $('userBadge').hidden=false;$('userBadge').textContent='◉ '+me.user.name;
  const result=await api('guilds');state.guilds=result.guilds||[];if(!state.guilds.length){$('auth').append(el('p','Nenhum servidor sincronizado e autorizado apareceu ainda. Confirme se o bot está ligado, fez a primeira sincronização e se sua conta é dona do servidor ou tem cargo permitido.','muted'));$('syncStatus').textContent='Sem servidor autorizado';return}
- $('auth').hidden=true;$('content').hidden=false;document.body.classList.add('logged-in');$('sidebar').hidden=false;$('mobileBottom').hidden=false;$('openSidebar').hidden=false;const guild=$('guild');guild.replaceChildren();for(const g of state.guilds)guild.append(option(g.name||g.guild_id,g.guild_id));state.guild=state.guilds[0].guild_id;guild.value=state.guild;guild.onchange=()=>{state.guild=guild.value;state.roles=null;load()};$('period').onchange=e=>{state.period=e.target.value;render()};$('month').value=today().slice(0,7);state.month=$('month').value;$('month').onchange=e=>{state.month=e.target.value;state.period='month';render()};$('reload').onclick=load;document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));$('openSidebar').onclick=()=>setSidebarOpen(true);$('mobileMore').onclick=()=>setSidebarOpen(true);$('closeSidebar').onclick=()=>setSidebarOpen(false);$('sidebarOverlay').onclick=()=>setSidebarOpen(false);document.addEventListener('keydown',e=>{if(e.key==='Escape')setSidebarOpen(false)});await load();setInterval(()=>{if(!document.hidden&&state.guild)load().catch(()=>{})},60000);
+ $('auth').hidden=true;$('content').hidden=false;document.body.classList.add('logged-in');$('sidebar').hidden=false;$('mobileBottom').hidden=false;$('openSidebar').hidden=false;const guild=$('guild');guild.replaceChildren();for(const g of state.guilds)guild.append(option(g.name||g.guild_id,g.guild_id));state.guild=state.guilds[0].guild_id;guild.value=state.guild;guild.onchange=()=>{state.guild=guild.value;state.roles=null;state.botEditor=null;state.botDraft=null;state.botDirty=false;load()};$('period').onchange=e=>{state.period=e.target.value;render()};$('month').value=today().slice(0,7);state.month=$('month').value;$('month').onchange=e=>{state.month=e.target.value;state.period='month';render()};$('reload').onclick=load;document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));$('openSidebar').onclick=()=>setSidebarOpen(true);$('mobileMore').onclick=()=>setSidebarOpen(true);$('closeSidebar').onclick=()=>setSidebarOpen(false);$('sidebarOverlay').onclick=()=>setSidebarOpen(false);document.addEventListener('keydown',e=>{if(e.key==='Escape')setSidebarOpen(false)});await load();setInterval(()=>{if(!document.hidden&&state.guild)load().catch(()=>{})},60000);
  }catch(e){$('auth').replaceChildren(el('p',e.message,'error'));$('syncStatus').textContent='Falha na configuração';$('syncStatus').className='status err'}}
 start();

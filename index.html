@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b0d14">
   <meta name="description" content="Central de Horas — gestão de jornada, turnos e equipes integrada ao Discord.">
-  <title>Central de Horas | Gestão de Equipe</title>
+  <title>Central de Horas | Painel Discord</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="/dashboard.css">
   <script defer src="/real.js"></script>
@@ -44,7 +44,7 @@
           <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg> Início</button>
           <span class="nav-group">MÓDULOS DE GESTÃO</span>
           <button type="button" data-tab="jornada"><svg class="ico"><use href="#ico-clock"/></svg> Jornada e ponto</button>
-          <button type="button" data-tab="equipe"><svg class="ico"><use href="#ico-users"/></svg> Equipe e dados</button>
+          <button type="button" data-tab="resultados"><svg class="ico"><use href="#ico-users"/></svg> Resultados e relatórios</button>
           <button type="button" data-tab="administracao"><svg class="ico"><use href="#ico-shield"/></svg> Administração</button>
           <span class="nav-group">PLATAFORMA</span>
           <button type="button" data-tab="configuracoes"><svg class="ico"><use href="#ico-settings"/></svg> Configurações</button>
@@ -67,10 +67,10 @@
           <div class="hero-copy">
             <span class="eyebrow"><span class="eyebrow-line"></span> PLATAFORMA DE GESTÃO PARA DISCORD</span>
             <h1>Sua equipe.<br><em>Cada sistema no seu lugar.</em></h1>
-            <p>Ponto, equipe, relatórios e administração organizados em módulos. Sem menus lotados, sem informação fora do lugar.</p>
+            <p>Jornada, relatórios e configurações do bot em áreas separadas. Sem menus lotados, sem informação fora do lugar.</p>
             <div class="login-benefits" aria-label="Recursos da Central de Horas">
               <div><svg class="ico"><use href="#ico-check"/></svg><span>Jornada e ponto em um sistema próprio</span></div>
-              <div><svg class="ico"><use href="#ico-bar"/></svg><span>Equipe, ranking e relatórios independentes</span></div>
+              <div><svg class="ico"><use href="#ico-bar"/></svg><span>Relatórios, ranking e configurações independentes</span></div>
               <div><svg class="ico"><use href="#ico-shield"/></svg><span>Gestão protegida pelo login Discord</span></div>
             </div>
             <p class="login-caption">Desenvolvido para facilitar o trabalho de líderes e administradores.</p>
@@ -95,17 +95,17 @@
           <select id="guild" hidden aria-label="Servidor em uso"></select>
           <section class="stat-grid" id="stats" hidden aria-label="Resumo das horas"></section>
           <section class="panel content-panel" id="moduleContent" aria-label="Conteúdo do módulo"><div class="filters" id="filters"></div><div id="rows" aria-live="polite"></div></section>
-          <p class="foot" id="footerNote">Dados sincronizados com o bot e o Supabase. Horas extras não substituem a meta normal. Faltas só são confirmadas após encerramento do turno e validação dos registros. Consulta atualizada automaticamente a cada minuto.</p>
+          <p class="foot">Dados sincronizados com o bot e o Supabase. Horas extras não substituem a meta normal. Faltas só são confirmadas após encerramento do turno e validação dos registros. Consulta atualizada automaticamente a cada minuto.</p>
         </section>
       </main>
-      <footer><span>Central de Horas <strong>v5.7</strong></span><span>Gestão de equipes conectada ao Discord</span></footer>
+      <footer><span>Central de Horas <strong>v5.8</strong></span><span>Gestão de equipes conectada ao Discord</span></footer>
     </div>
 
     <nav class="mobile-bottom" id="mobileBottom" aria-label="Navegação dos módulos" hidden>
       <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg><span>Início</span></button>
       <button type="button" data-tab="jornada"><svg class="ico"><use href="#ico-clock"/></svg><span>Jornada</span></button>
-      <button type="button" data-tab="equipe"><svg class="ico"><use href="#ico-users"/></svg><span>Equipe</span></button>
-      <button type="button" data-tab="administracao"><svg class="ico"><use href="#ico-shield"/></svg><span>Gestão</span></button>
+      <button type="button" data-tab="resultados"><svg class="ico"><use href="#ico-users"/></svg><span>Resultados</span></button>
+      <button type="button" data-tab="configuracoes"><svg class="ico"><use href="#ico-settings"/></svg><span>Bot</span></button>
       <button type="button" id="mobileMore"><svg class="ico"><use href="#ico-menu"/></svg><span>Mais</span></button>
     </nav>
   </div>

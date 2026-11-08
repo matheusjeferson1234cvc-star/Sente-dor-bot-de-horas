@@ -132,3 +132,18 @@ body.logged-in .hero{display:none}
  .server-badge{font-size:10px}
 }
 @media(max-width:360px){.home-module-arrow{display:none}.module-hero-icon{display:none}}
+
+/* v5.8 — Editor modular das configurações Discord */
+.bot-config-banner{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;background:linear-gradient(125deg,rgba(97,76,192,.17),rgba(34,37,53,.65));border:1px solid rgba(145,127,229,.23);padding:18px;border-radius:15px;margin:0 0 17px}
+.bot-config-banner strong{color:var(--text,#edf0f8);font-size:15px}
+.bot-config-banner p{flex-basis:100%;color:var(--muted,#a4acbc);margin:0;font-size:13px;line-height:1.55}
+.bot-sync-pill{border:1px solid #7963cc55;padding:5px 11px;border-radius:20px;color:#c8b8ff;font-size:12px}
+.bot-config-form{display:grid;gap:16px}.bot-section{background:var(--panel,#151923);border:1px solid var(--line,#303547);padding:22px;border-radius:15px;display:grid;gap:16px;min-width:0}
+.bot-section h3{font-size:20px;margin:0}.bot-section-description{font-size:13px;line-height:1.6;color:var(--muted,#aab0c1);margin:0}
+.bot-field{display:grid;gap:8px;font-size:13px;font-weight:600;color:var(--muted,#aab0c1)}
+.bot-field input:not([type=checkbox]),.bot-field select,.bot-field textarea{width:100%;min-width:0;max-width:100%;border-radius:10px;background:#1d2230;color:#f5f5fa;border:1px solid #3b4055;padding:12px;font:inherit;font-size:15px}
+.bot-field input[type=checkbox]{width:20px;height:20px;accent-color:#8065e9}.bot-two-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bot-check-group{border:1px solid #373b50;border-radius:11px;min-width:0;padding:12px}.bot-check-group legend{font-weight:650;font-size:13px;color:#c7c8d7;padding:0 7px}
+.bot-check-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;max-height:215px;overflow:auto;padding:5px}.bot-check{display:flex;gap:9px;align-items:center;font-size:13px;color:#e0e1e9;overflow-wrap:anywhere}.bot-check input{accent-color:#7f65ef;flex:none}
+.bot-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.bot-actions button{min-height:44px}.bot-status{font-size:13px;color:#c5baf5;min-height:18px;margin:0}.bot-subheading{font-size:14px;margin:0}
+@media(max-width:640px){.bot-section{padding:15px}.bot-two-cols,.bot-check-list{grid-template-columns:1fr}.bot-actions button{width:100%}}
