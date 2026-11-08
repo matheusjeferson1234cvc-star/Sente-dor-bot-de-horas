@@ -332,7 +332,7 @@ function render(){if(!state.data)return;const data=state.data,all=cards(),period
 const summaries=[['Normais validadas',fmt(totaled(period,'Normal'))],['Extras validadas',fmt(totaled(period,'Extra'))],['Total validado',fmt(totaled(period))],['Em andamento',String(period.filter(active).length)+(period.filter(active).length===1?' registro':' registros')]];$('stats').replaceChildren();for(const [label,val] of summaries){const box=el('div',undefined,'stat');box.append(el('span',label),el('strong',val));$('stats').append(box)}
 const isHub=!!moduleDefs[state.tab]||state.tab==='inicio', hasPeriod=['ranking','mensal','relatorios','membros','ativos','cancelados'].includes(state.tab), hasStats=['ranking','relatorios'].includes(state.tab);
  $('periodToolbar').hidden=!hasPeriod;$('stats').hidden=!hasStats;
- $('moduleContent').classList.toggle('hub-content',isHub);$('footerNote').hidden=isHub;
+ $('moduleContent').classList.toggle('hub-content',isHub);const footerNote=$('footerNote');if(footerNote)footerNote.hidden=isHub;
  const filters=$('filters'),rows=$('rows');filters.replaceChildren();rows.replaceChildren();filters.hidden=isHub;
 
 if(data.missingSchema?.length)filters.append(el('p','Banco Supabase ainda não atualizado: execute ATUALIZAR-SUPABASE.sql para ativar presença, justificativas, advertências e folgas. As horas antigas continuam disponíveis.','error'));
