@@ -173,6 +173,7 @@ function moduleHub(key){const def=moduleDefs[key],rows=$('rows');
   const explanation=state.canEdit?'Sua conta foi verificada pela API do Discord e pode salvar as configurações deste servidor.':
    state.data?.accessReason==='bot-owner-readonly'?'Você está cadastrado como dono global do bot, mas este servidor não está autorizado para edição. Ser dono do bot não substitui a permissão Administrador deste servidor.':
    state.data?.accessReason==='discord-bot-not-configured'?'A API da Vercel precisa da variável DISCORD_BOT_TOKEN para conferir os cargos e permissões.':
+   state.data?.accessReason==='discord-unavailable'?'A API não conseguiu confirmar seus cargos no Discord. Verifique DISCORD_BOT_TOKEN na Vercel e se o bot está neste servidor. Não é possível liberar edição enquanto a verificação falhar.':
    'Confira no Discord se o seu cargo tem a permissão oficial Administrador ativada (não apenas o nome Administrador). O bot precisa estar presente neste servidor para conferir o cargo.';
   access.append(el('strong',title),el('p',explanation));
   const verify=el('button','Verificar meu acesso novamente','button ghost');verify.type='button';verify.onclick=load;access.append(verify);rows.append(access);
@@ -250,7 +251,7 @@ function ownerLab(){
  const perms=el('div',undefined,'owner-tool');perms.append(el('span','SITUAÇÃO ATUAL','owner-label'),el('h3','Permissões e sincronização'),el('p','Conferência somente leitura das configurações recebidas pelo bot.'));
  const n=(k,v)=>perms.append(el('div',`${k}: ${v}`,'owner-preview'));
  n('Cargos administrativos autorizados',String(data.settings?.roles?.allowed?.length||0));n('Turnos configurados',String(shifts.filter(s=>(data.settings?.shift_roles?.[s]||[]).length>0).length));n('Folgas específicas',String(data.settings?.time_off?.dates?.length||0));n('Tabelas ausentes',data.missingSchema?.length?data.missingSchema.join(', '):'Nenhuma identificada');grid.append(perms);
- const guidance=el('div',undefined,'owner-tool');guidance.append(el('span','ACESSO REAL','owner-label'),el('h3','Quem pode alterar o quê?'),el('p','O dono do sistema consulta todos os servidores e faz simulações seguras. O dono de cada servidor controla suas próprias folgas e cargos autorizados. Administradores têm acesso de consulta, conforme permissões do Discord.'));
+ const guidance=el('div',undefined,'owner-tool');guidance.append(el('span','ACESSO REAL','owner-label'),el('h3','Quem pode alterar o quê?'),el('p','O dono do sistema consulta todos os servidores e faz simulações seguras. O dono de cada servidor controla suas próprias folgas e cargos autorizados. Administradores do Discord com a permissão oficial Administrador podem editar; cargos somente de consulta não podem salvar.'));
  const btn=el('button','▣ Abrir controle de presença','button ghost');btn.onclick=()=>openTab('presenca');guidance.append(btn);grid.append(guidance);
 }
 // Edição real das configurações do bot. Os controles só são apresentados ao
@@ -268,7 +269,14 @@ async function fetchBotEditor(){
 }
 function botConfigPage(){
  const rows=$('rows'),filters=$('filters');filters.hidden=false;
- if(!state.canEdit)note(rows,'Você pode consultar as configurações. Para salvar, seu cargo precisa ter a permissão Administrador ativada no Discord, ou você precisa ser dono do servidor.','warning-note');
+ if(!state.canEdit){
+  const reason=state.data?.accessReason;
+  const message=reason==='discord-bot-not-configured'?'A verificação de permissões não funciona: falta DISCORD_BOT_TOKEN na Vercel. O selo de dono do bot não dá acesso automático à edição.':
+   reason==='discord-unavailable'?'A API não conseguiu confirmar seus cargos no Discord. Verifique o token do bot na Vercel e se ele está neste servidor.':
+   reason==='bot-owner-readonly'?'Você é dono do bot, mas isso não significa ser dono deste servidor. Para salvar, precisa ser dono deste servidor ou ter Administrador no Discord.':
+   'Sua conta está em modo consulta. Para salvar, precisa ser dono deste servidor ou ter um cargo com a permissão oficial Administrador no Discord.';
+  note(rows,message,'warning-note');
+ }
  if(!state.botEditor&&!state.botLoading){if(state.botError){note(rows,state.botError,'error');const retry=el('button','Tentar novamente','button');retry.onclick=()=>{state.botError='';fetchBotEditor()};rows.append(retry);return}note(rows,'Carregando configurações e cargos do Discord…');fetchBotEditor();return}
  if(state.botLoading){note(rows,'Consultando configurações do Discord…');return}
  const config=state.botDraft,editor=state.botEditor;
