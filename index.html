@@ -39,28 +39,18 @@
         <button class="sidebar-close icon-btn" type="button" id="closeSidebar" aria-label="Fechar menu"><svg class="ico"><use href="#ico-x"/></svg></button>
       </div>
       <div class="sidebar-scroll">
-        <nav class="tabs" aria-label="Seções do painel">
-          <span class="nav-group">VISÃO GERAL</span>
-          <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg> Visão geral</button>
-          <span class="nav-group">JORNADA</span>
-          <button type="button" data-tab="presenca"><svg class="ico"><use href="#ico-check"/></svg> Controle de presença</button>
-          <button type="button" data-tab="turno"><svg class="ico"><use href="#ico-clock"/></svg> Turnos</button>
-          <button type="button" data-tab="ativos"><svg class="ico"><use href="#ico-activity"/></svg> Em serviço</button>
-          <button type="button" data-tab="mensal"><svg class="ico"><use href="#ico-calendar"/></svg> Histórico mensal</button>
-          <span class="nav-group">EQUIPE E DADOS</span>
-          <button type="button" data-tab="membros"><svg class="ico"><use href="#ico-users"/></svg> Membros</button>
-          <button type="button" data-tab="ranking"><svg class="ico"><use href="#ico-bar"/></svg> Ranking</button>
-          <button type="button" data-tab="relatorios"><svg class="ico"><use href="#ico-file"/></svg> Relatórios</button>
-          <span class="nav-group">ADMINISTRAÇÃO</span>
-          <button type="button" data-tab="justificativas"><svg class="ico"><use href="#ico-list"/></svg> Justificativas</button>
-          <button type="button" data-tab="advertencias"><svg class="ico"><use href="#ico-alert"/></svg> Advertências</button>
-          <button type="button" data-tab="folgas"><svg class="ico"><use href="#ico-calendar"/></svg> Folgas</button>
-          <button type="button" data-tab="cancelados"><svg class="ico"><use href="#ico-x"/></svg> Cancelamentos</button>
-          <button type="button" data-tab="permissoes" id="permissionsTab" hidden><svg class="ico"><use href="#ico-settings"/></svg> Permissões</button>
-          <button type="button" data-tab="laboratorio" id="ownerLabTab" hidden><svg class="ico"><use href="#ico-spark"/></svg> Laboratório do dono</button>
+        <nav class="tabs" aria-label="Sistemas da Central de Horas">
+          <span class="nav-group">PAINEL</span>
+          <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg> Início</button>
+          <span class="nav-group">MÓDULOS DE GESTÃO</span>
+          <button type="button" data-tab="jornada"><svg class="ico"><use href="#ico-clock"/></svg> Jornada e ponto</button>
+          <button type="button" data-tab="equipe"><svg class="ico"><use href="#ico-users"/></svg> Equipe e dados</button>
+          <button type="button" data-tab="administracao"><svg class="ico"><use href="#ico-shield"/></svg> Administração</button>
+          <span class="nav-group">PLATAFORMA</span>
+          <button type="button" data-tab="configuracoes"><svg class="ico"><use href="#ico-settings"/></svg> Configurações</button>
         </nav>
       </div>
-      <div class="sidebar-footer"><span class="footer-status"><span class="connected-dot"></span> Plataforma integrada</span><small>Discord · Discloud · Supabase</small><button type="button" id="sidebarLogout" class="button ghost sidebar-logout" hidden>Sair da conta</button></div>
+      <div class="sidebar-footer"><div class="sidebar-server"><small>AMBIENTE ATUAL</small><strong id="sidebarGuildName">Servidor vinculado</strong><button type="button" data-tab="servidores" id="sidebarSwitchServer">Gerenciar acesso <svg class="ico"><use href="#ico-arrow"/></svg></button></div><span class="footer-status"><span class="connected-dot"></span> Plataforma integrada</span><small>Discord · Discloud · Supabase</small><button type="button" id="sidebarLogout" class="button ghost sidebar-logout" hidden>Sair da conta</button></div>
     </aside>
 
     <div class="main-column">
@@ -75,15 +65,15 @@
       <main class="page-content">
         <section class="hero" id="hero" aria-label="Acessar a Central de Horas">
           <div class="hero-copy">
-            <span class="eyebrow"><span class="eyebrow-line"></span> CENTRAL DE GESTÃO PARA DISCORD</span>
-            <h1>Mais clareza para gerenciar <em>sua equipe.</em></h1>
-            <p>Acompanhe horas, organize turnos e consulte registros de presença em um só lugar, com acesso vinculado ao seu servidor Discord.</p>
+            <span class="eyebrow"><span class="eyebrow-line"></span> PLATAFORMA DE GESTÃO PARA DISCORD</span>
+            <h1>Sua equipe.<br><em>Cada sistema no seu lugar.</em></h1>
+            <p>Ponto, equipe, relatórios e administração organizados em módulos. Sem menus lotados, sem informação fora do lugar.</p>
             <div class="login-benefits" aria-label="Recursos da Central de Horas">
-              <div><svg class="ico"><use href="#ico-check"/></svg><span>Presença e jornada por turno</span></div>
-              <div><svg class="ico"><use href="#ico-bar"/></svg><span>Relatórios e horas extras separados</span></div>
-              <div><svg class="ico"><use href="#ico-shield"/></svg><span>Permissões verificadas pelo servidor</span></div>
+              <div><svg class="ico"><use href="#ico-check"/></svg><span>Jornada e ponto em um sistema próprio</span></div>
+              <div><svg class="ico"><use href="#ico-bar"/></svg><span>Equipe, ranking e relatórios independentes</span></div>
+              <div><svg class="ico"><use href="#ico-shield"/></svg><span>Gestão protegida pelo login Discord</span></div>
             </div>
-            <p class="login-caption">Um ambiente de trabalho mais simples para líderes e administradores.</p>
+            <p class="login-caption">Desenvolvido para facilitar o trabalho de líderes e administradores.</p>
           </div>
           <div class="login-side">
             <div class="login-header"><span class="login-logo"><svg class="ico"><use href="#ico-clock"/></svg></span><span class="login-edition">CENTRAL DE HORAS <small>ÁREA RESTRITA</small></span></div>
@@ -94,26 +84,28 @@
 
         <section id="authFallback" class="panel auth-fallback" hidden aria-live="polite"></section>
         <section id="content" hidden>
+          <div class="module-back" id="moduleBack" hidden><button type="button" id="backToModule"><svg class="ico"><use href="#ico-arrow"/></svg> Voltar aos módulos</button></div>
           <div class="workspace-header">
             <div><span id="pageEyebrow" class="eyebrow">PAINEL / VISÃO GERAL</span><h1 id="pageTitle">Visão geral</h1><p id="pageDescription">O que está acontecendo no seu servidor agora</p></div>
             <span id="ownerBadge" class="owner-badge" hidden><svg class="ico"><use href="#ico-shield"/></svg> Acesso do dono</span>
           </div>
-          <div class="toolbar panel">
-            <label class="guild-label">SERVIDOR <select id="guild" aria-label="Selecionar servidor autorizado"></select></label>
-            <div class="tools"><label>PERÍODO <select id="period"><option value="week">Esta semana</option><option value="month">Mês selecionado</option><option value="all">Todo o histórico</option></select></label><label>MÊS <input id="month" type="month" aria-label="Selecionar mês"></label><button class="button refresh-button" id="reload" type="button"><svg class="ico"><use href="#ico-refresh"/></svg> Atualizar</button></div>
+          <div class="toolbar panel period-toolbar" id="periodToolbar" hidden>
+            <div class="tools"><label>PERÍODO <select id="period"><option value="week">Esta semana</option><option value="month">Mês selecionado</option><option value="all">Todo o histórico</option></select></label><label>MÊS <input id="month" type="month" aria-label="Selecionar mês"></label><button class="button refresh-button" id="reload" type="button"><svg class="ico"><use href="#ico-refresh"/></svg> Atualizar dados</button></div>
           </div>
-          <section class="stat-grid" id="stats" aria-label="Resumo das horas"></section>
-          <section class="panel content-panel" aria-label="Conteúdo do painel"><div class="filters" id="filters"></div><div id="rows" aria-live="polite"></div></section>
-          <p class="foot">Dados sincronizados com o bot e o Supabase. Horas extras não substituem a meta normal. Faltas só são confirmadas após encerramento do turno e validação dos registros. Consulta atualizada automaticamente a cada minuto.</p>
+          <select id="guild" hidden aria-label="Servidor em uso"></select>
+          <section class="stat-grid" id="stats" hidden aria-label="Resumo das horas"></section>
+          <section class="panel content-panel" id="moduleContent" aria-label="Conteúdo do módulo"><div class="filters" id="filters"></div><div id="rows" aria-live="polite"></div></section>
+          <p class="foot" id="footerNote">Dados sincronizados com o bot e o Supabase. Horas extras não substituem a meta normal. Faltas só são confirmadas após encerramento do turno e validação dos registros. Consulta atualizada automaticamente a cada minuto.</p>
         </section>
       </main>
-      <footer><span>Central de Horas <strong>v5.6</strong></span><span>Gestão de equipes conectada ao Discord</span></footer>
+      <footer><span>Central de Horas <strong>v5.7</strong></span><span>Gestão de equipes conectada ao Discord</span></footer>
     </div>
 
-    <nav class="mobile-bottom" id="mobileBottom" aria-label="Atalhos para celular" hidden>
+    <nav class="mobile-bottom" id="mobileBottom" aria-label="Navegação dos módulos" hidden>
       <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg><span>Início</span></button>
-      <button type="button" data-tab="presenca"><svg class="ico"><use href="#ico-check"/></svg><span>Presença</span></button>
-      <button type="button" data-tab="ranking"><svg class="ico"><use href="#ico-bar"/></svg><span>Ranking</span></button>
+      <button type="button" data-tab="jornada"><svg class="ico"><use href="#ico-clock"/></svg><span>Jornada</span></button>
+      <button type="button" data-tab="equipe"><svg class="ico"><use href="#ico-users"/></svg><span>Equipe</span></button>
+      <button type="button" data-tab="administracao"><svg class="ico"><use href="#ico-shield"/></svg><span>Gestão</span></button>
       <button type="button" id="mobileMore"><svg class="ico"><use href="#ico-menu"/></svg><span>Mais</span></button>
     </nav>
   </div>

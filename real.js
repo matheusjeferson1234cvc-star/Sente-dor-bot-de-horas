@@ -99,7 +99,12 @@ function timeOff(){const filters=$('filters'),rows=$('rows'),off=state.data?.set
  if(!state.canEdit)rows.append(el('p','Somente o dono deste servidor pode alterar folgas. O dono global do sistema pode consultar e testar, sem editar servidores alheios.','warning-note'));
 }
 const tabInfo={
- inicio:['Visão geral','O que está acontecendo no seu servidor agora'],
+ inicio:['Central de módulos','Escolha uma área para gerenciar sua equipe'],
+ jornada:['Jornada e ponto','Acompanhe turnos, presença e horas registradas'],
+ equipe:['Equipe e dados','Pessoas, rankings e relatórios organizados'],
+ administracao:['Administração','Justificativas, advertências, folgas e auditoria'],
+ configuracoes:['Configurações','Permissões, servidores e ferramentas de manutenção'],
+ servidores:['Meus servidores','Consulte e alterne seus ambientes autorizados'],
  ranking:['Ranking','Horas validadas por membro e período'],
  presenca:['Controle de presença','Membros por turno, jornadas e ausências confirmadas'],
  mensal:['Histórico mensal','Consulte cada mês sem perder os anteriores'],
@@ -114,49 +119,95 @@ const tabInfo={
  permissoes:['Permissões','Autorize cargos a acessar o painel'],
  laboratorio:['Laboratório do dono','Teste configurações com segurança, sem mudar dados reais']
 };
+// Os sistemas são agrupados por função. Cada ferramenta mantém sua tela independente.
+const moduleDefs={
+ jornada:{title:'Jornada e ponto',intro:'Gestão de turnos e presença sem misturar com relatórios administrativos.',icon:'ico-clock',items:[
+  ['presenca','Controle de presença','Acompanhe a meta diária, os turnos e as ausências confirmadas.','ico-check'],
+  ['turno','Escalas e turnos','Membros do turno e horas extras realizadas.','ico-clock'],
+  ['ativos','Em serviço','Veja os cartões que estão em andamento.','ico-activity'],
+  ['mensal','Histórico mensal','Consulte horas normais e extras de cada mês.','ico-calendar']]},
+ equipe:{title:'Equipe e dados',intro:'Informações das pessoas, resultados e histórico de registros.',icon:'ico-users',items:[
+  ['membros','Membros','Lista de integrantes por cargo e horas registradas.','ico-users'],
+  ['ranking','Ranking','Classificação por horas normais e extras validadas.','ico-bar'],
+  ['relatorios','Relatórios','Pesquisa de cartões, filtros e consulta de jornadas.','ico-file']]},
+ administracao:{title:'Administração',intro:'Acompanhe solicitações e auditorias em espaços separados.',icon:'ico-shield',items:[
+  ['justificativas','Justificativas','Histórico de solicitações recebidas pelo bot.','ico-list'],
+  ['advertencias','Advertências','Consulte as advertências e seus níveis.','ico-alert'],
+  ['folgas','Folgas','Configure folgas fixas e dias específicos, conforme suas permissões.','ico-calendar'],
+  ['cancelados','Cancelamentos','Auditoria dos cartões de ponto cancelados.','ico-x']]},
+ configuracoes:{title:'Configurações',intro:'Ajustes, permissões e seus ambientes de trabalho.',icon:'ico-settings',items:[
+  ['servidores','Meus servidores','Gerencie o ambiente selecionado sem ocupar a página inicial.','ico-users'],
+  ['permissoes','Permissões','Libere cargos para visualização no painel.','ico-settings'],
+  ['laboratorio','Laboratório do dono','Simule regras sem alterar registros reais.','ico-spark']]}
+};
+const parentTab=tab=>Object.keys(moduleDefs).find(key=>moduleDefs[key].items.some(item=>item[0]===tab))||null;
+const allowedFeature=tab=>(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner);
+function svgIcon(symbol){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('ico');svg.setAttribute('aria-hidden','true');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#'+symbol);svg.append(use);return svg}
+function moduleCard({tab,title,description,icon,meta}){
+ const b=el('button',undefined,'feature-card');b.type='button';b.setAttribute('aria-label',`Abrir ${title}`);
+ const symbol=el('span',undefined,'feature-symbol');symbol.append(svgIcon(icon));const main=el('span',undefined,'feature-info');main.append(el('strong',title),el('small',description));
+ const arrow=el('span',undefined,'feature-arrow');arrow.append(svgIcon('ico-arrow'));b.append(symbol,main,arrow);
+ if(meta)b.append(el('span',meta,'feature-meta'));b.onclick=()=>openTab(tab);return b;
+}
+function moduleMetric(tab){const d=state.data||{};switch(tab){case 'presenca':return `${(d.members||[]).length} sincronizados`;case 'ativos':return `${cards().filter(active).length} ativos`;case 'membros':return `${(d.members||[]).length} membros`;case 'justificativas':return `${(d.justifications||[]).filter(x=>x.status==='pending').length} pendentes`;case 'advertencias':return `${(d.warnings||[]).length} registros`;case 'servidores':return `${state.guilds.length} ambiente(s)`;default:return ''}}
+function moduleHub(key){const def=moduleDefs[key],rows=$('rows');
+ const hero=el('div',undefined,'module-hero');const lead=el('div');lead.append(el('span','SISTEMAS DISPONÍVEIS','module-kicker'),el('h2',def.title),el('p',def.intro));hero.append(lead);const mark=el('span',undefined,'module-hero-icon');mark.append(svgIcon(def.icon));hero.append(mark);rows.append(hero);
+ const tools=el('div',undefined,'feature-grid');for(const [tab,title,description,icon] of def.items){if(!allowedFeature(tab))continue;tools.append(moduleCard({tab,title,description,icon,meta:moduleMetric(tab)}));}
+ rows.append(tools);
+ if(key==='configuracoes'&&!state.canEdit)rows.append(el('p','Alterações de folga e permissões dependem de ser dono do servidor. O acesso global ao laboratório é somente para testes seguros.','module-tip'));
+}
+function serversPage(){const rows=$('rows'),activeGuild=state.guild,top=el('div',undefined,'server-head');top.append(el('span','AMBIENTES AUTORIZADOS','module-kicker'),el('h2','Servidores vinculados'),el('p','O painel escolhe um servidor automaticamente. A troca só aparece aqui, sem atrapalhar as outras funções.'));rows.append(top);
+ const list=el('div',undefined,'server-grid');for(const g of state.guilds){const b=el('button',undefined,'server-option'+(g.guild_id===activeGuild?' selected':''));b.type='button';const identity=el('span',undefined,'server-identity');const avatar=el('span',(g.name||'S').slice(0,1).toUpperCase(),'server-avatar');const txt=el('span');txt.append(el('strong',g.name||'Servidor sem nome'),el('small',g.guild_id===activeGuild?'Ambiente atual':'Servidor autorizado pelo Discord'));identity.append(avatar,txt);b.append(identity,el('span',g.guild_id===activeGuild?'Selecionado':'Selecionar','server-badge'));b.disabled=g.guild_id===activeGuild;b.onclick=async()=>{state.guild=g.guild_id;state.roles=null;$('guild').value=g.guild_id;await load();};list.append(b)}
+ rows.append(list);if(state.guilds.length===1)rows.append(el('p','Só existe um servidor autorizado para esta conta; ele já está selecionado.','module-tip'));
+}
 function setSidebarOpen(open){
  const side=$('sidebar'),overlay=$('sidebarOverlay');if(!side||side.hidden)return;
  side.classList.toggle('open',!!open);overlay.hidden=!open;overlay.classList.toggle('open',!!open);
  $('openSidebar').setAttribute('aria-expanded',String(!!open));
 }
 function openTab(tab){
- if(tab==='laboratorio'&&!state.data?.isBotOwner)return;
- if(tab==='permissoes'&&!state.canEdit)return;
+ if(!allowedFeature(tab))return;
  if(!(tab in tabInfo))return;
  state.tab=tab;state.search='';setSidebarOpen(false);render();
  if(window.innerWidth<=950)window.scrollTo({top:0,behavior:'smooth'});
 }
 function renderNav(){
- const [title,description]=tabInfo[state.tab]||tabInfo.inicio;
+ const [title,description]=tabInfo[state.tab]||tabInfo.inicio, parent=parentTab(state.tab);
  $('pageTitle').textContent=title;$('pageDescription').textContent=description;
- $('pageEyebrow').textContent='PAINEL / '+title.toLocaleUpperCase('pt-BR');
- $('headerContext').textContent='Área administrativa · '+title;
- $('ownerLabTab').hidden=!state.data?.isBotOwner;
+ $('pageEyebrow').textContent=parent?`CENTRAL / ${tabInfo[parent][0].toLocaleUpperCase('pt-BR')}`:'CENTRAL / MÓDULOS';
+ $('headerContext').textContent='Painel de gestão · '+title;
  $('ownerBadge').hidden=!state.data?.isBotOwner;
- document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));
- $('mobileMore').classList.toggle('active',!['inicio','presenca','ranking'].includes(state.tab));
+ const guildName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Servidor atual';
+ $('sidebarGuildName').textContent=guildName;
+ $('moduleBack').hidden=!parent;
+ if(parent){$('backToModule').onclick=()=>openTab(parent);$('backToModule').textContent='← Voltar para '+tabInfo[parent][0];}
+ const group=parent||state.tab;
+ document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===group));
+ $('mobileMore').classList.toggle('active',group==='configuracoes');
 }
 function overview(){
- const rows=$('rows'),filters=$('filters'),data=state.data,all=cards(),map=members();
- const period=all.filter(inPeriod);const pending=(data.justifications||[]).filter(x=>x.status==='pending').length;
- const now=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'long',year:'numeric'}).format(new Date());
- const banner=el('div',undefined,'overview-banner'),left=el('div');
- left.append(el('span','RESUMO OPERACIONAL','overview-kicker'),el('h3','Tudo o que importa, em um só painel.'),el('p',`Acompanhamento do servidor selecionado · ${now}`));
- const logo=el('span',undefined,'icon');logo.innerHTML='<svg class="ico" aria-hidden="true"><use href="#ico-activity"/></svg>';
- banner.append(left,logo);rows.append(banner);
- const grid=el('div',undefined,'overview-grid');
- const team=el('div',undefined,'overview-tile');team.append(el('span','EQUIPE','overview-kicker'),el('h3','Presença e turnos'),el('p','Pessoas atualmente vinculadas aos cargos de turno.'));
- const shiftBox=el('div',undefined,'shift-list');
- for(const shift of shifts){const r=el('div',undefined,'shift-row'),label=el('span',undefined,'shift-label');label.append(el('span',undefined,'shift-dot'),el('span',shift));r.append(label,el('strong',String(official(shift).length)+(official(shift).length===1?' membro':' membros'),'shift-count'));shiftBox.append(r)}
- team.append(shiftBox);
- const quick=el('div',undefined,'quick-actions');for(const [label,tab] of [['Controle de presença','presenca'],['Ver membros','membros'],['Histórico mensal','mensal'],['Relatórios','relatorios']]){const b=el('button',label);b.type='button';b.onclick=()=>openTab(tab);quick.append(b)}team.append(quick);
- const latest=el('div',undefined,'overview-tile');latest.append(el('span','MOVIMENTAÇÃO','overview-kicker'),el('h3','Registros recentes'),el('p','Últimos cartões sincronizados pelo bot, sem dados fictícios.'));
- const current=[...all].filter(c=>c.status!=='Cancelado').sort((a,b)=>new Date(b.started_at)-new Date(a.started_at)).slice(0,4);
- for(const c of current){latest.append(person(map.get(c.user_id)||{user_id:c.user_id},`${c.shift} · ${c.kind} · ${c.status}`,fmt(c.duration_minutes),c.status==='Validado'?'good':''))}
- if(!current.length)note(latest,'Nenhum registro sincronizado até o momento.');
- const noteLine=el('div',undefined,'overview-note');noteLine.append(el('span','Justificativas em análise'),el('strong',String(pending)));latest.append(noteLine);
- grid.append(team,latest);rows.append(grid);
- if(data.isBotOwner){const area=el('div',undefined,'overview-tile');area.style.marginTop='16px';area.append(el('span','ÁREA DO PROPRIETÁRIO','overview-kicker'),el('h3','Laboratório seguro'),el('p','Experimente parâmetros e verifique regras em modo de consulta, sem gravar alterações nos servidores.'));const b=el('button','Abrir laboratório de testes','button');b.type='button';b.onclick=()=>openTab('laboratorio');area.append(b);rows.append(area)}
+ const rows=$('rows'),data=state.data,all=cards();
+ const pending=(data.justifications||[]).filter(x=>x.status==='pending').length;
+ const currentName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Seu servidor';
+ const section=el('section',undefined,'home-hero');
+ const intro=el('div');intro.append(el('span','SEU ESPAÇO DE TRABALHO','module-kicker'),el('h2','O que vamos gerenciar hoje?'),el('p',`Você está conectado ao ambiente ${currentName}. Selecione um módulo para acessar suas ferramentas.`));
+ const meta=el('div',undefined,'home-hero-badge');meta.append(svgIcon('ico-shield'),el('span','Ambiente conectado'));section.append(intro,meta);rows.append(section);
+ const snapshot=el('div',undefined,'home-snapshot');
+ for(const [label,value,subtitle] of [
+  ['Horas validadas',fmt(totaled(all.filter(inPeriod))), 'no período atual'],
+  ['Em serviço',String(all.filter(active).length),'cartões ativos'],
+  ['Equipe',(new Set(shifts.flatMap(sh=>official(sh).map(m=>m.user_id)))).size+' membros','com turno vinculado'],
+  ['Pendências',String(pending),'justificativas em análise']]){
+  const tile=el('div',undefined,'snapshot-card');tile.append(el('span',label),el('strong',value),el('small',subtitle));snapshot.append(tile)}rows.append(snapshot);
+ rows.append(el('div','ESCOLHA UM SISTEMA','module-section-label'));
+ const cardsGrid=el('div',undefined,'home-module-grid');
+ for(const [key,title,descr,ico,foot] of [
+  ['jornada','Jornada e ponto','Presença, turnos, horas extras e histórico.','ico-clock','4 ferramentas'],
+  ['equipe','Equipe e dados','Membros, ranking e relatórios detalhados.','ico-users','3 ferramentas'],
+  ['administracao','Administração','Justificativas, folgas, advertências e auditoria.','ico-shield','4 ferramentas'],
+  ['configuracoes','Configurações','Ambientes autorizados, permissões e testes.','ico-settings','Acesso protegido']]){
+  const b=el('button',undefined,'home-module');b.type='button';const avatar=el('span',undefined,'home-module-icon');avatar.append(svgIcon(ico));const copy=el('span',undefined,'home-module-copy');copy.append(el('strong',title),el('small',descr),el('em',foot));const arrow=el('span',undefined,'home-module-arrow');arrow.append(svgIcon('ico-arrow'));b.append(avatar,copy,arrow);b.onclick=()=>openTab(key);cardsGrid.append(b)}rows.append(cardsGrid);
+ rows.append(el('p','Cada módulo contém suas próprias telas, consultas e filtros. Os dados continuam sendo recebidos do bot e do Supabase.','module-tip'));
 }
 function ownerLab(){
  const rows=$('rows'),filters=$('filters'),data=state.data;
@@ -181,11 +232,17 @@ function ownerLab(){
  const guidance=el('div',undefined,'owner-tool');guidance.append(el('span','ACESSO REAL','owner-label'),el('h3','Quem pode alterar o quê?'),el('p','O dono do sistema consulta todos os servidores e faz simulações seguras. O dono de cada servidor controla suas próprias folgas e cargos autorizados. Administradores têm acesso de consulta, conforme permissões do Discord.'));
  const btn=el('button','▣ Abrir controle de presença','button ghost');btn.onclick=()=>openTab('presenca');guidance.append(btn);grid.append(guidance);
 }
-function render(){if(!state.data)return;const data=state.data,all=cards(),period=all.filter(inPeriod),map=members();$('period').value=state.period;$('month').value=state.month||today().slice(0,7);$('permissionsTab').hidden=!state.canEdit;renderNav();
+function render(){if(!state.data)return;const data=state.data,all=cards(),period=all.filter(inPeriod),map=members();$('period').value=state.period;$('month').value=state.month||today().slice(0,7);renderNav();
 const summaries=[['Normais validadas',fmt(totaled(period,'Normal'))],['Extras validadas',fmt(totaled(period,'Extra'))],['Total validado',fmt(totaled(period))],['Em andamento',String(period.filter(active).length)+(period.filter(active).length===1?' registro':' registros')]];$('stats').replaceChildren();for(const [label,val] of summaries){const box=el('div',undefined,'stat');box.append(el('span',label),el('strong',val));$('stats').append(box)}
-const filters=$('filters'),rows=$('rows');filters.replaceChildren();rows.replaceChildren();
+const isHub=!!moduleDefs[state.tab]||state.tab==='inicio', hasPeriod=['ranking','mensal','relatorios','membros','ativos','cancelados'].includes(state.tab), hasStats=['ranking','relatorios'].includes(state.tab);
+ $('periodToolbar').hidden=!hasPeriod;$('stats').hidden=!hasStats;
+ $('moduleContent').classList.toggle('hub-content',isHub);$('footerNote').hidden=isHub;
+ const filters=$('filters'),rows=$('rows');filters.replaceChildren();rows.replaceChildren();filters.hidden=isHub;
+
 if(data.missingSchema?.length)filters.append(el('p','Banco Supabase ainda não atualizado: execute ATUALIZAR-SUPABASE.sql para ativar presença, justificativas, advertências e folgas. As horas antigas continuam disponíveis.','error'));
 if(state.tab==='inicio')overview();
+else if(moduleDefs[state.tab])moduleHub(state.tab);
+else if(state.tab==='servidores')serversPage();
 else if(state.tab==='laboratorio')ownerLab();
 else if(state.tab==='ranking'){
  filters.append(el('p','Top 10 do período, considerando somente horas validadas. Horas extras não entram na meta diária.','hint'));
@@ -205,12 +262,12 @@ else if(state.tab==='turno'){
 }else if(state.tab==='ativos'||state.tab==='cancelados'){
  const status=state.tab==='ativos'?'Ativo':'Cancelado';const subset=period.filter(c=>c.status===status);for(const c of subset)rows.append(person(map.get(c.user_id)||{user_id:c.user_id},`${c.shift} · ${c.kind}${c.cancellation_reason?' · Motivo: '+c.cancellation_reason:''} · ${ymd(c.started_at)}`,status==='Ativo'?fmt(c.duration_minutes):'Cancelado',status==='Ativo'?'good':'bad'));if(!subset.length)note(rows,status==='Ativo'?'Nenhum cartão em andamento nesse período.':'Nenhum cancelamento nesse período.');
 }else if(state.tab==='relatorios'){
- const search=el('input');search.placeholder='Pesquisar membro ou cartão';search.value=state.search;search.oninput=()=>{state.search=search.value;render()};const lab=el('label','Pesquisa');lab.append(search);filters.append(lab);
+ const search=el('input');search.placeholder='Pesquisar membro ou cartão';search.value=state.search;search.oninput=()=>{state.search=search.value;const caret=search.selectionStart;render();const next=$('filters').querySelector('input');if(next){next.focus();next.setSelectionRange(caret,caret)}};const lab=el('label','Pesquisa');lab.append(search);filters.append(lab);
  filters.append(select('Situação',[['Todas','todos'],['Validado','Validado'],['Ativo','Ativo'],['Cancelado','Cancelado']],state.status,v=>{state.status=v;render()}));filters.append(select('Tipo',[['Todos','todos'],['Normal','Normal'],['Extra','Extra']],state.kind,v=>{state.kind=v;render()}));filters.append(select('Turno',[['Todos','todos'],...shifts.map(x=>[x,x])],state.reportShift,v=>{state.reportShift=v;render()}));
  const find=state.search.toLocaleLowerCase('pt-BR').trim();const filtered=period.filter(c=>(state.status==='todos'||c.status===state.status)&&(state.kind==='todos'||c.kind===state.kind)&&(state.reportShift==='todos'||c.shift===state.reportShift)&&(!find||`${c.card_id} ${map.get(c.user_id)?.display_name||''}`.toLocaleLowerCase('pt-BR').includes(find)));filters.append(el('p',`${filtered.length} registros encontrados · Exibindo até 300.`, 'hint'));
  for(const c of filtered.slice(0,300))rows.append(person(map.get(c.user_id)||{user_id:c.user_id},`${c.card_id} · ${ymd(c.started_at)} · ${c.shift} · ${c.kind}${c.cancellation_reason?' · '+c.cancellation_reason:''}`,`${c.status} · ${fmt(c.duration_minutes)}`,c.status==='Cancelado'?'bad':c.status==='Validado'?'good':''));if(!filtered.length)note(rows,'Nenhum relatório encontrado.');
 }else if(state.tab==='membros'){
- const search=el('input');search.placeholder='Nome ou ID';search.value=state.search;search.oninput=()=>{state.search=search.value;render()};const lab=el('label','Buscar membro');lab.append(search);filters.append(lab);
+ const search=el('input');search.placeholder='Nome ou ID';search.value=state.search;search.oninput=()=>{state.search=search.value;const caret=search.selectionStart;render();const next=$('filters').querySelector('input');if(next){next.focus();next.setSelectionRange(caret,caret)}};const lab=el('label','Buscar membro');lab.append(search);filters.append(lab);
  const assigned=new Set(shifts.flatMap(shift=>official(shift).map(m=>m.user_id)));const filtered=(data.members||[]).filter(m=>assigned.has(m.user_id)&&(m.display_name+' '+m.user_id).toLowerCase().includes(state.search.toLowerCase())).sort((a,b)=>a.display_name.localeCompare(b.display_name,'pt-BR'));filters.append(el('p',`${filtered.length} membros cadastrados`, 'hint'));
  for(const m of filtered.slice(0,300)){const own=period.filter(c=>c.user_id===m.user_id);rows.append(person(m,`${fmt(totaled(own,'Normal'))} normais · ${fmt(totaled(own,'Extra'))} extras`,fmt(totaled(own))))}if(!filtered.length)note(rows,'Nenhum membro encontrado.');
 }else if(state.tab==='permissoes')renderPermissions(filters,rows,data);
