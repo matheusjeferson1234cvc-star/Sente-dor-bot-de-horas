@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0b0d14">
+  <meta name="theme-color" content="#090b14">
   <meta name="description" content="Central de Horas — gestão de jornada, turnos e equipes integrada ao Discord.">
-  <title>Central de Horas | Painel Discord</title>
+  <title>Central de Horas | Gestão inteligente no Discord</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/dashboard.css?v=586">
-  <script defer src="/real.js?v=586"></script>
+  <link rel="stylesheet" href="/dashboard.css?v=590">
+  <script defer src="/real.js?v=590"></script>
 </head>
 <body>
   <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
@@ -29,6 +29,9 @@
     <symbol id="ico-x" viewBox="0 0 24 24"><path d="M5 5 19 19M19 5 5 19"/></symbol>
     <symbol id="ico-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14-5L3 9m0-6v6h6m-5 4a8 8 0 0 0 14 5l3-3m0 6v-6h-6"/></symbol>
     <symbol id="ico-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="ico-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="ico-external" viewBox="0 0 24 24"><path d="M13 5h6v6M19 5l-9 9"/><path d="M19 14v5H5V5h5"/></symbol>
+    <symbol id="ico-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
   </svg>
   <div class="app-shell" id="appShell">
     <div id="sidebarOverlay" class="sidebar-overlay" hidden></div>
@@ -50,7 +53,7 @@
           <button type="button" data-tab="configuracoes"><svg class="ico"><use href="#ico-settings"/></svg> Configurações</button>
         </nav>
       </div>
-      <div class="sidebar-footer"><div class="sidebar-server"><small>AMBIENTE ATUAL</small><strong id="sidebarGuildName">Servidor vinculado</strong><button type="button" data-tab="servidores" id="sidebarSwitchServer">Gerenciar acesso <svg class="ico"><use href="#ico-arrow"/></svg></button></div><span class="footer-status"><span class="connected-dot"></span> Plataforma integrada</span><small>Discord · Discloud · Supabase</small><button type="button" id="sidebarLogout" class="button ghost sidebar-logout" hidden>Sair da conta</button></div>
+      <div class="sidebar-footer"><div class="sidebar-server"><small>AMBIENTE ATUAL</small><strong id="sidebarGuildName">Servidor vinculado</strong><button type="button" data-tab="servidores" id="sidebarSwitchServer">Gerenciar acesso <svg class="ico"><use href="#ico-arrow"/></svg></button></div><span class="footer-status"><span class="connected-dot"></span> Plataforma integrada</span><small>Discord · Discloud · Supabase</small><a class="sidebar-add-bot" href="/api/invite" target="_blank" rel="noopener noreferrer"><svg class="ico"><use href="#ico-plus"/></svg> Adicionar bot ao servidor</a><button type="button" id="sidebarLogout" class="button ghost sidebar-logout" hidden>Sair da conta</button></div>
     </aside>
 
     <div class="main-column">
@@ -66,24 +69,33 @@
         <section class="hero" id="hero" aria-label="Acessar a Central de Horas">
           <div class="hero-copy">
             <span class="eyebrow"><span class="eyebrow-line"></span> PLATAFORMA DE GESTÃO PARA DISCORD</span>
-            <h1>Sua equipe.<br><em>Cada sistema no seu lugar.</em></h1>
-            <p>Jornada, relatórios e configurações do bot em áreas separadas. Sem menus lotados, sem informação fora do lugar.</p>
+            <h1>Sua equipe.<br><em>Mais controle. Mais eficiência.</em></h1>
+            <p>Sua operação em um só lugar. Controle turnos, acompanhe horas e administre seu bot com uma experiência rápida, moderna e integrada ao Discord.</p>
             <div class="login-benefits" aria-label="Recursos da Central de Horas">
               <div><svg class="ico"><use href="#ico-check"/></svg><span>Jornada e ponto em um sistema próprio</span></div>
               <div><svg class="ico"><use href="#ico-bar"/></svg><span>Relatórios, ranking e configurações independentes</span></div>
               <div><svg class="ico"><use href="#ico-shield"/></svg><span>Gestão protegida pelo login Discord</span></div>
             </div>
-            <p class="login-caption">Desenvolvido para facilitar o trabalho de líderes e administradores.</p>
+            <p class="login-caption">GESTÃO INTELIGENTE · DASHBOARD EM TEMPO REAL</p>
           </div>
           <div class="login-side">
-            <div class="login-header"><span class="login-logo"><svg class="ico"><use href="#ico-clock"/></svg></span><span class="login-edition">CENTRAL DE HORAS <small>ÁREA RESTRITA</small></span></div>
-            <div class="login-body"><span class="login-welcome">ACESSO À PLATAFORMA</span><h2>Bem-vindo de volta.</h2><p>Entre com o Discord para acessar os servidores e ferramentas disponíveis para sua conta.</p><section id="auth" class="auth" aria-live="polite"><p>Verificando sua conta Discord...</p></section></div>
-            <div class="login-security"><svg class="ico"><use href="#ico-shield"/></svg><span>Login oficial do Discord. Sua senha nunca é solicitada pela Central.</span></div>
+            <div class="login-header"><span class="login-logo"><svg class="ico"><use href="#ico-clock"/></svg></span><span class="login-edition">CENTRAL DE HORAS <small>ACESSO SEGURO</small></span><span class="login-header-status"><span class="connected-dot"></span> Plataforma online</span></div>
+            <div class="login-body">
+              <span class="login-welcome">ACESSO À PLATAFORMA</span>
+              <h2>Bem-vindo à Central.</h2>
+              <p>Entre com sua conta para acompanhar a equipe e administrar seu servidor com segurança.</p>
+              <section id="auth" class="auth" aria-live="polite"><p>Verificando sua conta Discord...</p></section>
+              <div class="login-divider" aria-hidden="true"><span>ou</span></div>
+              <a id="inviteBotBtn" class="button invite-bot-btn" href="/api/invite" target="_blank" rel="noopener noreferrer"><svg class="ico"><use href="#ico-plus"/></svg><span>Adicionar bot ao meu servidor</span><svg class="ico invite-external"><use href="#ico-external"/></svg></a>
+              <button type="button" id="inviteHelp" class="login-help"><svg class="ico"><use href="#ico-lock"/></svg> Como funciona a instalação?</button>
+            </div>
+            <div class="login-security"><svg class="ico"><use href="#ico-shield"/></svg><span>Login e instalação pela autorização oficial do Discord. Nunca solicitamos sua senha ou o token do bot.</span></div>
           </div>
         </section>
 
         <section id="authFallback" class="panel auth-fallback" hidden aria-live="polite"></section>
         <section id="content" hidden>
+          <nav id="breadcrumbs" class="breadcrumbs" aria-label="Caminho de navegação"></nav>
           <div class="module-back" id="moduleBack" hidden><button type="button" id="backToModule"><svg class="ico"><use href="#ico-arrow"/></svg> Voltar aos módulos</button></div>
           <div class="workspace-header">
             <div><span id="pageEyebrow" class="eyebrow">PAINEL / VISÃO GERAL</span><h1 id="pageTitle">Visão geral</h1><p id="pageDescription">O que está acontecendo no seu servidor agora</p></div>
@@ -98,7 +110,7 @@
           <p class="foot" id="footerNote">Dados sincronizados com o bot e o Supabase. Horas extras não substituem a meta normal. Faltas só são confirmadas após encerramento do turno e validação dos registros. Consulta atualizada automaticamente a cada minuto.</p>
         </section>
       </main>
-      <footer><span>Central de Horas <strong>v5.8.6</strong></span><span>Gestão de equipes conectada ao Discord</span></footer>
+      <footer><span>Central de Horas <strong>v5.9.0</strong></span><span>Gestão de equipes conectada ao Discord</span></footer>
     </div>
 
     <nav class="mobile-bottom" id="mobileBottom" aria-label="Navegação dos módulos" hidden>
@@ -108,6 +120,12 @@
       <button type="button" data-tab="configuracoes"><svg class="ico"><use href="#ico-settings"/></svg><span>Bot</span></button>
       <button type="button" id="mobileMore"><svg class="ico"><use href="#ico-menu"/></svg><span>Mais</span></button>
     </nav>
+    <dialog id="siteDialog" class="site-dialog" aria-labelledby="dialogTitle" aria-describedby="dialogMessage">
+      <div class="dialog-top"><span class="dialog-symbol"><svg class="ico"><use href="#ico-shield"/></svg></span><button type="button" id="dialogClose" class="icon-btn" aria-label="Fechar janela"><svg class="ico"><use href="#ico-x"/></svg></button></div>
+      <h2 id="dialogTitle">Confirmação</h2>
+      <p id="dialogMessage"></p>
+      <div class="dialog-actions"><button type="button" id="dialogCancel" class="button ghost">Voltar</button><button type="button" id="dialogAccept" class="button">Continuar</button></div>
+    </dialog>
   </div>
 </body>
 </html>
