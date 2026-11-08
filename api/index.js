@@ -84,7 +84,7 @@ module.exports=async(req,res)=>{
   if(typeof req.body==='string'){try{req.body=JSON.parse(req.body)}catch{return json(res,400,{error:'JSON inválido'})}}
   if(path==='health'){
    const configured={supabase:!!(process.env.SUPABASE_URL&&(process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY)),discordOAuth:!!(process.env.DISCORD_CLIENT_ID&&process.env.DISCORD_CLIENT_SECRET&&process.env.DISCORD_REDIRECT_URI&&process.env.SESSION_SECRET),discordBot:!!process.env.DISCORD_BOT_TOKEN,botSync:!!process.env.BOT_SYNC_SECRET};
-   const result={ok:true,version:'5.8.5',configured};
+   const result={ok:true,version:'5.9.0',configured};
    if(req.query?.check==='database'){
     if(!configured.supabase)return json(res,200,{...result,database:{ready:false,message:'Configurar SUPABASE_URL e SUPABASE_SECRET_KEY na Vercel'}});
     const names=['guild_settings','guild_members','shift_cards','attendance_days','absence_justifications','attendance_warnings'];
@@ -193,8 +193,8 @@ module.exports=async(req,res)=>{
    if(!/^\d{15,25}$/.test(appId))return json(res,503,{error:'Convite indisponível. Configure DISCORD_BOT_CLIENT_ID ou DISCORD_CLIENT_ID na Vercel.'});
    // Manage Roles, View Channel, Send Messages, Manage Messages, Embed Links,
    // Attach Files e Read Message History; sem exigir Administrator.
-   const requested=String(process.env.DISCORD_BOT_INVITE_PERMISSIONS||'268560384');
-   const permissions=/^\d{1,20}$/.test(requested)?requested:'268560384';
+   const requested=String(process.env.DISCORD_BOT_INVITE_PERMISSIONS||'268561408');
+   const permissions=/^\d{1,20}$/.test(requested)?requested:'268561408';
    const link=new URL('https://discord.com/oauth2/authorize');
    link.search=new URLSearchParams({client_id:appId,scope:'bot applications.commands',permissions,integration_type:'0'}).toString();
    res.statusCode=302;
