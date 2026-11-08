@@ -152,3 +152,64 @@ body.logged-in .hero{display:none}
 .bot-access-panel{margin-top:18px;padding:18px 20px;border:1px solid rgba(145,133,197,.26);background:rgba(125,103,182,.08);border-radius:16px;display:grid;gap:9px}
 .bot-access-panel strong{font-weight:750;color:#f1effb}.bot-access-panel p{margin:0;line-height:1.6;color:#acacc0}.bot-access-panel button{justify-self:start;margin-top:6px}
 .bot-config-form input:disabled,.bot-config-form select:disabled,.bot-config-form textarea:disabled{opacity:.78;cursor:not-allowed}
+
+
+/* v5.8.6 — Ajuste de organização da central de configurações */
+.config-category{margin:25px 0 0;min-width:0}
+.config-category-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 13px;padding:0 2px}
+.config-category-head h3{margin:0;color:#f3f1fb;font-size:18px;letter-spacing:-.035em;font-weight:760}
+.config-category-head p{margin:4px 0 0;color:#99a4b9;font-size:12px;line-height:1.5}
+.config-category-count{flex:none;border:1px solid #363b50;border-radius:999px;color:#b5bdd0;background:#1b202c;padding:5px 10px;font-size:11px;font-weight:700}
+.config-category .feature-grid{gap:11px}
+.config-category .feature-card{min-height:105px;border-radius:13px;padding:19px;transition:border-color .18s ease,background .18s ease,transform .18s ease}
+.config-category .feature-card:hover{border-color:#8d7cc5;background:#22253a}
+.config-category .feature-card:focus-visible{outline:2px solid #b9a7ff;outline-offset:3px}
+.config-category .feature-symbol{width:42px;height:42px}
+.config-category .feature-info{gap:5px}
+.config-category .feature-info strong{font-size:14px}
+.config-category .feature-info small{font-size:12px;line-height:1.55}
+.bot-access-panel{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:0 0 8px;padding:18px 20px;background:#1a2030;border-color:#384259}
+.bot-access-copy{display:grid;gap:5px;min-width:0}
+.config-kicker{font-size:10px;letter-spacing:.105em;color:#b5a9ed;font-weight:800}
+.bot-access-panel strong{font-size:15px;line-height:1.4}
+.bot-access-panel p{font-size:12px;line-height:1.6;max-width:730px}
+.bot-access-panel button{flex:none;margin:0;white-space:nowrap;min-height:39px}
+.bot-config-banner{padding:17px 19px;background:#1b2030;border-color:#353d55}
+.bot-config-banner strong{font-size:15px}
+.bot-sync-pill{display:inline-flex;align-items:center;gap:7px;background:#26233c;border:1px solid #564a8b}
+.bot-sync-pill:before{content:'';width:7px;height:7px;flex:none;border-radius:50%;background:#ac9af4}
+.bot-config-form{gap:17px}
+.bot-section{padding:21px 23px;border-radius:14px;gap:14px;border-color:#343c4d;background:#171c27}
+.bot-section h3{font-size:17px;font-weight:750;letter-spacing:-.025em}
+.bot-section-description{font-size:12px;color:#a2acbf}
+.bot-field{gap:7px;font-size:12px;font-weight:720;color:#c3c8da}
+.bot-field input:not([type=checkbox]),.bot-field select,.bot-field textarea{background:#111720;border:1px solid #42485a;min-height:45px;padding:11px 13px;border-radius:10px;font-size:14px;transition:border-color .16s ease,box-shadow .16s ease}
+.bot-field textarea{line-height:1.65;resize:vertical}
+.bot-field input:focus-visible,.bot-field select:focus-visible,.bot-field textarea:focus-visible{outline:none;border-color:#9a85ee;box-shadow:0 0 0 3px #8d73dc30}
+.bot-field:has(input[type=checkbox]){display:flex;align-items:center;justify-content:space-between;flex-direction:row-reverse;gap:12px;background:#202638;border:1px solid #364054;border-radius:11px;padding:13px 15px;min-height:54px}
+.bot-field input[type=checkbox]{flex:none;width:22px;height:22px}
+.bot-check-group{background:#1b202c;border-color:#3b4356}
+.bot-check-list{max-height:290px;gap:8px}
+.bot-check{border:1px solid #343c4d;background:#171d28;border-radius:9px;padding:9px 11px;min-height:40px;cursor:pointer}
+.bot-check:has(input:checked){border-color:#7261ad;background:#26213c}
+.bot-subheading{color:#e5def9}
+.bot-actions{position:sticky;bottom:12px;z-index:8;display:flex;align-items:center;gap:11px;padding:13px;background:#181d2bf2;border:1px solid #4b4567;border-radius:13px;box-shadow:0 14px 30px #0008;backdrop-filter:blur(12px)}
+.bot-actions .button{min-height:43px}
+.bot-actions .button.ghost{color:#c8c2db}
+.bot-status{padding:0 4px;line-height:1.6;color:#c0b3ff}
+@media(max-width:740px){
+ .config-category{margin-top:23px}
+ .config-category-head{align-items:flex-start}
+ .config-category-head h3{font-size:16px}
+ .config-category-head p{font-size:12px}
+ .config-category-count{font-size:10px;padding:4px 8px}
+ .config-category .feature-card{padding:15px;min-height:88px}
+ .bot-access-panel{align-items:stretch;flex-direction:column;padding:15px;gap:12px}
+ .bot-access-panel button{align-self:flex-start}
+ .bot-section{padding:17px 15px;gap:12px}
+ .bot-actions{bottom:calc(77px + env(safe-area-inset-bottom,0px));padding:11px;display:grid;grid-template-columns:1fr;gap:8px}
+ .bot-actions button{width:100%;min-height:43px}
+ .bot-check-list{grid-template-columns:1fr}
+ .bot-config-form{padding-bottom:12px}
+}
+@media(prefers-reduced-motion:reduce){.config-category .feature-card,.bot-field input,.bot-field select,.bot-field textarea{transition:none}}
