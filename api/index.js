@@ -33,24 +33,35 @@ const safeTimeOff=input=>{
 const authorized=async(guild,user)=>{
  const globalOwner=!!process.env.BOT_OWNER_DISCORD_ID&&user.id===process.env.BOT_OWNER_DISCORD_ID;
  const ownerCanEdit=globalOwner&&(process.env.BOT_OWNER_EDIT_GUILDS||'').split(/[\s,;]+/).includes(guild);
- // Global owner can inspect all synchronized guilds. Editing requires guild ownership.
+ // O dono global pode consultar sem token; ele não recebe edição irrestrita.
  if(globalOwner&&!process.env.DISCORD_BOT_TOKEN)return {view:true,edit:false};
  let info;
  try{info=await discord(`/guilds/${guild}`)}catch(e){if(globalOwner)return {view:true,edit:false};throw e}
  if(info.owner_id===user.id)return {view:true,edit:true};
- if(globalOwner)return {view:true,edit:ownerCanEdit};
- // A permissão Administrador é atribuída pelo Discord aos cargos, não ao perfil OAuth.
- // Validação é feita no servidor com o token do bot; não confiar em cargos enviados pelo navegador.
- const [member,cfg,guildRoles]=await Promise.all([
-  discord(`/guilds/${guild}/members/${user.id}`),
-  db('guild_settings',{query:`?guild_id=eq.${encodeURIComponent(guild)}&select=roles`}),
-  Array.isArray(info.roles)?Promise.resolve(info.roles):discord(`/guilds/${guild}/roles`)
- ]);
- const owned=new Set(member.roles||[]);
- const allowed=cfg[0]?.roles?.allowed||[];
- const explicit=allowed.some(id=>owned.has(id));
- const admin=guildRoles.some(r=>owned.has(r.id)&&(()=>{try{return (BigInt(r.permissions||'0')&8n)!==0n}catch{return false}})());
- return {view:explicit||admin,edit:false};
+ // Discord: permissão ADMINISTRATOR = bit 0x8. Não confiar em nome de cargo,
+ // dados do navegador nem em claims enviados na sessão OAuth.
+ // O bot consulta diretamente os cargos reais do membro e as permissões reais.
+ try{
+  const [member,guildRoles]=await Promise.all([
+   discord(`/guilds/${guild}/members/${user.id}`),
+   Array.isArray(info.roles)?Promise.resolve(info.roles):discord(`/guilds/${guild}/roles`)
+  ]);
+  const owned=new Set([guild,...(member.roles||[])]); // inclui @everyone
+  const admin=guildRoles.some(r=>{
+   if(!owned.has(r.id))return false;
+   try{return (BigInt(r.permissions||'0')&8n)!==0n}catch{return false}
+  });
+  if(admin)return {view:true,edit:true};
+  if(globalOwner)return {view:true,edit:ownerCanEdit};
+  const cfg=await db('guild_settings',{query:`?guild_id=eq.${encodeURIComponent(guild)}&select=roles`});
+  const allowed=cfg[0]?.roles?.allowed||[];
+  const explicit=Array.isArray(allowed)&&allowed.some(id=>owned.has(id));
+  return {view:explicit,edit:false};
+ }catch(e){
+  // Continua permitindo acesso de teste explicitamente autorizado ao dono global.
+  if(globalOwner)return {view:true,edit:ownerCanEdit};
+  throw e;
+ }
 };
 module.exports=async(req,res)=>{
  try{
@@ -58,7 +69,7 @@ module.exports=async(req,res)=>{
   if(typeof req.body==='string'){try{req.body=JSON.parse(req.body)}catch{return json(res,400,{error:'JSON inválido'})}}
   if(path==='health'){
    const configured={supabase:!!(process.env.SUPABASE_URL&&(process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY)),discordOAuth:!!(process.env.DISCORD_CLIENT_ID&&process.env.DISCORD_CLIENT_SECRET&&process.env.DISCORD_REDIRECT_URI&&process.env.SESSION_SECRET),discordBot:!!process.env.DISCORD_BOT_TOKEN,botSync:!!process.env.BOT_SYNC_SECRET};
-   const result={ok:true,version:'5.8.0',configured};
+   const result={ok:true,version:'5.8.2',configured};
    if(req.query?.check==='database'){
     if(!configured.supabase)return json(res,200,{...result,database:{ready:false,message:'Configurar SUPABASE_URL e SUPABASE_SECRET_KEY na Vercel'}});
     const names=['guild_settings','guild_members','shift_cards','attendance_days','absence_justifications','attendance_warnings'];
@@ -203,7 +214,7 @@ module.exports=async(req,res)=>{
    return json(res,200,{members,cards,settings:oldSettings,attendance,justifications,warnings,missingSchema:missing,canEdit:rights.edit,isBotOwner:user.id===process.env.BOT_OWNER_DISCORD_ID});
   }
   if(path==='warnings-preview'&&req.method==='GET'){
-   if(user.id!==process.env.BOT_OWNER_DISCORD_ID&&!rights.edit)return json(res,403,{error:'Somente o dono pode simular a avaliação'});
+   if(user.id!==process.env.BOT_OWNER_DISCORD_ID&&!rights.edit)return json(res,403,{error:'Somente o dono ou Administrador do Discord pode simular a avaliação'});
    const [settings,days,justifications,warnings]=await Promise.all([
     db('guild_settings',{query:`?guild_id=eq.${gid}&select=time_off`}),
     db('attendance_days',{query:`?guild_id=eq.${gid}&select=day,user_id,shift,status&order=day.desc&limit=4000`}),
@@ -215,7 +226,7 @@ module.exports=async(req,res)=>{
    return json(res,200,{ok:true,dryRun:true,approvals,scanned:days.length,warning:'Esta simulação não altera cargos, registros nem envia avisos.'});
   }
   if(path==='bot-config'&&req.query?.scope==='editor'){
-   if(!rights.edit)return json(res,403,{error:'Somente o dono do servidor pode alterar as configurações do bot'});
+   if(!rights.edit)return json(res,403,{error:'Somente o dono ou Administrador do Discord pode configurar o bot'});
    const stored=await db('guild_settings',{query:`?guild_id=eq.${gid}&select=bot_config,bot_config_revision,bot_config_applied_revision,bot_config_applied_at`});
    if(!stored.length)return json(res,404,{error:'Servidor ainda não sincronizado'});
    const config=stored[0];
@@ -238,19 +249,19 @@ module.exports=async(req,res)=>{
    return json(res,200,{ok:true,revision:payload.revision+1,applied:false,message:'Salvo. O bot aplicará após a próxima sincronização.'});
   }
   if(path==='roles'&&req.method==='GET'){
-   if(!rights.edit)return json(res,403,{error:'Somente o dono do servidor pode escolher cargos'});
+   if(!rights.edit)return json(res,403,{error:'Somente o dono ou Administrador do Discord pode escolher cargos'});
    const roles=await discord(`/guilds/${gid}/roles`);
    return json(res,200,{roles:roles.filter(r=>r.id!==gid&&!r.managed).sort((a,b)=>b.position-a.position).map(r=>({id:r.id,name:r.name}))});
   }
   if(path==='time-off'&&req.method==='POST'){
-   if(!rights.edit)return json(res,403,{error:'Somente o dono do servidor pode configurar folgas'});
+   if(!rights.edit)return json(res,403,{error:'Somente o dono ou Administrador do Discord pode configurar folgas'});
    const timeOff=safeTimeOff(req.body||{});
    // PATCH is intentional: do not overwrite bot settings, roles or guild name.
    await db('guild_settings',{method:'PATCH',query:`?guild_id=eq.${gid}`,body:{time_off:timeOff,updated_at:new Date().toISOString()}});
    return json(res,200,{ok:true,timeOff});
   }
   if(path==='settings'&&req.method==='POST'){
-   if(!rights.edit)return json(res,403,{error:'Só o dono do servidor configura'});
+   if(!rights.edit)return json(res,403,{error:'Somente o dono ou Administrador do Discord pode configurar'});
    const d=req.body||{};
    if(!Array.isArray(d.allowedRoles)||d.allowedRoles.length>100||!d.allowedRoles.every(r=>/^\d{15,25}$/.test(String(r))))return json(res,400,{error:'Cargos inválidos'});
    const guildRoles=await discord(`/guilds/${gid}/roles`);
