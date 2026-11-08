@@ -1,26 +1,27 @@
-# Central de Horas v5.5 — Login e navegação redesenhados
+# Central de Horas v5.8.2 — permissões de administrador no site
 
-Versão para Vercel usando a API existente com 12 funções. O login oficial continua em `/api/login`.
+Painel de administração integrado ao Discord, Vercel, Supabase e bot Discord v3.7.1.
 
-## Novo visual
+## Permissões
 
-- Login em duas colunas no PC e versão compacta no celular, com botão de entrada Discord.
-- Navegação lateral fixa no PC, menu deslizante e barra inferior no celular.
-- Visão geral inicial com resumos, atalhos e registros recentes.
-- Seções de controle de presença, ranking, turnos, relatórios, justificativas, advertências, folgas e permissões, com seus dados reais.
-- Laboratório do dono do sistema: aberto apenas quando a API reconhece o usuário em `BOT_OWNER_DISCORD_ID`. Permite prévia de modo de ponto, turno e folga, e consulta simulada de advertências via `/api/warnings-preview`. **Nenhum dado real é alterado no laboratório.**
-- A administração do servidor continua controlando as permissões dos cargos no servidor respectivo. O dono global tem consulta e simulações, não edição de terceiros.
+- **Dono do servidor Discord:** visualiza e edita.
+- **Usuário com a permissão Discord Administrador (bit 8) em um cargo do servidor:** visualiza e edita configurações do site, folgas, permissões de acesso, turnos, cargos, canais e opções do bot.
+- **Cargos configurados apenas para consulta:** podem visualizar os relatórios, não editar.
+- **Membros não autorizados:** sem acesso.
+- **Dono global do bot:** continua com acesso de leitura ao laboratório; para editar outros servidores sem ser administrador ou dono do servidor, deve autorizar explicitamente o ID em `BOT_OWNER_EDIT_GUILDS`.
 
-## Publicação
+A decisão de permissão é feita exclusivamente pelo backend usando dados atualizados da API Discord do bot (não depende do nome do cargo ou de valores do navegador). O endpoint `/api/data` informa `canEdit` para mostrar ou ocultar as opções correspondentes na interface.
 
-1. **Não apague o repositório nem o banco.** Faça backup do que já existe.
-2. Envie os arquivos do ZIP `SITE-RAIZ` para a raiz do repositório GitHub conectado à Vercel.
-3. Dentro da pasta `api` já existente no GitHub, envie os arquivos do ZIP `API` da mesma versão (sem colocar esses arquivos na raiz).
-4. Confira a lista da pasta `api`. Deve haver 12 funções. Se houver um `time-off.js` de versão antiga, remova **somente esse arquivo**, pois a rota é tratada em `api/index.js`.
-5. Verifique na Vercel as variáveis **sem divulgar os valores**: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `SESSION_SECRET`, `DISCORD_BOT_TOKEN`, `BOT_SYNC_SECRET`, `BOT_OWNER_DISCORD_ID`. Se já estiverem configuradas, não precisam ser alteradas.
-6. Aguarde **Production / Ready**. Teste `/api/health` (esperado: `5.5.0`) e o login com Discord.
-7. Para o dono testar, entre no site pelo Discord e escolha **Laboratório do dono** no menu. O ID usado é sempre o ID da conta autenticada, verificado na API, não um campo livre.
+## Instalação
 
-## Observações
+Ver **INSTALAR-V5.8.2.txt**. Atualizar site raiz + pasta `api` na Vercel. Sem alteração de SQL. O bot v3.7.1 existente já é compatível e não foi modificado nesta correção.
 
-Esta versão muda a **interface do site** e não inclui atualizações do bot. Os dados do Supabase e da Discloud não são alterados por estes arquivos. Os testes locais usam sessões e dados simulados; login e permissões em produção precisam ser validados após o deploy. Nunca envie tokens ou chaves ao GitHub.
+## Testes
+
+- `npm test` no site: 55 testes aprovados.
+- `npm test` no bot v3.7.1, sem modificações: 68 testes aprovados.
+- Execução real no Discord, Supabase e Vercel ainda não confirmada.
+
+## Observação
+
+No bot v3.7.1, os comandos administrativos internos ainda usam a permissão **Gerenciar Servidor**, que é uma regra separada da permissão oficial **Administrador** exigida para editar pelo site.
