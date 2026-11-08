@@ -186,6 +186,22 @@ module.exports=async(req,res)=>{
    }else return json(res,400,{error:'Evento desconhecido'});
    return json(res,200,{ok:true});
   }
+  if(path==='invite'){
+   if(req.method!=='GET')return json(res,405,{error:'Método não permitido'});
+   // ID público da aplicação: o token do bot nunca vai para o navegador.
+   const appId=String(process.env.DISCORD_BOT_CLIENT_ID||process.env.DISCORD_CLIENT_ID||'').trim();
+   if(!/^\d{15,25}$/.test(appId))return json(res,503,{error:'Convite indisponível. Configure DISCORD_BOT_CLIENT_ID ou DISCORD_CLIENT_ID na Vercel.'});
+   // Manage Roles, View Channel, Send Messages, Manage Messages, Embed Links,
+   // Attach Files e Read Message History; sem exigir Administrator.
+   const requested=String(process.env.DISCORD_BOT_INVITE_PERMISSIONS||'268560384');
+   const permissions=/^\d{1,20}$/.test(requested)?requested:'268560384';
+   const link=new URL('https://discord.com/oauth2/authorize');
+   link.search=new URLSearchParams({client_id:appId,scope:'bot applications.commands',permissions,integration_type:'0'}).toString();
+   res.statusCode=302;
+   res.setHeader('Cache-Control','no-store');
+   res.setHeader('Location',link.toString());
+   return res.end();
+  }
   if(path==='login'){
    if(!process.env.DISCORD_CLIENT_ID||!process.env.DISCORD_CLIENT_SECRET||!process.env.DISCORD_REDIRECT_URI||!process.env.SESSION_SECRET)return json(res,503,{error:'OAuth não configurado'});
    const nonce=crypto.randomBytes(20).toString('hex');
