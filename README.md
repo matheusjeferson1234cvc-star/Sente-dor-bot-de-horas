@@ -1,21 +1,26 @@
-# Central de Horas v5.3 — Vercel + Supabase
+# Central de Horas v5.5 — Login e navegação redesenhados
 
-Painel real responsivo com login Discord, rankings, controle de presença, turnos, histórico mensal, justificativas, advertências e folgas. O bot v3.4 envia os dados para `/api/bot-sync` com segredo privado.
+Versão para Vercel usando a API existente com 12 funções. O login oficial continua em `/api/login`.
 
-## GitHub pelo celular
+## Novo visual
 
-Envie os arquivos do pacote **SITE-RAIZ-GITHUB.zip** à raiz do repositório ligado à Vercel. Depois envie os arquivos **API-GITHUB.zip** para a pasta **api** que você já criou; não misture os arquivos da API com os da raiz. O projeto completo preserva `api/*.js` dentro da pasta.
+- Login em duas colunas no PC e versão compacta no celular, com botão de entrada Discord.
+- Navegação lateral fixa no PC, menu deslizante e barra inferior no celular.
+- Visão geral inicial com resumos, atalhos e registros recentes.
+- Seções de controle de presença, ranking, turnos, relatórios, justificativas, advertências, folgas e permissões, com seus dados reais.
+- Laboratório do dono do sistema: aberto apenas quando a API reconhece o usuário em `BOT_OWNER_DISCORD_ID`. Permite prévia de modo de ponto, turno e folga, e consulta simulada de advertências via `/api/warnings-preview`. **Nenhum dado real é alterado no laboratório.**
+- A administração do servidor continua controlando as permissões dos cargos no servidor respectivo. O dono global tem consulta e simulações, não edição de terceiros.
 
-Execute `supabase.sql` novamente no SQL Editor para acrescentar as tabelas de ausência/advertências e as colunas de folgas e modo sem apagar o banco antigo.
+## Publicação
 
-## Variáveis privadas (Vercel, Production)
+1. **Não apague o repositório nem o banco.** Faça backup do que já existe.
+2. Envie os arquivos do ZIP `SITE-RAIZ` para a raiz do repositório GitHub conectado à Vercel.
+3. Dentro da pasta `api` já existente no GitHub, envie os arquivos do ZIP `API` da mesma versão (sem colocar esses arquivos na raiz).
+4. Confira a lista da pasta `api`. Deve haver 12 funções. Se houver um `time-off.js` de versão antiga, remova **somente esse arquivo**, pois a rota é tratada em `api/index.js`.
+5. Verifique na Vercel as variáveis **sem divulgar os valores**: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `SESSION_SECRET`, `DISCORD_BOT_TOKEN`, `BOT_SYNC_SECRET`, `BOT_OWNER_DISCORD_ID`. Se já estiverem configuradas, não precisam ser alteradas.
+6. Aguarde **Production / Ready**. Teste `/api/health` (esperado: `5.5.0`) e o login com Discord.
+7. Para o dono testar, entre no site pelo Discord e escolha **Laboratório do dono** no menu. O ID usado é sempre o ID da conta autenticada, verificado na API, não um campo livre.
 
-`SUPABASE_URL`, `SUPABASE_SECRET_KEY` (ou `SUPABASE_SERVICE_ROLE_KEY`), `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`, `SESSION_SECRET`, `DISCORD_BOT_TOKEN`, `BOT_OWNER_DISCORD_ID`, `BOT_SYNC_SECRET`.
+## Observações
 
-Redirect URI: `https://central-de-horas1.vercel.app/api/callback`. Deve ser igual ao registrado em Discord Developer Portal > OAuth2 > Redirects.
-
-## Testar
-
-`npm test`; `https://central-de-horas1.vercel.app/api/health` deve retornar versão 5.3.0 após o novo deploy. O proprietário global tem leitura de todos os servidores sincronizados. A edição das folgas e permissões dos servidores continua restrita ao dono de cada servidor.
-
-**Não coloque tokens ou senhas no GitHub.**
+Esta versão muda a **interface do site** e não inclui atualizações do bot. Os dados do Supabase e da Discloud não são alterados por estes arquivos. Os testes locais usam sessões e dados simulados; login e permissões em produção precisam ser validados após o deploy. Nunca envie tokens ou chaves ao GitHub.

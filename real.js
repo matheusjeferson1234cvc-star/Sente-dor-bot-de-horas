@@ -1,7 +1,7 @@
 'use strict';
 // O painel de produção lê exclusivamente a API autenticada. Dados fictícios ficam em /demo.html.
 const $=id=>document.getElementById(id);
-const state={guild:null,data:null,guilds:[],canEdit:false,tab:'ranking',period:'week',month:null,shift:'Noite',presenceDate:null,offShift:'all',search:'',status:'todos',kind:'todos',reportShift:'todos',roles:null};
+const state={guild:null,data:null,guilds:[],canEdit:false,tab:'inicio',period:'week',month:null,shift:'Noite',presenceDate:null,offShift:'all',search:'',status:'todos',kind:'todos',reportShift:'todos',roles:null};
 const shifts=['Manhã','Tarde','Noite','Madrugada'];
 const api=async (path,options={})=>{const r=await fetch('/api/'+path,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});let d;try{d=await r.json()}catch{throw Error('A API não respondeu em JSON. Confira se a pasta api foi publicada na raiz do projeto Vercel (possível erro 404).')}if(!r.ok)throw Error(d.error||`Erro HTTP ${r.status}`);return d};
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n};
@@ -98,10 +98,87 @@ function timeOff(){const filters=$('filters'),rows=$('rows'),off=state.data?.set
   if(state.canEdit){const remove=el('button','Remover','button ghost');remove.onclick=async()=>{try{await api('time-off?guildId='+encodeURIComponent(state.guild),{method:'POST',body:JSON.stringify({...off,dates:off.dates.filter(d=>d.date!==item.date||d.shift!==item.shift)})});await load()}catch(e){note(rows,e.message,'error')}};r.append(remove)}list.append(r)}rows.append(list);
  if(!state.canEdit)rows.append(el('p','Somente o dono deste servidor pode alterar folgas. O dono global do sistema pode consultar e testar, sem editar servidores alheios.','warning-note'));
 }
-function render(){if(!state.data)return;const data=state.data,all=cards(),period=all.filter(inPeriod),map=members();$('period').value=state.period;$('month').value=state.month||today().slice(0,7);$('permissionsTab').hidden=!state.canEdit;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));
+const tabInfo={
+ inicio:['Visão geral','O que está acontecendo no seu servidor agora'],
+ ranking:['Ranking','Horas validadas por membro e período'],
+ presenca:['Controle de presença','Membros por turno, jornadas e ausências confirmadas'],
+ mensal:['Histórico mensal','Consulte cada mês sem perder os anteriores'],
+ turno:['Turnos','Cargos e jornada de cada turno'],
+ ativos:['Em serviço','Cartões atualmente em andamento'],
+ cancelados:['Cancelamentos','Auditoria dos cartões cancelados'],
+ justificativas:['Justificativas','Solicitações enviadas pelo Discord e decisões'],
+ advertencias:['Advertências','Registros e níveis sincronizados com o bot'],
+ folgas:['Folgas','Folgas semanais e datas específicas'],
+ relatorios:['Relatórios','Histórico com pesquisa e filtros'],
+ membros:['Membros','Somente usuários com cargo de turno'],
+ permissoes:['Permissões','Autorize cargos a acessar o painel'],
+ laboratorio:['Laboratório do dono','Teste configurações com segurança, sem mudar dados reais']
+};
+function setSidebarOpen(open){
+ const side=$('sidebar'),overlay=$('sidebarOverlay');if(!side||side.hidden)return;
+ side.classList.toggle('open',!!open);overlay.hidden=!open;overlay.classList.toggle('open',!!open);
+ $('openSidebar').setAttribute('aria-expanded',String(!!open));
+}
+function openTab(tab){
+ if(tab==='laboratorio'&&!state.data?.isBotOwner)return;
+ if(tab==='permissoes'&&!state.canEdit)return;
+ if(!(tab in tabInfo))return;
+ state.tab=tab;state.search='';setSidebarOpen(false);render();
+ if(window.innerWidth<=950)window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderNav(){
+ const [title,description]=tabInfo[state.tab]||tabInfo.inicio;
+ $('pageTitle').textContent=title;$('pageDescription').textContent=description;
+ $('ownerLabTab').hidden=!state.data?.isBotOwner;
+ $('ownerBadge').hidden=!state.data?.isBotOwner;
+ document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));
+ $('mobileMore').classList.toggle('active',!['inicio','presenca','ranking'].includes(state.tab));
+}
+function overview(){
+ const rows=$('rows'),filters=$('filters'),data=state.data,people=state.data?.members||[],all=cards(),map=members();
+ filters.append(el('p','Resumo do servidor selecionado. Para detalhes, escolha uma seção no menu lateral ou na barra inferior.','hint'));
+ const banner=el('div',undefined,'overview-banner'),left=el('div');left.append(el('h3','Central de Horas • Painel ao vivo'),el('p','Integração Discord + Discloud + Supabase'));
+ banner.append(left,el('div','◷','icon'));rows.append(banner);
+ const grid=el('div',undefined,'overview-grid');
+ const attendance=el('div',undefined,'overview-tile'),h=el('h3','Turnos e presença');attendance.append(h);
+ const totalOfficial=new Set(shifts.flatMap(s=>official(s).map(m=>m.user_id)));
+ attendance.append(el('p',`${totalOfficial.size} membro(s) com cargo de turno • ${all.filter(c=>c.status==='Ativo').length} registro(s) em andamento`,'muted-small'));
+ const quick=el('div',undefined,'quick-actions');for(const [name,tab] of [['▣ Controle de presença','presenca'],['◷ Turnos','turno'],['▤ Histórico mensal','mensal']]){const b=el('button',name);b.type='button';b.onclick=()=>openTab(tab);quick.append(b)}attendance.append(quick);
+ const recent=el('div',undefined,'overview-tile');recent.append(el('h3','Atividade recente'));
+ const current=all.filter(c=>c.status!=='Cancelado').slice(0,4);for(const c of current)recent.append(person(map.get(c.user_id)||{user_id:c.user_id},`${c.shift} · ${c.kind} · ${c.status}`,fmt(c.duration_minutes),c.status==='Validado'?'good':''));
+ if(!current.length)note(recent,'Ainda não há registros sincronizados.');grid.append(attendance,recent);rows.append(grid);
+ if(data.isBotOwner){const area=el('div',undefined,'overview-tile');area.style.marginTop='15px';area.append(el('h3','Acesso do dono do sistema'),el('p','Você pode consultar todos os servidores sincronizados e experimentar as configurações no laboratório, sem modificar cargos nem advertências reais.','muted-small'));const b=el('button','◇ Abrir laboratório seguro','button');b.type='button';b.onclick=()=>openTab('laboratorio');area.append(b);rows.append(area)}
+}
+function ownerLab(){
+ const rows=$('rows'),filters=$('filters'),data=state.data;
+ if(!data?.isBotOwner){note(rows,'Acesso restrito ao dono do sistema.');return}
+ filters.append(el('p','Seu acesso é verificado pelo servidor usando BOT_OWNER_DISCORD_ID. As simulações abaixo NÃO alteram banco de dados, folgas, horas, cargos ou advertências.','hint'));
+ const alert=el('p','MODO DE TESTE • Nenhuma ação desta seção será aplicada ao Discord ou aos membros.','owner-warning');rows.append(alert);
+ const grid=el('div',undefined,'owner-tools');rows.append(grid);
+ const box=el('div',undefined,'owner-tool');box.append(el('span','SIMULADOR LOCAL','owner-label'),el('h3','Prévia das configurações'),el('p','Escolha valores fictícios e veja como ficaria a configuração antes de pedir alguma mudança real.'));
+ const mode=select('Modo de ponto para simulação',[['Em equipe','team'],['Individual','individual']],data.settings?.point_mode||'team',()=>update());
+ const sh=select('Turno para simulação',shifts.map(x=>[x,x]),state.shift,()=>update());
+ const day=select('Folga semanal para simulação',[['Domingo','0'],['Segunda-feira','1'],['Terça-feira','2'],['Quarta-feira','3'],['Quinta-feira','4'],['Sexta-feira','5'],['Sábado','6']],String((data.settings?.time_off?.weekly?.all||[0])[0]??0),()=>update());
+ const out=el('div',undefined,'owner-preview');function update(){const id=sh.querySelector('select').value;const actual=(data.settings?.shift_roles?.[id]||[]).length;out.textContent=`Prévia local: ${mode.querySelector('select').value==='team'?'Equipe':'Individual'} · Turno ${id} · ${actual} cargo(s) configurado(s) no bot · folga semanal de teste: ${day.querySelector('select').selectedOptions[0].text}. Nenhuma mudança foi salva.`;}
+ box.append(mode,sh,day,out);update();grid.append(box);
+ const audit=el('div',undefined,'owner-tool');audit.append(el('span','CONSULTA PROTEGIDA','owner-label'),el('h3','Simular advertências'),el('p','Consulta o cálculo real de faltas e folgas do servidor, mas não envia notificações nem atribui cargos.'));
+ const b=el('button','⚑ Verificar advertências elegíveis','button'),result=el('div',undefined,'owner-preview');b.type='button';b.onclick=async()=>{b.disabled=true;result.replaceChildren(el('p','Consultando a API...'));
+ try{const r=await api('warnings-preview?guildId='+encodeURIComponent(state.guild));result.replaceChildren(el('strong',`${r.approvals.length} avaliação(ões) elegível(is)`));const map=members();for(const i of r.approvals.slice(0,10))result.append(person(map.get(i.userId)||{user_id:i.userId},`${i.shift} · ${i.evidenceDays.join(', ')}`,'Simulação'));if(!r.approvals.length)result.append(el('p','Nenhuma dupla de faltas elegível.'));result.append(el('small','Somente leitura: nenhum cargo ou registro foi alterado.'))}
+ catch(e){result.replaceChildren(el('p',e.message,'error'))}finally{b.disabled=false}};
+ audit.append(b,result);grid.append(audit);
+ const perms=el('div',undefined,'owner-tool');perms.append(el('span','SITUAÇÃO ATUAL','owner-label'),el('h3','Permissões e sincronização'),el('p','Conferência somente leitura das configurações recebidas pelo bot.'));
+ const n=(k,v)=>perms.append(el('div',`${k}: ${v}`,'owner-preview'));
+ n('Cargos administrativos autorizados',String(data.settings?.roles?.allowed?.length||0));n('Turnos configurados',String(shifts.filter(s=>(data.settings?.shift_roles?.[s]||[]).length>0).length));n('Folgas específicas',String(data.settings?.time_off?.dates?.length||0));n('Tabelas ausentes',data.missingSchema?.length?data.missingSchema.join(', '):'Nenhuma identificada');grid.append(perms);
+ const guidance=el('div',undefined,'owner-tool');guidance.append(el('span','ACESSO REAL','owner-label'),el('h3','Quem pode alterar o quê?'),el('p','O dono do sistema consulta todos os servidores e faz simulações seguras. O dono de cada servidor controla suas próprias folgas e cargos autorizados. Administradores têm acesso de consulta, conforme permissões do Discord.'));
+ const btn=el('button','▣ Abrir controle de presença','button ghost');btn.onclick=()=>openTab('presenca');guidance.append(btn);grid.append(guidance);
+}
+function render(){if(!state.data)return;const data=state.data,all=cards(),period=all.filter(inPeriod),map=members();$('period').value=state.period;$('month').value=state.month||today().slice(0,7);$('permissionsTab').hidden=!state.canEdit;renderNav();
 const summaries=[['Normais validadas',fmt(totaled(period,'Normal'))],['Extras validadas',fmt(totaled(period,'Extra'))],['Total validado',fmt(totaled(period))],['Em andamento',String(period.filter(active).length)+' registros']];$('stats').replaceChildren();for(const [label,val] of summaries){const box=el('div',undefined,'stat');box.append(el('span',label),el('strong',val));$('stats').append(box)}
 const filters=$('filters'),rows=$('rows');filters.replaceChildren();rows.replaceChildren();
-if(state.tab==='ranking'){
+if(data.missingSchema?.length)filters.append(el('p','Banco Supabase ainda não atualizado: execute ATUALIZAR-SUPABASE.sql para ativar presença, justificativas, advertências e folgas. As horas antigas continuam disponíveis.','error'));
+if(state.tab==='inicio')overview();
+else if(state.tab==='laboratorio')ownerLab();
+else if(state.tab==='ranking'){
  filters.append(el('p','Top 10 do período, considerando somente horas validadas. Horas extras não entram na meta diária.','hint'));
  const totals=new Map();for(const c of period.filter(valid)){const x=totals.get(c.user_id)||{normal:0,extra:0};x[c.kind==='Extra'?'extra':'normal']+=Number(c.duration_minutes)||0;totals.set(c.user_id,x)}
  const ranking=[...totals].sort((a,b)=>(b[1].normal+b[1].extra)-(a[1].normal+a[1].extra)).slice(0,10);for(let i=0;i<ranking.length;i++){const [id,v]=ranking[i];rows.append(person(map.get(id)||{user_id:id},`${fmt(v.normal)} normais · ${fmt(v.extra)} extras`,`${i+1}º · ${fmt(v.normal+v.extra)}`))}if(!ranking.length)note(rows,'Ainda não há horas validadas nesse período.');
@@ -136,10 +213,11 @@ async function renderPermissions(filters,rows,data){filters.append(el('p','Somen
  const save=el('button','Salvar permissões','button');save.type='button';save.onclick=async()=>{save.disabled=true;try{const allowedRoles=[...field.querySelectorAll('input:checked')].map(e=>e.value);await api('settings?guildId='+encodeURIComponent(state.guild),{method:'POST',body:JSON.stringify({allowedRoles})});await load();$('syncStatus').textContent='Permissões salvas';$('syncStatus').className='status ok'}catch(e){$('syncStatus').textContent=e.message;$('syncStatus').className='status err'}finally{save.disabled=false}};
  box.append(field,save)
 }
-async function load(){if(!state.guild)return;const status=$('syncStatus');status.textContent='Sincronizando dados...';status.className='status';try{state.data=await api('data?guildId='+encodeURIComponent(state.guild));state.canEdit=!!state.data.canEdit;render();status.textContent='Sincronizado · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});status.className='status ok'}catch(e){$('rows').replaceChildren(el('p',e.message,'error'));status.textContent='Falha ao carregar';status.className='status err'}}
+async function load(){if(!state.guild)return;const status=$('syncStatus');status.textContent='Sincronizando dados...';status.className='status';try{state.data=await api('data?guildId='+encodeURIComponent(state.guild));state.canEdit=!!state.data.canEdit;render();status.textContent=state.data?.missingSchema?.length?'Banco desatualizado · veja o aviso no painel':'Sincronizado · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});status.className=state.data?.missingSchema?.length?'status err':'status ok'}catch(e){$('rows').replaceChildren(el('p',e.message,'error'));status.textContent='Falha ao carregar';status.className='status err'}}
 async function start(){try{const me=await api('me');if(!me.user){$('auth').replaceChildren(el('p','Faça login pelo Discord para verificar seus servidores autorizados.'),(()=>{const a=el('a','Entrar com Discord','button');a.href='/api/login';return a})());$('syncStatus').textContent='Login necessário';return}
  $('auth').replaceChildren(el('p',`Conectado como ${me.user.name}`,'muted'));$('logout').hidden=false;$('logout').onclick=async()=>{try{await api('logout',{method:'POST'});location.reload()}catch(e){$('syncStatus').textContent=e.message}};
+ $('userBadge').hidden=false;$('userBadge').textContent='◉ '+me.user.name;
  const result=await api('guilds');state.guilds=result.guilds||[];if(!state.guilds.length){$('auth').append(el('p','Nenhum servidor sincronizado e autorizado apareceu ainda. Confirme se o bot está ligado, fez a primeira sincronização e se sua conta é dona do servidor ou tem cargo permitido.','muted'));$('syncStatus').textContent='Sem servidor autorizado';return}
- $('auth').hidden=true;$('content').hidden=false;document.body.classList.add('logged-in');const guild=$('guild');guild.replaceChildren();for(const g of state.guilds)guild.append(option(g.name||g.guild_id,g.guild_id));state.guild=state.guilds[0].guild_id;guild.value=state.guild;guild.onchange=()=>{state.guild=guild.value;state.roles=null;load()};$('period').onchange=e=>{state.period=e.target.value;render()};$('month').value=today().slice(0,7);state.month=$('month').value;$('month').onchange=e=>{state.month=e.target.value;state.period='month';render()};$('reload').onclick=load;document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;state.search='';render()});await load();setInterval(()=>{if(!document.hidden&&state.guild)load().catch(()=>{})},60000);
+ $('auth').hidden=true;$('content').hidden=false;document.body.classList.add('logged-in');$('sidebar').hidden=false;$('mobileBottom').hidden=false;$('openSidebar').hidden=false;const guild=$('guild');guild.replaceChildren();for(const g of state.guilds)guild.append(option(g.name||g.guild_id,g.guild_id));state.guild=state.guilds[0].guild_id;guild.value=state.guild;guild.onchange=()=>{state.guild=guild.value;state.roles=null;load()};$('period').onchange=e=>{state.period=e.target.value;render()};$('month').value=today().slice(0,7);state.month=$('month').value;$('month').onchange=e=>{state.month=e.target.value;state.period='month';render()};$('reload').onclick=load;document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));$('openSidebar').onclick=()=>setSidebarOpen(true);$('mobileMore').onclick=()=>setSidebarOpen(true);$('closeSidebar').onclick=()=>setSidebarOpen(false);$('sidebarOverlay').onclick=()=>setSidebarOpen(false);document.addEventListener('keydown',e=>{if(e.key==='Escape')setSidebarOpen(false)});await load();setInterval(()=>{if(!document.hidden&&state.guild)load().catch(()=>{})},60000);
  }catch(e){$('auth').replaceChildren(el('p',e.message,'error'));$('syncStatus').textContent='Falha na configuração';$('syncStatus').className='status err'}}
 start();
