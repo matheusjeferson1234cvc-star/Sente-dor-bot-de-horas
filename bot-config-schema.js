@@ -24,6 +24,16 @@ function normalize(input){
  }
  const j=input.justifications||{};if(!Array.isArray(j.warningRoles)||j.warningRoles.length!==3)throw Error('São necessários 3 campos para os cargos de advertência');
  c.justifications={reviewChannelId:id(j.reviewChannelId,'Canal de justificativas'),logChannelId:id(j.logChannelId,'Canal dos logs de justificativas'),warningChannelId:id(j.warningChannelId,'Canal de advertências'),warningRoles:j.warningRoles.map((r,n)=>id(r,`Cargo de advertência ${n+1}`)),autoWarnings:bool(j.autoWarnings,'Advertências automáticas')};
+ // Visual independente do painel de justificativas. O campo antigo `panel` (com
+ // channelId/messageId) e preservado apenas no bot, jamais editado pela API.
+ const jp=j.panelVisual||{};
+ c.justifications.panelVisual={
+  title:str(jp.title??'Justificativa de ausência',100,'Título do painel de justificativas').trim(),
+  description:str(jp.description??'Solicite a análise de uma ausência pela Central de Horas.',1600,'Descrição do painel de justificativas'),
+  customGif:jp.customGif==null||jp.customGif===''?null:str(jp.customGif,500,'GIF do painel de justificativas')
+ };
+ if(!c.justifications.panelVisual.title||!c.justifications.panelVisual.description.trim())throw Error('Título e descrição do painel de justificativas são obrigatórios');
+ if(c.justifications.panelVisual.customGif){try{const u=new URL(c.justifications.panelVisual.customGif);if(u.protocol!=='https:'||!u.pathname.toLowerCase().endsWith('.gif'))throw Error('formato')}catch{throw Error('O GIF das justificativas precisa ser HTTPS e terminar em .gif')}}
  if(c.justifications.autoWarnings&&(!c.justifications.reviewChannelId||!c.justifications.warningChannelId||c.justifications.warningRoles.some(r=>!r)||new Set(c.justifications.warningRoles).size!==3))throw Error('Configure o canal de análise, o canal de avisos e três cargos de advertência diferentes antes de ativar');
  const p=input.panel||{};c.panel={title:str(p.title,100,'Título do painel').trim(),description:str(p.description,1600,'Descrição do painel'),customGif:p.customGif==null||p.customGif===''?null:str(p.customGif,500,'GIF do painel')};
  if(!c.panel.title||!c.panel.description.trim())throw Error('O título e a descrição do painel são obrigatórios');

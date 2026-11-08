@@ -122,7 +122,8 @@ const tabInfo={
  'bot-geral':['Regras do ponto','Modo de ponto, fuso e tamanho da equipe'],
  'bot-turnos':['Turnos e cargos','Horários, cargos e responsáveis por turno'],
  'bot-canais':['Canais e cargos gerais','Auditoria, justificativas e advertências'],
- 'bot-painel':['Painel do Discord','Título, descrição e GIF do painel'],
+ 'bot-painel':['Painel de bate-ponto','Título, descrição e GIF do painel de ponto'],
+ 'bot-painel-just':['Painel de justificativas','Título, descrição e GIF do painel de justificativas'],
  'bot-alertas':['Advertências e notificações','Controle de avisos automáticos e mensagens']
 };
 // Os sistemas são agrupados por função. Cada ferramenta mantém sua tela independente.
@@ -145,14 +146,15 @@ const moduleDefs={
   ['bot-geral','Regras do ponto','Ponto individual ou em equipe, convites e fuso.','ico-clock'],
   ['bot-turnos','Turnos e cargos','Horários, cargos de turno, responsáveis e logs.','ico-calendar'],
   ['bot-canais','Canais e cargos','Configure auditoria, canais e cargos de advertência.','ico-shield'],
-  ['bot-painel','Painel do Discord','Título, descrição e animação do painel publicado.','ico-file'],
+  ['bot-painel','Painel de bate-ponto','Personalize o painel principal do ponto.','ico-clock'],
+  ['bot-painel-just','Painel de justificativas','Personalize o painel de solicitações e justificativas.','ico-file'],
   ['bot-alertas','Avisos e notificações','Mensagens privadas, comprovantes e regras automáticas.','ico-alert'],
   ['permissoes','Acesso ao site','Escolha cargos com acesso aos relatórios.','ico-settings'],
   ['servidores','Trocar servidor','Escolha outro ambiente, se houver mais de um.','ico-users'],
   ['laboratorio','Laboratório do dono','Simule regras sem alterar registros reais.','ico-spark']]}
 };
 const parentTab=tab=>Object.keys(moduleDefs).find(key=>moduleDefs[key].items.some(item=>item[0]===tab))||null;
-const allowedFeature=tab=>(tab!=='permissoes'&&!tab.startsWith('bot-')||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner);
+const allowedFeature=tab=>(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner);
 function svgIcon(symbol){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('ico');svg.setAttribute('aria-hidden','true');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#'+symbol);svg.append(use);return svg}
 function moduleCard({tab,title,description,icon,meta}){
  const b=el('button',undefined,'feature-card');b.type='button';b.setAttribute('aria-label',`Abrir ${title}`);
@@ -165,7 +167,16 @@ function moduleHub(key){const def=moduleDefs[key],rows=$('rows');
  const hero=el('div',undefined,'module-hero');const lead=el('div');lead.append(el('span','SISTEMAS DISPONÍVEIS','module-kicker'),el('h2',def.title),el('p',def.intro));hero.append(lead);const mark=el('span',undefined,'module-hero-icon');mark.append(svgIcon(def.icon));hero.append(mark);rows.append(hero);
  const tools=el('div',undefined,'feature-grid');for(const [tab,title,description,icon] of def.items){if(!allowedFeature(tab))continue;tools.append(moduleCard({tab,title,description,icon,meta:moduleMetric(tab)}));}
  rows.append(tools);
- if(key==='configuracoes'&&!state.canEdit)rows.append(el('p','Para alterar folgas e permissões, é necessário ser dono do servidor ou ter a permissão Administrador no Discord. O laboratório do dono global é somente para testes seguros.','module-tip'));
+ if(key==='configuracoes'){
+  const access=el('div',undefined,'bot-access-panel');
+  const title=state.canEdit?'Acesso administrativo confirmado':'Acesso somente para consulta';
+  const explanation=state.canEdit?'Sua conta foi verificada pela API do Discord e pode salvar as configurações deste servidor.':
+   state.data?.accessReason==='bot-owner-readonly'?'Você está cadastrado como dono global do bot, mas este servidor não está autorizado para edição. Ser dono do bot não substitui a permissão Administrador deste servidor.':
+   state.data?.accessReason==='discord-bot-not-configured'?'A API da Vercel precisa da variável DISCORD_BOT_TOKEN para conferir os cargos e permissões.':
+   'Confira no Discord se o seu cargo tem a permissão oficial Administrador ativada (não apenas o nome Administrador). O bot precisa estar presente neste servidor para conferir o cargo.';
+  access.append(el('strong',title),el('p',explanation));
+  const verify=el('button','Verificar meu acesso novamente','button ghost');verify.type='button';verify.onclick=load;access.append(verify);rows.append(access);
+ }
 }
 function serversPage(){const rows=$('rows'),activeGuild=state.guild,top=el('div',undefined,'server-head');top.append(el('span','AMBIENTES AUTORIZADOS','module-kicker'),el('h2','Servidores vinculados'),el('p','O painel escolhe um servidor automaticamente. A troca só aparece aqui, sem atrapalhar as outras funções.'));rows.append(top);
  const list=el('div',undefined,'server-grid');for(const g of state.guilds){const b=el('button',undefined,'server-option'+(g.guild_id===activeGuild?' selected':''));b.type='button';const identity=el('span',undefined,'server-identity');const avatar=el('span',(g.name||'S').slice(0,1).toUpperCase(),'server-avatar');const txt=el('span');txt.append(el('strong',g.name||'Servidor sem nome'),el('small',g.guild_id===activeGuild?'Ambiente atual':'Servidor autorizado pelo Discord'));identity.append(avatar,txt);b.append(identity,el('span',g.guild_id===activeGuild?'Selecionado':'Selecionar','server-badge'));b.disabled=g.guild_id===activeGuild;b.onclick=async()=>{state.guild=g.guild_id;state.roles=null;state.botEditor=null;state.botDraft=null;state.botDirty=false;state.botError='';$('guild').value=g.guild_id;await load();};list.append(b)}
@@ -257,12 +268,12 @@ async function fetchBotEditor(){
 }
 function botConfigPage(){
  const rows=$('rows'),filters=$('filters');filters.hidden=false;
- if(!state.canEdit){note(rows,'Somente o dono ou um Administrador do Discord pode alterar as configurações do bot.','warning-note');return}
+ if(!state.canEdit)note(rows,'Você pode consultar as configurações. Para salvar, seu cargo precisa ter a permissão Administrador ativada no Discord, ou você precisa ser dono do servidor.','warning-note');
  if(!state.botEditor&&!state.botLoading){if(state.botError){note(rows,state.botError,'error');const retry=el('button','Tentar novamente','button');retry.onclick=()=>{state.botError='';fetchBotEditor()};rows.append(retry);return}note(rows,'Carregando configurações e cargos do Discord…');fetchBotEditor();return}
  if(state.botLoading){note(rows,'Consultando configurações do Discord…');return}
  const config=state.botDraft,editor=state.botEditor;
- if(!config){note(rows,'Aguardando a sincronização do bot atualizado. Publique o bot v3.7 na Discloud e aguarde até 1 minuto antes de configurar.','warning-note');const r=el('button','Verificar novamente','button');r.onclick=()=>{state.botEditor=null;fetchBotEditor()};rows.append(r);return}
- const intro=el('div',undefined,'bot-config-banner');intro.append(el('strong','Configuração vinculada ao Discord'),el('p','As mudanças são salvas no site e o bot as recebe na próxima sincronização (aproximadamente 1 minuto). O dono do servidor ou quem tem a permissão Administrador do Discord pode salvar.'));
+ if(!config){note(rows,'O bot ainda não enviou suas configurações ao site. Atualize o bot na Discloud, confira CENTRAL_API_URL e BOT_SYNC_SECRET e aguarde a sincronização.','warning-note');const r=el('button','Verificar novamente','button');r.onclick=()=>{state.botEditor=null;fetchBotEditor()};rows.append(r);return}
+ const intro=el('div',undefined,'bot-config-banner');intro.append(el('strong',state.canEdit?'Configuração vinculada ao Discord':'Visualização sem permissão de edição'),el('p','As mudanças são salvas no site e o bot as recebe na próxima sincronização (aproximadamente 1 minuto). O dono do servidor ou quem tem a permissão Administrador do Discord pode salvar.'));
  const sync=el('span',editor.revision>editor.appliedRevision?'Aguardando confirmação do bot':editor.revision>0?'Configuração recebida pelo bot':'Configuração atual do bot','bot-sync-pill');intro.append(sync);rows.append(intro);
  const grid=el('div',undefined,'bot-config-form');rows.append(grid);
  const section=(heading,description)=>{const body=el('section',undefined,'bot-section');body.append(el('h3',heading),el('p',description,'bot-section-description'));grid.append(body);return body};
@@ -305,11 +316,20 @@ function botConfigPage(){
   for(let i=0;i<3;i++)drop(c,`Cargo da ${i+1}ª advertência`,roleOptions,config.justifications.warningRoles[i],v=>config.justifications.warningRoles[i]=v||null);
  }
  if(state.tab==='bot-painel'){
-  const c=section('Aparência do painel no Discord','Alterações no painel de ponto já publicado serão sincronizadas pelo bot.');
+  const c=section('Painel de bate-ponto no Discord','Alterações no painel de ponto já publicado serão sincronizadas pelo bot.');
   field(c,'Título do painel',config.panel.title,v=>config.panel.title=v,{max:100});
   const lab=el('label',undefined,'bot-field');lab.append(el('span','Descrição do painel'));const ta=el('textarea');ta.rows=6;ta.maxLength=1600;ta.value=config.panel.description;ta.oninput=()=>{config.panel.description=ta.value;update()};lab.append(ta);c.append(lab);
   field(c,'Link HTTPS de animação / GIF (opcional)',config.panel.customGif||'',v=>config.panel.customGif=v||null,{max:500});
   c.append(el('p','Publicar um painel novo no canal ainda exige o comando do bot; editar um painel existente já é automático.','hint'));
+ }
+ if(state.tab==='bot-painel-just'){
+  const c=section('Painel de justificativas no Discord','Configure apenas a aparência do painel de justificativas. O painel de bate-ponto tem ajustes separados.');
+  config.justifications.panelVisual??={title:'Justificativa de ausência',description:'Solicite a análise de uma ausência pela Central de Horas.',customGif:null};
+  const jp=config.justifications.panelVisual;
+  field(c,'Título do painel de justificativas',jp.title,v=>jp.title=v,{max:100});
+  const lab=el('label',undefined,'bot-field');lab.append(el('span','Descrição do painel de justificativas'));const ta=el('textarea');ta.rows=6;ta.maxLength=1600;ta.value=jp.description;ta.oninput=()=>{jp.description=ta.value;update()};lab.append(ta);c.append(lab);
+  field(c,'Link HTTPS do GIF (opcional)',jp.customGif||'',v=>jp.customGif=v||null,{max:500});
+  c.append(el('p','As ações de justificar e acessar configurações permanecem funcionando. O painel já publicado será atualizado pelo bot v3.7.2 após sincronização.','hint'));
  }
  if(state.tab==='bot-alertas'){
   const c=section('Avisos e notificações','Defina o que o bot envia. Para advertências automáticas, primeiro configure os cargos e o canal necessários.');
@@ -327,6 +347,11 @@ function botConfigPage(){
  }catch(e){status.textContent=e.message;state.botError=e.message}finally{save.disabled=false}};
  reload.type='button';reload.onclick=()=>{if(state.botDirty&&!confirm('Descartar as alterações ainda não salvas?'))return;state.botEditor=null;state.botDraft=null;state.botError='';fetchBotEditor()};
  action.append(save,reload);grid.append(action,status);
+ if(!state.canEdit){
+  save.disabled=true;status.textContent='Modo consulta: nenhuma alteração será salva.';
+  for(const control of grid.querySelectorAll('input, select, textarea, button'))if(control!==reload)control.disabled=true;
+ }
+
 }
 function render(){if(!state.data)return;const data=state.data,all=cards(),period=all.filter(inPeriod),map=members();$('period').value=state.period;$('month').value=state.month||today().slice(0,7);renderNav();
 const summaries=[['Normais validadas',fmt(totaled(period,'Normal'))],['Extras validadas',fmt(totaled(period,'Extra'))],['Total validado',fmt(totaled(period))],['Em andamento',String(period.filter(active).length)+(period.filter(active).length===1?' registro':' registros')]];$('stats').replaceChildren();for(const [label,val] of summaries){const box=el('div',undefined,'stat');box.append(el('span',label),el('strong',val));$('stats').append(box)}
