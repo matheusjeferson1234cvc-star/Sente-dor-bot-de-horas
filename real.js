@@ -5,6 +5,29 @@ const state={guild:null,data:null,guilds:[],canEdit:false,tab:'inicio',period:'w
 const shifts=['Manhã','Tarde','Noite','Madrugada'];
 const api=async (path,options={})=>{const r=await fetch('/api/'+path,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});let d;try{d=await r.json()}catch{throw Error('A API não respondeu em JSON. Confira se a pasta api foi publicada na raiz do projeto Vercel (possível erro 404).')}if(!r.ok)throw Error(d.error||`Erro HTTP ${r.status}`);return d};
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n};
+// Caixas escuras acessíveis para avisos e confirmações da plataforma.
+function uiModal({title='Confirmação',message='',confirmLabel='Continuar',cancelLabel='Voltar'}={}){
+ const dialog=$('siteDialog');
+ if(!dialog||typeof dialog.showModal!=='function'){
+  return Promise.resolve(cancelLabel?window.confirm(message):(window.alert(message),true));
+ }
+ return new Promise(resolve=>{
+  if(dialog.open)dialog.close();
+  $('dialogTitle').textContent=title;
+  $('dialogMessage').textContent=message;
+  $('dialogAccept').textContent=confirmLabel;
+  $('dialogCancel').hidden=!cancelLabel;
+  if(cancelLabel)$('dialogCancel').textContent=cancelLabel;
+  let result=false;
+  const finish=ok=>{result=ok;if(dialog.open)dialog.close()};
+  $('dialogAccept').onclick=()=>finish(true);
+  $('dialogCancel').onclick=()=>finish(false);
+  $('dialogClose').onclick=()=>finish(false);
+  dialog.addEventListener('close',()=>resolve(result),{once:true});
+  dialog.showModal();
+ });
+}
+const uiNotice=(message,title='Atenção')=>uiModal({title,message,confirmLabel:'Entendi',cancelLabel:null});
 const fmt=m=>{const n=Math.max(0,Math.floor(Number(m)||0));return `${Math.floor(n/60)}h ${String(n%60).padStart(2,'0')}min`};
 const formatDateBR=iso=>/^(\d{4})-(\d{2})-(\d{2})$/.test(iso||'')?iso.replace(/^(\d{4})-(\d{2})-(\d{2})$/,'$3/$2/$1'):(iso||'—');
 const ymd=d=>{const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(d));const p=Object.fromEntries(parts.map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}`};
@@ -216,7 +239,8 @@ function openTab(tab){
  if(!allowedFeature(tab))return;
  if(!(tab in tabInfo))return;
  state.tab=tab;state.search='';setSidebarOpen(false);render();
- if(window.innerWidth<=950)window.scrollTo({top:0,behavior:'smooth'});
+ const body=$('rows');body.classList.remove('view-enter');void body.offsetWidth;body.classList.add('view-enter');
+ if(window.innerWidth<=950)window.scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
 }
 function renderNav(){
  const [title,description]=tabInfo[state.tab]||tabInfo.inicio, parent=parentTab(state.tab);
@@ -226,6 +250,17 @@ function renderNav(){
  $('ownerBadge').hidden=!state.data?.isBotOwner;
  const guildName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Servidor atual';
  $('sidebarGuildName').textContent=guildName;
+ const crumbs=$('breadcrumbs');
+ if(crumbs){
+  crumbs.replaceChildren();crumbs.hidden=state.tab==='inicio';
+  if(state.tab!=='inicio'){
+   const addCrumb=(name,tab,current=false)=>{const c=el(current?'span':'button',name,current?'breadcrumb-current':'breadcrumb-link');if(!current){c.type='button';c.onclick=()=>openTab(tab)}else c.setAttribute('aria-current','page');crumbs.append(c)};
+   addCrumb('Início','inicio');
+   crumbs.append(el('span','/','breadcrumb-divider'));
+   if(parent){addCrumb(tabInfo[parent][0],parent);crumbs.append(el('span','/','breadcrumb-divider'))}
+   addCrumb(title,state.tab,true);
+  }
+ }
  $('moduleBack').hidden=state.tab==='inicio';
  if(state.tab!=='inicio'){const destination=parent||'inicio';$('backToModule').onclick=()=>openTab(destination);$('backToModule').textContent='← Voltar para '+(destination==='inicio'?'Início':tabInfo[destination][0]);}
  const group=parent||state.tab;
@@ -316,7 +351,7 @@ function botConfigPage(){
  const roleOptions=[['Nenhum cargo',''],...editor.roles.map(r=>[r.name,r.id])];
  const channelOptions=[['Nenhum canal',''],...editor.channels.map(c=>['#'+c.name,c.id])];
  const rolesMulti=(wrap,label,selected,change)=>{const area=el('fieldset',undefined,'bot-check-group');area.append(el('legend',label));const holder=el('div',undefined,'bot-check-list'),picked=new Set(selected||[]);
-  for(const role of editor.roles){const lab=el('label',undefined,'bot-check'),check=el('input');check.type='checkbox';check.checked=picked.has(role.id);check.onchange=()=>{if(check.checked&&picked.size>=5){check.checked=false;alert('Escolha no máximo 5 cargos para este campo.');return}if(check.checked)picked.add(role.id);else picked.delete(role.id);change([...picked]);update()};lab.append(check,el('span',role.name));holder.append(lab)}
+  for(const role of editor.roles){const lab=el('label',undefined,'bot-check'),check=el('input');check.type='checkbox';check.checked=picked.has(role.id);check.onchange=()=>{if(check.checked&&picked.size>=5){check.checked=false;uiNotice('Escolha no máximo 5 cargos para este campo.','Limite de cargos');return}if(check.checked)picked.add(role.id);else picked.delete(role.id);change([...picked]);update()};lab.append(check,el('span',role.name));holder.append(lab)}
   area.append(holder);wrap.append(area)};
  const heading=(text)=>grid.append(el('h4',text,'bot-subheading'));
  if(state.tab==='bot-geral'){
@@ -376,7 +411,7 @@ function botConfigPage(){
   field(c,'Enviar mensagens privadas de ponto',config.notifications.pointDm,v=>config.notifications.pointDm=v,{type:'checkbox'});
   field(c,'Enviar comprovante com imagem',config.notifications.receiptImage,v=>config.notifications.receiptImage=v,{type:'checkbox'});
   const enable=field(c,'Ativar advertências automáticas',config.justifications.autoWarnings,v=>config.justifications.autoWarnings=v,{type:'checkbox'});
-  enable.onchange=()=>{if(enable.checked&&!confirm('Ativar advertências automáticas? Depois de sincronizadas, o bot poderá aplicar os cargos de advertência conforme as regras de presença e justificativas.')){enable.checked=false;return}config.justifications.autoWarnings=enable.checked;update()};
+  enable.onchange=async()=>{if(enable.checked&&!(await uiModal({title:'Ativar advertências automáticas?',message:'Depois da sincronização, o bot poderá aplicar cargos de advertência conforme as regras de presença e justificativas.',confirmLabel:'Sim, ativar'}))){enable.checked=false;return}config.justifications.autoWarnings=enable.checked;update()};
   c.append(el('p','Advertências automáticas requerem canal e três cargos configurados. A análise continua sujeita às regras de presença e às justificativas.','hint'));
  }
  const action=el('div',undefined,'bot-actions'),save=el('button','Salvar configurações do bot','button'),reload=el('button','Descartar alterações e recarregar','button ghost'),status=el('p',state.botError||(state.botDirty?'Alterações não salvas. Toque em Salvar para enviar ao bot.':''),'bot-status');
@@ -385,7 +420,7 @@ function botConfigPage(){
   state.botEditor.revision=result.revision;state.botEditor.config=JSON.parse(JSON.stringify(state.botDraft));state.botDirty=false;state.botError='';
   status.textContent='Salvo! Aguardando o bot aplicar na próxima sincronização.';sync.textContent='Aguardando confirmação do bot';await load();
  }catch(e){status.textContent=e.message;state.botError=e.message}finally{save.disabled=false}};
- reload.type='button';reload.onclick=()=>{if(state.botDirty&&!confirm('Descartar as alterações ainda não salvas?'))return;state.botEditor=null;state.botDraft=null;state.botError='';fetchBotEditor()};
+ reload.type='button';reload.onclick=async()=>{if(state.botDirty&&!(await uiModal({title:'Descartar alterações?',message:'As alterações ainda não salvas serão perdidas. As configurações já salvas no bot não serão apagadas.',confirmLabel:'Descartar alterações'})))return;state.botEditor=null;state.botDraft=null;state.botDirty=false;state.botError='';fetchBotEditor()};
  action.append(save,reload);grid.append(action,status);
  if(!state.canEdit){
   save.disabled=true;status.textContent='Modo consulta: nenhuma alteração será salva.';
@@ -442,7 +477,10 @@ async function renderPermissions(filters,rows,data){filters.append(el('p','O don
  box.append(field,save)
 }
 async function load(){if(!state.guild)return;const status=$('syncStatus');status.textContent='Sincronizando dados...';status.className='status';try{state.data=await api('data?guildId='+encodeURIComponent(state.guild));state.canEdit=!!state.data.canEdit;render();status.textContent=state.data?.missingSchema?.length?'Banco desatualizado · veja o aviso no painel':'Sincronizado · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});status.className=state.data?.missingSchema?.length?'status err':'status ok'}catch(e){$('rows').replaceChildren(el('p',e.message,'error'));status.textContent='Falha ao carregar';status.className='status err'}}
-async function start(){try{const me=await api('me');if(!me.user){$('auth').replaceChildren(el('p','Faça login pelo Discord para verificar seus servidores autorizados.'),(()=>{const a=el('a','Continuar com Discord','button');a.href='/api/login';return a})());$('syncStatus').textContent='Login necessário';return}
+async function start(){
+ const inviteHelp=$('inviteHelp');
+ if(inviteHelp)inviteHelp.onclick=()=>uiNotice('Clique em “Adicionar bot ao meu servidor”, escolha no Discord um servidor que você administra e autorize as permissões solicitadas. Depois, mantenha o bot online na Discloud para sincronizar os dados com a Central.','Como adicionar o bot');
+ try{const me=await api('me');if(!me.user){$('auth').replaceChildren(el('p','Faça login pelo Discord para verificar seus servidores autorizados.'),(()=>{const a=el('a','Entrar com Discord','button login-main-btn');a.href='/api/login';a.append(svgIcon('ico-arrow'));return a})());$('syncStatus').textContent='Login necessário';return}
  $('auth').replaceChildren(el('p',`Conectado como ${me.user.name}`,'muted'));$('logout').hidden=false;$('sidebarLogout').hidden=false;$('sidebarLogout').onclick=()=>$('logout').click();$('logout').onclick=async()=>{try{await api('logout',{method:'POST'});location.reload()}catch(e){$('syncStatus').textContent=e.message}};
  $('userBadge').hidden=false;$('userBadge').textContent='◉ '+me.user.name;
  const result=await api('guilds');state.guilds=result.guilds||[];if(!state.guilds.length){$('auth').append(el('p','Nenhum servidor sincronizado e autorizado apareceu ainda. Confirme se o bot está ligado, fez a primeira sincronização e se sua conta é dona do servidor ou tem cargo permitido.','muted'));$('syncStatus').textContent='Sem servidor autorizado';return}
