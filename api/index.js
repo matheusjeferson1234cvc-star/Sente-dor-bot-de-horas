@@ -63,20 +63,26 @@ const authorized=async(guild,user)=>{
    Array.isArray(info.roles)?Promise.resolve(info.roles):discord(`/guilds/${guild}/roles`)
   ]);
   const owned=new Set([guild,...(member.roles||[])]); // inclui @everyone
-  const admin=guildRoles.some(r=>{
-   if(!owned.has(r.id))return false;
+  const assigned=guildRoles.filter(r=>r.id!==guild&&owned.has(r.id));
+  const assignedAdminRoles=assigned.filter(r=>{
    try{return (BigInt(r.permissions||'0')&8n)!==0n}catch{return false}
   });
-  if(admin)return {view:true,edit:true,accessReason:'discord-administrator'};
-  if(globalOwner)return {view:true,edit:ownerCanEdit,scope:'full',accessReason:ownerCanEdit?'bot-owner-authorized':'bot-owner-readonly'};
+  // Apenas os nomes dos cargos atribuídos ao próprio usuário.
+  // Nunca confia em cargos declarados pelo navegador para autorizar ações.
+  const permissionDetails={
+   assignedRoleNames:assigned.map(r=>String(r.name||'Cargo sem nome')).slice(0,25),
+   adminRoleNames:assignedAdminRoles.map(r=>String(r.name||'Cargo sem nome')).slice(0,25)
+  };
+  if(assignedAdminRoles.length)return {view:true,edit:true,scope:'full',accessReason:'discord-administrator',permissionDetails};
+  if(globalOwner)return {view:true,edit:ownerCanEdit,scope:'full',accessReason:ownerCanEdit?'bot-owner-authorized':'bot-owner-readonly',permissionDetails};
   const cfg=await db('guild_settings',{query:`?guild_id=eq.${encodeURIComponent(guild)}&select=roles,bot_config`});
   // O responsável de turno pode consultar o site, mas SOMENTE seu turno.
   // A atribuição vem dos cargos atuais do Discord, nunca de parâmetros do navegador.
   const supervised=shiftAccess.forSupervisor(cfg[0]?.bot_config,member.roles||[]);
-  if(supervised.length)return {view:true,edit:false,scope:'shift',allowedShifts:supervised,accessReason:'shift-supervisor'};
+  if(supervised.length)return {view:true,edit:false,scope:'shift',allowedShifts:supervised,accessReason:'shift-supervisor',permissionDetails};
   const allowed=cfg[0]?.roles?.allowed||[];
   const explicit=Array.isArray(allowed)&&allowed.some(id=>owned.has(id));
-  return {view:explicit,edit:false,scope:'full',accessReason:explicit?'member-readonly':'not-authorized'};
+  return {view:explicit,edit:false,scope:'full',accessReason:explicit?'member-readonly':'not-authorized',permissionDetails};
  }catch(e){
   // Continua permitindo acesso de teste explicitamente autorizado ao dono global.
   if(globalOwner)return {view:true,edit:ownerCanEdit,accessReason:ownerCanEdit?'bot-owner-authorized':'bot-owner-readonly'};
@@ -249,7 +255,7 @@ module.exports=async(req,res)=>{
    ]);
    const oldSettings=settings[0]||null;
    if(oldSettings&&(!('time_off' in oldSettings)||!('point_mode' in oldSettings)))missing.push('guild_settings: folgas e modo');
-   const payload={members,cards,settings:oldSettings,attendance,justifications,warnings,missingSchema:missing,canEdit:rights.edit,accessReason:rights.accessReason||'unknown',isBotOwner:user.id===process.env.BOT_OWNER_DISCORD_ID,viewScope:rights.scope||'full',allowedShifts:rights.allowedShifts||[]};
+   const payload={members,cards,settings:oldSettings,attendance,justifications,warnings,missingSchema:missing,canEdit:rights.edit,accessReason:rights.accessReason||'unknown',isBotOwner:user.id===process.env.BOT_OWNER_DISCORD_ID,viewScope:rights.scope||'full',allowedShifts:rights.allowedShifts||[],permissionDetails:rights.permissionDetails||null};
    return json(res,200,rights.scope==='shift'?shiftAccess.scopeData(payload,rights.allowedShifts):payload);
   }
   if(path==='warnings-preview'&&req.method==='GET'){
