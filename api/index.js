@@ -89,7 +89,7 @@ module.exports=async(req,res)=>{
   if(typeof req.body==='string'){try{req.body=JSON.parse(req.body)}catch{return json(res,400,{error:'JSON inválido'})}}
   if(path==='health'){
    const configured={supabase:!!(process.env.SUPABASE_URL&&(process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY)),discordOAuth:!!(process.env.DISCORD_CLIENT_ID&&process.env.DISCORD_CLIENT_SECRET&&process.env.DISCORD_REDIRECT_URI&&process.env.SESSION_SECRET),discordBot:!!process.env.DISCORD_BOT_TOKEN,botSync:!!process.env.BOT_SYNC_SECRET};
-   const result={ok:true,version:'5.9.0',configured};
+   const result={ok:true,version:'6.3.0',configured};
    if(req.query?.check==='database'){
     if(!configured.supabase)return json(res,200,{...result,database:{ready:false,message:'Configurar SUPABASE_URL e SUPABASE_SECRET_KEY na Vercel'}});
     const names=['guild_settings','guild_members','shift_cards','attendance_days','absence_justifications','attendance_warnings'];
