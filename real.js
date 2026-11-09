@@ -338,6 +338,40 @@ function ownerLab(){
 // Edição real das configurações do bot. Os controles só são apresentados ao
 // dono do servidor; a API também valida permissões, cargos, canais e revisão.
 const botUrl=()=>`bot-config?scope=editor&guildId=${encodeURIComponent(state.guild)}`;
+// Prévia local de um painel: não publica mensagens no Discord.
+function makeDiscordPreview(kind,getVisual){
+ const root=el('aside',undefined,'discord-preview-panel');
+ root.append(el('span','PRÉVIA AO VIVO','discord-preview-kicker'),el('h3','Visual no Discord'));
+ const view=el('div',undefined,'discord-preview-window');
+ view.append(el('div',kind==='ponto'?'# bate-ponto':'# justificativas','discord-preview-channel'));
+ const message=el('div',undefined,'discord-preview-message');
+ const avatar=el('span','C','discord-preview-avatar'),messageBody=el('div',undefined,'discord-preview-body');
+ const author=el('div',undefined,'discord-preview-author');
+ author.append(el('strong','Central de Horas'),el('span','BOT','discord-preview-bot'),el('small','prévia'));
+ const embed=el('div',undefined,'discord-preview-embed'),title=el('strong',undefined,'discord-preview-title');
+ const desc=el('p',undefined,'discord-preview-description'),gif=el('img');
+ gif.className='discord-preview-gif';gif.alt='Animação configurada para este painel';gif.loading='lazy';gif.hidden=true;
+ const imageError=el('p',undefined,'discord-preview-image-hint');imageError.hidden=true;
+ embed.append(title,desc,gif,imageError);
+ const actions=el('div',undefined,'discord-preview-actions');
+ const labels=kind==='ponto'?['Iniciar / Encerrar','Pausar / Retornar','Gerenciar equipe','Meus pontos','Configurações']:['Enviar justificativa','Minhas solicitações'];
+ for(const label of labels)actions.append(el('span',label,'discord-preview-action'));
+ messageBody.append(author,embed,actions);message.append(avatar,messageBody);view.append(message);
+ root.append(view,el('p','Prévia aproximada: os botões são ilustrativos. Nada é enviado ao Discord ao visualizar.','discord-preview-note'));
+ const refresh=()=>{
+  const v=getVisual()||{};title.textContent=v.title||'Título do painel';desc.textContent=v.description||'Descrição do painel';
+  const url=String(v.customGif||'').trim();
+  if(gif.dataset.url===url)return;
+  gif.dataset.url=url;gif.hidden=true;gif.removeAttribute('src');imageError.hidden=true;
+  if(!url)return;
+  try{
+   const parsed=new URL(url);if(parsed.protocol!=='https:')throw Error('Apenas HTTPS');
+   gif.onerror=()=>{gif.hidden=true;imageError.textContent='O GIF não pôde ser carregado nesta prévia.';imageError.hidden=false};
+   gif.src=parsed.href;gif.hidden=false;
+  }catch{imageError.textContent='Informe um link HTTPS válido para o GIF.';imageError.hidden=false}
+ };
+ return {root,refresh};
+}
 async function fetchBotEditor(){
  if(state.botLoading)return;const forGuild=state.guild;state.botLoading=true;
  try{
@@ -365,8 +399,9 @@ function botConfigPage(){
  const intro=el('div',undefined,'bot-config-banner');intro.append(el('strong',state.canEdit?'Configuração vinculada ao Discord':'Visualização sem permissão de edição'),el('p','As mudanças são salvas no site e o bot as recebe na próxima sincronização (aproximadamente 1 minuto). O dono do servidor ou quem tem a permissão Administrador do Discord pode salvar.'));
  const sync=el('span',editor.revision>editor.appliedRevision?'Aguardando confirmação do bot':editor.revision>0?'Configuração recebida pelo bot':'Configuração atual do bot','bot-sync-pill');intro.append(sync);rows.append(intro);
  const grid=el('div',undefined,'bot-config-form');rows.append(grid);
+ let livePreview=()=>{};
  const section=(heading,description)=>{const body=el('section',undefined,'bot-section');body.append(el('h3',heading),el('p',description,'bot-section-description'));grid.append(body);return body};
- const update=()=>{state.botDirty=true;state.botError='';const msg=rows.querySelector('.bot-status');if(msg)msg.textContent='Alterações não salvas. Toque em Salvar para enviar ao bot.';};
+ const update=()=>{state.botDirty=true;state.botError='';const msg=rows.querySelector('.bot-status');if(msg)msg.textContent='Alterações não salvas. Toque em Salvar para enviar ao bot.';livePreview()};
  const field=(wrap,label,value,change,{type='text',max=150,min,maxNum,step}={})=>{const box=el('label',undefined,'bot-field'),text=el('span',label),i=el('input');i.type=type;if(type==='checkbox')i.checked=!!value;else i.value=value??'';if(max)i.maxLength=max;if(min!==undefined)i.min=min;if(maxNum!==undefined)i.max=maxNum;if(step)i.step=step;
   i.onchange=()=>{change(type==='checkbox'?i.checked:type==='number'?Number(i.value):i.value);update()};box.append(text,i);wrap.append(box);return i};
  const drop=(wrap,label,options,value,change,{navigationOnly=false}={})=>{const box=el('label',undefined,'bot-field'),title=el('span',label),sel=el('select');for(const [name,id] of options)sel.append(option(name,id));sel.value=value??'';sel.onchange=()=>{change(sel.value);if(!navigationOnly)update()};box.append(title,sel);wrap.append(box);return sel};
@@ -414,19 +449,27 @@ function botConfigPage(){
  }
  if(state.tab==='bot-painel'){
   const c=section('Painel de bate-ponto no Discord','Alterações no painel de ponto já publicado serão sincronizadas pelo bot.');
-  field(c,'Título do painel',config.panel.title,v=>config.panel.title=v,{max:100});
+  const titleInput=field(c,'Título do painel',config.panel.title,v=>config.panel.title=v,{max:100});
+  titleInput.addEventListener('input',()=>{config.panel.title=titleInput.value;update()});
   const lab=el('label',undefined,'bot-field');lab.append(el('span','Descrição do painel'));const ta=el('textarea');ta.rows=6;ta.maxLength=1600;ta.value=config.panel.description;ta.oninput=()=>{config.panel.description=ta.value;update()};lab.append(ta);c.append(lab);
-  field(c,'Link HTTPS de animação / GIF (opcional)',config.panel.customGif||'',v=>config.panel.customGif=v||null,{max:500});
+  const gifInput=field(c,'Link HTTPS de animação / GIF (opcional)',config.panel.customGif||'',v=>config.panel.customGif=v||null,{max:500});
+  gifInput.addEventListener('input',()=>{config.panel.customGif=gifInput.value||null;update()});
   c.append(el('p','Publicar um painel novo no canal ainda exige o comando do bot; editar um painel existente já é automático.','hint'));
+  const preview=makeDiscordPreview('ponto',()=>config.panel),layout=el('div',undefined,'discord-editor-layout');
+  grid.append(layout);layout.append(c,preview.root);livePreview=preview.refresh;livePreview();
  }
  if(state.tab==='bot-painel-just'){
   const c=section('Painel de justificativas no Discord','Configure apenas a aparência do painel de justificativas. O painel de bate-ponto tem ajustes separados.');
   config.justifications.panelVisual??={title:'Justificativa de ausência',description:'Solicite a análise de uma ausência pela Central de Horas.',customGif:null};
   const jp=config.justifications.panelVisual;
-  field(c,'Título do painel de justificativas',jp.title,v=>jp.title=v,{max:100});
+  const titleInput=field(c,'Título do painel de justificativas',jp.title,v=>jp.title=v,{max:100});
+  titleInput.addEventListener('input',()=>{jp.title=titleInput.value;update()});
   const lab=el('label',undefined,'bot-field');lab.append(el('span','Descrição do painel de justificativas'));const ta=el('textarea');ta.rows=6;ta.maxLength=1600;ta.value=jp.description;ta.oninput=()=>{jp.description=ta.value;update()};lab.append(ta);c.append(lab);
-  field(c,'Link HTTPS do GIF (opcional)',jp.customGif||'',v=>jp.customGif=v||null,{max:500});
-  c.append(el('p','As ações de justificar e acessar configurações permanecem funcionando. O painel já publicado será atualizado pelo bot v3.7.2 após sincronização.','hint'));
+  const gifInput=field(c,'Link HTTPS do GIF (opcional)',jp.customGif||'',v=>jp.customGif=v||null,{max:500});
+  gifInput.addEventListener('input',()=>{jp.customGif=gifInput.value||null;update()});
+  c.append(el('p','As ações de justificar e acessar configurações permanecem funcionando. O painel já publicado será atualizado pelo bot após sincronização.','hint'));
+  const preview=makeDiscordPreview('justificativa',()=>jp),layout=el('div',undefined,'discord-editor-layout');
+  grid.append(layout);layout.append(c,preview.root);livePreview=preview.refresh;livePreview();
  }
  if(state.tab==='bot-alertas'){
   const c=section('Avisos e notificações','Defina o que o bot envia. Para advertências automáticas, primeiro configure os cargos e o canal necessários.');
