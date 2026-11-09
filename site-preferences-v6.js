@@ -5,12 +5,12 @@
  const defaults={compact:false,reduceMotion:false,highContrast:false,autoRefresh:true,initialTab:'inicio',defaultPeriod:'week'};
  const entryPages=new Set(['inicio','jornada','resultados','administracao','configuracoes']);
  const periods=new Set(['week','month','all']);
- let fallback={...defaults};
+ let fallback=null;
  const read=()=>{
   let value={};
   try{value=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')||{}}catch{}
   if(!value||typeof value!=='object'||Array.isArray(value))value={};
-  const p={...defaults,...fallback,...value};
+  const p={...defaults,...value,...(fallback||{})};
   for(const key of ['compact','reduceMotion','highContrast','autoRefresh'])p[key]=p[key]===true||(key==='autoRefresh'&&p[key]!==false);
   if(!entryPages.has(p.initialTab))p.initialTab=defaults.initialTab;
   if(!periods.has(p.defaultPeriod))p.defaultPeriod=defaults.defaultPeriod;
