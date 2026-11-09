@@ -94,3 +94,9 @@ body:not(.logged-in) .page-content{padding:0 16px 22px}body:not(.logged-in) .her
 }
 @media(max-width:390px){.top .status{display:none}.hero h1{font-size:40px}.showcase-card strong{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.hero:after,.login-side,.showcase-card,.showcase-online:before,.showcase-meter i{animation:none!important}*{scroll-behavior:auto!important}}
+
+/* Diagnóstico de permissões do Discord — apenas informações do próprio usuário. */
+.access-role-check{display:grid;gap:8px;margin-top:14px;border:1px solid rgba(170,125,230,.27);border-radius:12px;padding:14px;background:rgba(86,57,129,.16)}
+.access-check-title{font-size:13px;color:#ecddff}
+.access-check-roles{font-size:12px;line-height:1.6;color:#c5b8d7;margin:0;overflow-wrap:anywhere}
+.config-category .warning-note{margin:0 0 6px}
