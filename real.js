@@ -482,7 +482,7 @@ function botConfigPage(){
  if(state.tab==='bot-alertas'){
   const c=section('Avisos e notificações','Defina o que o bot envia. Para advertências automáticas, primeiro configure os cargos e o canal necessários.');
   field(c,'Enviar mensagens privadas de ponto',config.notifications.pointDm,v=>config.notifications.pointDm=v,{type:'checkbox'});
-  field(c,'Enviar comprovante com imagem',config.notifications.receiptImage,v=>config.notifications.receiptImage=v,{type:'checkbox'});
+  c.append(el('p','Os comprovantes agora são enviados como mensagens organizadas no PV, sem imagens ou anexos. Esta mudança passa a valer depois de atualizar o bot na Discloud para a versão 3.7.3.','hint'));
   const enable=field(c,'Ativar advertências automáticas',config.justifications.autoWarnings,v=>config.justifications.autoWarnings=v,{type:'checkbox'});
   enable.onchange=async()=>{if(enable.checked&&!(await uiModal({title:'Ativar advertências automáticas?',message:'Depois da sincronização, o bot poderá aplicar cargos de advertência conforme as regras de presença e justificativas.',confirmLabel:'Sim, ativar'}))){enable.checked=false;return}config.justifications.autoWarnings=enable.checked;update()};
   c.append(el('p','Advertências automáticas requerem canal e três cargos configurados. A análise continua sujeita às regras de presença e às justificativas.','hint'));
