@@ -3,6 +3,7 @@
 const $=id=>document.getElementById(id);
 const state={guild:null,data:null,guilds:[],canEdit:false,tab:'inicio',period:'week',month:null,shift:'Noite',presenceDate:null,offShift:'all',search:'',status:'todos',kind:'todos',reportShift:'todos',roles:null,botEditor:null,botDraft:null,botLoading:false,botError:'',botDirty:false,botShift:'manha',navOrigin:null};
 const shifts=['Manhã','Tarde','Noite','Madrugada'];
+const visibleShifts=()=>state.data?.viewScope==='shift'?shifts.filter(k=>(state.data.allowedShifts||[]).includes(shortShift[k])):shifts;
 const api=async (path,options={})=>{const r=await fetch('/api/'+path,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});let d;try{d=await r.json()}catch{throw Error('A API não respondeu em JSON. Confira se a pasta api foi publicada na raiz do projeto Vercel (possível erro 404).')}if(!r.ok)throw Error(d.error||`Erro HTTP ${r.status}`);return d};
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n};
 // Caixas escuras acessíveis para avisos e confirmações da plataforma.
@@ -56,7 +57,7 @@ function consecutive(user,shift,date){const sorted=(state.data?.attendance||[]).
  let count=0;for(const d of sorted){if(d.status==='folga')break;if(d.status==='falta')count++;else break}return count;
 }
 function presence(){const filters=$('filters'),rows=$('rows'),date=state.presenceDate||today(),shift=state.shift,list=official(shift),byId=members();
- filters.append(select('Turno',shifts.map(x=>[x,x]),shift,v=>{state.shift=v;render()}));
+ filters.append(select('Turno',visibleShifts().map(x=>[x,x]),shift,v=>{state.shift=v;render()}));
  const field=el('label','Dia'),input=el('input');input.type='date';input.value=date;input.max=today();input.onchange=()=>{state.presenceDate=input.value;render()};field.append(input);filters.append(field);
  filters.append(el('p','Os membros vêm dos cargos configurados no bot. Dias sem escala histórica confirmada não são tratados como faltas. O turno atual só é considerado encerrado após o horário final.','hint'));
  const summary={cumpriu:0,agora:0,falta:0,pendente:0,folga:0};const lines=[];
@@ -167,7 +168,7 @@ const moduleDefs={
   ['folgas','Folgas','Configure folgas fixas e dias específicos, conforme suas permissões.','ico-calendar'],
   ['cancelados','Cancelamentos','Auditoria dos cartões de ponto cancelados.','ico-x']]},
  configuracoes:{title:'Central de configurações',intro:'Configurações do bot e do site reunidas e organizadas, com acesso por busca e categorias.',icon:'ico-settings',items:[
-  ['bot-geral','Regras do ponto','Ponto individual ou em equipe, convites e fuso.','ico-clock'],
+  ['bot-geral','Ativar equipes e regras do ponto','Ligar ou desligar equipes, configurar convites e fuso.','ico-clock'],
   ['bot-turnos','Turnos e cargos','Horários, cargos de turno, responsáveis e logs.','ico-calendar'],
   ['bot-canais','Canais e cargos','Configure auditoria, canais e cargos de advertência.','ico-shield'],
   ['bot-painel','Painel de bate-ponto','Personalize o painel principal do ponto.','ico-clock'],
@@ -183,7 +184,7 @@ const moduleDefs={
   ['laboratorio','Laboratório do dono','Simule regras sem alterar registros reais.','ico-spark']]}
 };
 const parentTab=tab=>(state.navOrigin&&moduleDefs[state.navOrigin]?.items.some(item=>item[0]===tab)?state.navOrigin:null)||Object.keys(moduleDefs).find(key=>moduleDefs[key].items.some(item=>item[0]===tab))||null;
-const allowedFeature=tab=>(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner);
+const allowedFeature=tab=>(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner)&&(state.data?.viewScope!=='shift'||(!tab.startsWith('bot-')&&!['folgas','permissoes','laboratorio'].includes(tab)));
 function svgIcon(symbol){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('ico');svg.setAttribute('aria-hidden','true');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#'+symbol);svg.append(use);return svg}
 function moduleCard({tab,title,description,icon,meta}){
  const b=el('button',undefined,'feature-card');b.type='button';b.setAttribute('aria-label',`Abrir ${title}`);
@@ -199,8 +200,9 @@ function moduleHub(key){
  hero.append(lead);const mark=el('span',undefined,'module-hero-icon');mark.append(svgIcon(def.icon));hero.append(mark);rows.append(hero);
  if(key==='configuracoes'){
   const access=el('div',undefined,'bot-access-panel');
-  const title=state.canEdit?'Edição do bot liberada':'Bot em modo consulta · ajustes do site disponíveis';
+  const title=state.canEdit?'Edição do bot liberada':state.data?.viewScope==='shift'?'Acesso de responsável: somente seus turnos':'Bot em modo consulta · ajustes do site disponíveis';
   const explanation=state.canEdit?'Sua conta foi verificada pela API do Discord. Você pode alterar as configurações deste servidor.':
+   state.data?.viewScope==='shift'?'Seus cargos de responsável foram validados pelo Discord. O site mostra apenas os dados, relatórios e cancelamentos dos turnos autorizados.':
    state.data?.accessReason==='bot-owner-readonly'?'Você é dono global do bot, mas este servidor não está autorizado para edição. É necessário ser dono ou Administrador deste servidor.':
    state.data?.accessReason==='discord-bot-not-configured'?'Falta DISCORD_BOT_TOKEN na Vercel para verificar seus cargos e permissões.':
    state.data?.accessReason==='discord-unavailable'?'Não foi possível conferir os seus cargos no Discord. Confirme o token do bot e se ele está neste servidor.':
@@ -422,7 +424,9 @@ function botConfigPage(){
  if(state.tab==='bot-geral'){
   const c=section('Funcionamento do ponto','Defina a modalidade do registro de jornada e o fuso utilizado.');
   const basics=el('div',undefined,'bot-two-cols');c.append(basics);
-  drop(basics,'Modo de ponto',[['Em equipe','team'],['Individual','individual']],config.pointMode,v=>config.pointMode=v);
+  const enabled=field(basics,'Ativar equipes no Discord',config.pointMode==='team',v=>config.pointMode=v?'team':'individual',{type:'checkbox'});
+  enabled.setAttribute('aria-description','Ativado exige montar a equipe; desligado libera ponto individual. Salve e aguarde sincronização do bot.');
+  basics.append(el('p','Ativado: iniciar em equipe, enviar convites e aguardar aceites. Desativado: ponto individual, sem convites. O bot atualiza o painel depois que receber a configuração.','hint'));
   field(basics,'Fuso horário',config.timezone,v=>config.timezone=v,{max:60});
   const team=section('Convites e equipe','Controle o tempo dos convites e a quantidade de integrantes.');
   const teamFields=el('div',undefined,'bot-two-cols');team.append(teamFields);
@@ -501,7 +505,7 @@ function botConfigPage(){
  }
 
 }
-function render(){if(!state.data)return;const data=state.data,all=cards(),period=all.filter(inPeriod),map=members();$('period').value=state.period;$('month').value=state.month||today().slice(0,7);renderNav();
+function render(){if(!state.data)return;const data=state.data;if(data.viewScope==='shift'&&!visibleShifts().includes(state.shift))state.shift=visibleShifts()[0]||'Noite';const all=cards(),period=all.filter(inPeriod),map=members();$('period').value=state.period;$('month').value=state.month||today().slice(0,7);renderNav();
 const summaries=[['Normais validadas',fmt(totaled(period,'Normal'))],['Extras validadas',fmt(totaled(period,'Extra'))],['Total validado',fmt(totaled(period))],['Em andamento',String(period.filter(active).length)+(period.filter(active).length===1?' registro':' registros')]];$('stats').replaceChildren();for(const [label,val] of summaries){const box=el('div',undefined,'stat');box.append(el('span',label),el('strong',val));$('stats').append(box)}
 const isHub=!!moduleDefs[state.tab]||state.tab==='inicio', hasPeriod=['ranking','mensal','relatorios','membros','ativos','cancelados'].includes(state.tab), hasStats=['ranking','relatorios'].includes(state.tab);
  $('periodToolbar').hidden=!hasPeriod;$('stats').hidden=!hasStats;
@@ -525,7 +529,7 @@ else if(state.tab==='justificativas')justificationHistory();
 else if(state.tab==='advertencias')warnings();
 else if(state.tab==='folgas')timeOff();
 else if(state.tab==='turno'){
- filters.append(select('Turno',shifts.map(s=>[s,s]),state.shift,v=>{state.shift=v;render()}));const roleIds=data.settings?.shift_roles?.[state.shift]||[];
+ filters.append(select('Turno',visibleShifts().map(s=>[s,s]),state.shift,v=>{state.shift=v;render()}));const roleIds=data.settings?.shift_roles?.[state.shift]||[];
  const official=(data.members||[]).filter(m=>(m.role_ids||[]).some(r=>roleIds.includes(r)));const todayCards=all.filter(c=>ymd(c.started_at)===today()&&c.shift===state.shift);
  const hours=data.settings?.shift_hours?.[state.shift]||[];filters.append(el('p',`Horário: ${hours.length===2?hours.join(' até '):'não configurado'} · Meta: 2h normais validadas por dia.`, 'hint'));
  rows.append(el('h3','Membros do turno','section-title'));for(const m of official){const n=totaled(todayCards.filter(c=>c.user_id===m.user_id),'Normal');rows.append(person(m,`${fmt(n)} normais validadas hoje`,n>=120?'Meta cumprida':n>0?'Incompleta':'Sem horas',n>=120?'good':''))}if(!official.length)note(rows,'Nenhum membro com o cargo desse turno foi sincronizado.');
@@ -550,7 +554,7 @@ async function renderPermissions(filters,rows,data){filters.append(el('p','O don
  const save=el('button','Salvar permissões','button');save.type='button';save.onclick=async()=>{save.disabled=true;try{const allowedRoles=[...field.querySelectorAll('input:checked')].map(e=>e.value);await api('settings?guildId='+encodeURIComponent(state.guild),{method:'POST',body:JSON.stringify({allowedRoles})});await load();$('syncStatus').textContent='Permissões salvas';$('syncStatus').className='status ok'}catch(e){$('syncStatus').textContent=e.message;$('syncStatus').className='status err'}finally{save.disabled=false}};
  box.append(field,save)
 }
-async function load(){if(!state.guild)return;const status=$('syncStatus');status.textContent='Sincronizando dados...';status.className='status';try{state.data=await api('data?guildId='+encodeURIComponent(state.guild));state.canEdit=!!state.data.canEdit;render();status.textContent=state.data?.missingSchema?.length?'Banco desatualizado · veja o aviso no painel':'Sincronizado · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});status.className=state.data?.missingSchema?.length?'status err':'status ok'}catch(e){$('rows').replaceChildren(el('p',e.message,'error'));status.textContent='Falha ao carregar';status.className='status err'}}
+async function load(){if(!state.guild)return;const status=$('syncStatus');status.textContent='Sincronizando dados...';status.className='status';try{state.data=await api('data?guildId='+encodeURIComponent(state.guild));state.canEdit=!!state.data.canEdit;if(state.data.viewScope==='shift'){state.botEditor=null;state.botDraft=null;state.botDirty=false;if(!allowedFeature(state.tab))state.tab='inicio'}render();status.textContent=state.data?.missingSchema?.length?'Banco desatualizado · veja o aviso no painel':'Sincronizado · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});status.className=state.data?.missingSchema?.length?'status err':'status ok'}catch(e){$('rows').replaceChildren(el('p',e.message,'error'));status.textContent='Falha ao carregar';status.className='status err'}}
 async function start(){
  const inviteHelp=$('inviteHelp');
  if(inviteHelp)inviteHelp.onclick=()=>uiNotice('Clique em “Adicionar bot ao meu servidor”, escolha no Discord um servidor que você administra e autorize as permissões solicitadas. Depois, mantenha o bot online na Discloud para sincronizar os dados com a Central.','Como adicionar o bot');
