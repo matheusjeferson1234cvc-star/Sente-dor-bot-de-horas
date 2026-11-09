@@ -184,7 +184,7 @@ const moduleDefs={
   ['laboratorio','Laboratório do dono','Simule regras sem alterar registros reais.','ico-spark']]}
 };
 const parentTab=tab=>(state.navOrigin&&moduleDefs[state.navOrigin]?.items.some(item=>item[0]===tab)?state.navOrigin:null)||Object.keys(moduleDefs).find(key=>moduleDefs[key].items.some(item=>item[0]===tab))||null;
-const allowedFeature=tab=>(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner)&&(state.data?.viewScope!=='shift'||(!tab.startsWith('bot-')&&!['folgas','permissoes','laboratorio'].includes(tab)));
+const allowedFeature=tab=>(!tab.startsWith('bot-')||state.canEdit)&&(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner)&&(state.data?.viewScope!=='shift'||(!tab.startsWith('bot-')&&!['folgas','permissoes','laboratorio'].includes(tab)));
 function svgIcon(symbol){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('ico');svg.setAttribute('aria-hidden','true');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#'+symbol);svg.append(use);return svg}
 function moduleCard({tab,title,description,icon,meta}){
  const b=el('button',undefined,'feature-card');b.type='button';b.setAttribute('aria-label',`Abrir ${title}`);
@@ -209,6 +209,18 @@ function moduleHub(key){
    'Seu cargo precisa ter a permissão oficial Administrador no Discord. Somente o nome do cargo não libera a edição.';
   const accessCopy=el('div',undefined,'bot-access-copy');
   accessCopy.append(el('span','SITUAÇÃO DO ACESSO','config-kicker'),el('strong',title),el('p',explanation));
+  const details=state.data?.permissionDetails;
+  if(details){
+   const roles=Array.isArray(details.assignedRoleNames)?details.assignedRoleNames:[];
+   const admins=Array.isArray(details.adminRoleNames)?details.adminRoleNames:[];
+   const check=el('div',undefined,'access-role-check');
+   check.append(el('strong',state.canEdit?'Administrador validado no Discord':'Discord não confirmou permissão Administrador','access-check-title'));
+   check.append(el('p',roles.length?'Cargos detectados nesta conta: '+roles.join(', '):'Nenhum cargo adicional foi detectado nesta conta neste servidor.','access-check-roles'));
+   check.append(el('p',admins.length?'Cargos com Administrador: '+admins.join(', '):'Nenhum dos cargos detectados tem a permissão Administrador ativa. Confira o cargo atribuído à sua conta e o servidor selecionado.','access-check-roles'));
+   accessCopy.append(check);
+  }else if(!state.canEdit){
+   accessCopy.append(el('p','Não foi possível confirmar seus cargos. Confira a conexão com o bot, a conta usada no login e o servidor selecionado.','access-check-roles'));
+  }
   const verify=el('button','Verificar acesso','button ghost');verify.type='button';verify.onclick=load;
   access.append(accessCopy,verify);rows.append(access);
   const configSearch=el('div',undefined,'config-search');
@@ -224,7 +236,17 @@ function moduleHub(key){
   ];
   for(const group of groups){
    const items=group.tabs.map(tab=>def.items.find(item=>item[0]===tab)).filter(item=>item&&allowedFeature(item[0]));
-   if(!items.length)continue;
+   if(!items.length){
+    if(!state.canEdit&&group.tabs.some(tab=>tab.startsWith('bot-'))){
+     const locked=el('section',undefined,'config-category');
+     const heading=el('div',undefined,'config-category-head'),copy=el('div');
+     copy.append(el('h3',group.title),el('p','Configuração do bot disponível somente ao dono ou a quem o Discord confirmar a permissão Administrador neste servidor.'));
+     heading.append(copy,el('span','Acesso restrito','config-category-count'));
+     const info=el('p','Para editar os painéis do Discord, confirme sua conta e seus cargos acima e toque em Verificar acesso.','warning-note');
+     locked.append(heading,info);rows.append(locked);
+    }
+    continue;
+   }
    const section=el('section',undefined,'config-category'),head=el('div',undefined,'config-category-head'),copy=el('div');
    copy.append(el('h3',group.title),el('p',group.description));
    head.append(copy,el('span',items.length+' '+(items.length===1?'opção':'opções'),'config-category-count'));
