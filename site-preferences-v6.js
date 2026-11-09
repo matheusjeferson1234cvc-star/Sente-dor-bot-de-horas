@@ -91,7 +91,7 @@
   choose(navigation,'Período padrão de consulta','Aplicado ao entrar novamente no site.','defaultPeriod',[
    ['Esta semana','week'],['Mês selecionado','month'],['Todo o histórico','all']
   ]);
-  toggle(navigation,'Atualizar dados automaticamente','Consulta os registros a cada minuto enquanto a aba estiver aberta.','autoRefresh');
+  toggle(navigation,'Atualizar dados automaticamente','Consulta os registros a cada 30 segundos enquanto a aba estiver aberta.','autoRefresh');
   const actions=node('div',undefined,'site-settings-actions');
   const refresh=node('button','Atualizar dados agora','button ghost');refresh.type='button';
   refresh.onclick=()=>{
