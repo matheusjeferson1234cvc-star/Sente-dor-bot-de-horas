@@ -97,12 +97,14 @@
   refresh.onclick=()=>{
    if(typeof onRefresh==='function'){
     status.textContent='Consultando dados do servidor...';
-    Promise.resolve(onRefresh()).then(()=>{status.textContent='Consulta concluída. Os dados foram atualizados.'}).catch(e=>{status.textContent=e.message||'Não foi possível atualizar os dados.'});
+    Promise.resolve(onRefresh()).then(()=>{status.textContent=document.getElementById('syncStatus')?.classList.contains('err')?'Falha ao atualizar dados. Confira o indicador de conexão.':'Consulta concluída. Os dados foram atualizados.'}).catch(e=>{status.textContent=e.message||'Não foi possível atualizar os dados.'});
    }
   };
   const reset=node('button','Restaurar preferências','button ghost');reset.type='button';
-  reset.onclick=()=>{
-   const confirmed=window.confirm('Restaurar as preferências padrão deste navegador?');
+  reset.onclick=async()=>{
+   const confirmed=typeof window.uiModal==='function'?
+    await window.uiModal({title:'Restaurar preferências?',message:'Deseja voltar às preferências padrão deste navegador? Nenhuma configuração do bot será alterada.',confirmLabel:'Restaurar',cancelLabel:'Cancelar'}):
+    window.confirm('Restaurar as preferências padrão deste navegador?');
    if(!confirmed)return;
    prefs={...defaults};
    save(prefs);
