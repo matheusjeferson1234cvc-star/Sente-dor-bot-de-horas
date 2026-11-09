@@ -203,6 +203,11 @@ function moduleHub(key){
   accessCopy.append(el('span','SITUAÇÃO DO ACESSO','config-kicker'),el('strong',title),el('p',explanation));
   const verify=el('button','Verificar acesso','button ghost');verify.type='button';verify.onclick=load;
   access.append(accessCopy,verify);rows.append(access);
+  const configSearch=el('div',undefined,'config-search');
+  const configSearchInput=el('input');configSearchInput.type='search';
+  configSearchInput.placeholder='Buscar turnos, cargos, canais, painéis...';
+  configSearchInput.setAttribute('aria-label','Pesquisar configurações do bot');
+  configSearch.append(svgIcon('ico-settings'),configSearchInput);rows.append(configSearch);
   const groups=[
    {title:'Rotina do bot',description:'Ponto, escalas, cargos, canais e notificações.',tabs:['bot-geral','bot-turnos','bot-canais','bot-alertas']},
    {title:'Painéis do Discord',description:'Personalize cada painel separadamente.',tabs:['bot-painel','bot-painel-just']},
@@ -218,6 +223,23 @@ function moduleHub(key){
    for(const [tab,title,description,icon] of items)cards.append(moduleCard({tab,title,description,icon,meta:moduleMetric(tab)}));
    section.append(head,cards);rows.append(section);
   }
+  const configNoResults=el('p','Nenhuma configuração encontrada. Tente outra palavra.','config-search-empty');
+  configNoResults.hidden=true;rows.append(configNoResults);
+  const normalizeConfig=s=>s.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  configSearchInput.addEventListener('input',()=>{
+   const query=normalizeConfig(configSearchInput.value.trim());let found=0;
+   for(const section of rows.querySelectorAll('.config-category')){
+    let count=0;
+    for(const card of section.querySelectorAll('.feature-card')){
+     const matched=normalizeConfig(card.textContent).includes(query);
+     card.hidden=!matched;if(matched)count++;
+    }
+    section.hidden=count===0;found+=count;
+    const label=section.querySelector('.config-category-count');
+    if(label)label.textContent=count+' '+(count===1?'opção':'opções');
+   }
+   configNoResults.hidden=found>0;
+  });
   return;
  }
  const tools=el('div',undefined,'feature-grid');
