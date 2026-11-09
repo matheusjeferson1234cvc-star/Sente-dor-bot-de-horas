@@ -1,0 +1,33 @@
+/* Central de Horas — preferências do site, sem impacto nas permissões do bot. */
+.site-settings-intro{padding:25px 27px;border-radius:20px;border:1px solid #664f87;background:linear-gradient(130deg,#332047,#171325);margin-bottom:17px}
+.site-settings-intro h2{font-size:clamp(22px,3vw,29px);letter-spacing:-.035em;margin:8px 0}
+.site-settings-intro p{max-width:760px;color:#b8acc9;line-height:1.7;font-size:13px;margin:0}
+.site-settings-eyebrow{color:#c8acff;font-size:10px;font-weight:850;letter-spacing:.14em}
+.site-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.site-settings-panel{border:1px solid #48345f;background:#191425;border-radius:17px;padding:24px;min-width:0;display:flex;flex-direction:column;gap:11px}
+.site-settings-panel h3{font-size:18px;letter-spacing:-.025em;margin:0}
+.site-settings-description{margin:0 0 8px;font-size:12px;color:#a99abb;line-height:1.6}
+.site-settings-toggle,.site-settings-choice{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#21192e;border:1px solid #423350;padding:14px 15px;border-radius:12px;min-height:70px;cursor:pointer}
+.site-settings-toggle:hover,.site-settings-choice:hover{background:#2a2038;border-color:#75569c}
+.site-settings-toggle-copy{display:grid;gap:5px;min-width:0}
+.site-settings-toggle-copy strong{font-size:13px;color:#f2eafb}
+.site-settings-toggle-copy small{font-size:11px;color:#aea1bd;line-height:1.45;font-weight:450}
+.site-settings-toggle input{flex:none;width:22px;height:22px;min-height:22px;accent-color:#ac84f9;cursor:pointer}
+.site-settings-choice{align-items:flex-start;flex-direction:column;cursor:default}
+.site-settings-choice select{width:100%;margin-top:5px;color:#f3eafb;background-color:#120f20;min-height:45px;border:1px solid #634f7d}
+.site-settings-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+.site-settings-status{min-height:25px;margin:14px 3px 0;color:#c3b5f5;font-size:12px}
+.site-settings-help{margin-top:18px;border-left:3px solid #8f70c7;padding:13px 17px;background:#1c1529;border-radius:0 13px 13px 0;font-size:12px}
+.site-settings-help strong{font-size:13px}.site-settings-help p{margin:7px 0 0;color:#afa3c2;line-height:1.7}
+.site-compact .home-module,.site-compact .feature-card{padding:12px 14px!important;min-height:0!important;gap:10px}
+.site-compact .home-module-icon,.site-compact .feature-symbol{width:36px;height:36px}
+.site-compact .snapshot-card,.site-compact .stat{min-height:0;padding:13px!important}
+.site-compact .list-row{padding:8px 6px!important}
+.site-compact .bot-section{gap:9px!important;padding:13px!important}
+.site-contrast{--muted:#d3cbe1;--muted2:#b8a7d0;--border:#785e98}
+.site-contrast .panel,.site-contrast .feature-card,.site-contrast .bot-section,.site-contrast .site-settings-panel{border-color:#8b70ad!important}
+.site-contrast .feature-info small,.site-contrast .person small,.site-contrast .site-settings-toggle-copy small,.site-contrast .module-tip{color:#dfd2ec}
+.site-contrast input,.site-contrast select,.site-contrast textarea{border-color:#a489c5!important}
+.site-no-motion *, .site-no-motion *::before,.site-no-motion *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+@media(max-width:940px){.site-settings-grid{grid-template-columns:1fr}}
+@media(max-width:740px){.site-settings-intro{padding:19px}.site-settings-panel{padding:16px}.site-settings-actions{display:grid;grid-template-columns:1fr}.site-settings-toggle,.site-settings-choice{padding:13px}}
