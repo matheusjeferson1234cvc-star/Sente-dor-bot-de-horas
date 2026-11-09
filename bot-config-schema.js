@@ -18,7 +18,7 @@ function normalize(input){
  if(c.maxMembers<c.minMembers)throw Error('O máximo de integrantes não pode ser menor que o mínimo');
  c.inviteMinutes=num(input.inviteMinutes,5,60,'Validade do convite');
  c.serviceRoleId=id(input.serviceRoleId,'Cargo em serviço');c.auditChannelId=id(input.auditChannelId,'Canal de auditoria');
- c.notifications={pointDm:bool(input.notifications?.pointDm,'Notificações por DM'),receiptImage:bool(input.notifications?.receiptImage,'Comprovante de imagem')};
+ c.notifications={pointDm:bool(input.notifications?.pointDm,'Notificações por DM'),receiptImage:false}; // Imagens de comprovante descontinuadas.
  c.shifts={};for(const key of SHIFTS){const s=input.shifts?.[key];if(!s||!time(s.start)||!time(s.end))throw Error(`Horários inválidos: ${key}`);
   c.shifts[key]={start:s.start,end:s.end,roleIds:ids(s.roleIds,5,`Cargos de ${key}`),supervisorRoles:ids(s.supervisorRoles,5,`Responsáveis de ${key}`),logChannelId:id(s.logChannelId,`Logs de ${key}`)};
  }
