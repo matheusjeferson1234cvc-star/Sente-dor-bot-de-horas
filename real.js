@@ -136,6 +136,7 @@ const tabInfo={
  administracao:['Administração','Justificativas, advertências, folgas e auditoria'],
  configuracoes:['Configurações do Bate-ponto','Painéis, regras, turnos, cargos, logs e notificações do ponto'],
  servidores:['Meus servidores','Consulte e alterne seus ambientes autorizados'],
+ comunicados:['Publicar comunicado','Escolha o canal e publique uma mensagem pelo Nero Bot'],
  ranking:['Ranking','Horas validadas por membro e período'],
  presenca:['Controle de presença','Membros por turno, jornadas e ausências confirmadas'],
  mensal:['Histórico mensal','Consulte cada mês sem perder os anteriores'],
@@ -218,7 +219,7 @@ const parentTab=tab=>{
  return (state.navOrigin&&moduleDefs[state.navOrigin]?.items.some(item=>item[0]===tab)?state.navOrigin:null)||Object.keys(moduleDefs).find(key=>key!=='sistemas'&&moduleDefs[key].items.some(item=>item[0]===tab))||null;
 };
 const pointPages=new Set(['bateponto','jornada','resultados','administracao','configuracoes','ativos','cancelados','justificativas','advertencias','folgas','ranking','presenca','turno','mensal','relatorios','membros','permissoes','laboratorio','bot-geral','bot-turnos','bot-canais','bot-painel','bot-painel-just','bot-alertas','site-preferencias']);
-const allowedFeature=tab=>(!tab.startsWith('bot-')||state.canEdit)&&(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner)&&(state.data?.viewScope!=='shift'||(!tab.startsWith('bot-')&&!['folgas','permissoes','laboratorio'].includes(tab)));
+const allowedFeature=tab=>(tab!=='comunicados'||state.canEdit)&&(!tab.startsWith('bot-')||state.canEdit)&&(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner)&&(state.data?.viewScope!=='shift'||(!tab.startsWith('bot-')&&!['folgas','permissoes','laboratorio'].includes(tab)));
 function svgIcon(symbol){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('ico');svg.setAttribute('aria-hidden','true');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#'+symbol);svg.append(use);return svg}
 function moduleCard({tab,title,description,icon,meta}){
  const b=el('button',undefined,'feature-card');b.type='button';b.setAttribute('aria-label',`Abrir ${title}`);
@@ -424,7 +425,7 @@ function showServerPicker(){
 }
 async function chooseServer(id){
  if(!state.guilds.some(g=>String(g.guild_id)===String(id)))return;
- state.guild=String(id);state.data=null;state.roles=null;state.botEditor=null;state.botDraft=null;
+ state.guild=String(id);state.data=null;state.canEdit=false;state.roles=null;state.botEditor=null;state.botDraft=null;
  state.botDirty=false;state.botError='';state.navOrigin='sistemas';state.tab='sistemas';state.search='';
  $('guild').value=state.guild;
  $('serverPicker').hidden=true;$('content').hidden=false;
@@ -443,6 +444,73 @@ async function refreshServers(){
  }catch(e){$('serverPickerRows').replaceChildren(el('p',e.message,'error'))}
  finally{button.disabled=false;button.textContent='Atualizar servidores'}
 }
+
+const NERO_LANCAMENTO=[
+'🌙 **Boa noite, pessoal!**','',
+'🚀 **LANÇAMENTO OFICIAL DO NERO BOT**','',
+'Apresentamos o NERO BOT, uma plataforma criada para ajudar na organização de servidores do Discord!','',
+'⏰ **NOSSO PRIMEIRO SISTEMA: BATE-PONTO | CENTRAL DE HORAS**',
+'✅ Registro por equipes e turnos','✅ Iniciar, pausar e encerrar pontos',
+'✅ Horas normais e extras','✅ Cartões ativos e cancelados',
+'✅ Justificativas e advertências','✅ Rankings, relatórios e logs','',
+'🌐 **Site:** https://central-de-horas1.vercel.app',
+'🤖 **Adicionar o bot:** https://central-de-horas1.vercel.app/api/invite',
+'💬 **Discord oficial:** https://discord.gg/SWTnKfXJ8R','',
+'💡 **SUGIRA NOVOS SISTEMAS!** Tem uma ideia para o bot? Compartilhe no Discord oficial!','',
+'❤️ Obrigado pelo apoio!','**NERO BOT — Uma plataforma. Vários sistemas.**','*Desenvolvido por Cetus.*'
+].join('\n');
+function announcementPage(){
+ const rows=$('rows'),guildName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Servidor selecionado';
+ const intro=el('div',undefined,'nero-announcement-head');
+ intro.append(el('span','FERRAMENTA DO NERO BOT','module-kicker'),el('h2','Publicar comunicado'),el('p','Escolha o canal, edite o anúncio e confira a prévia. O bot só envia depois da sua confirmação.'));
+ rows.append(intro);
+ if(!state.canEdit){note(rows,'Só o dono ou Administrador do servidor pode publicar anúncios.','error');return}
+ const cols=el('div',undefined,'nero-announcement-cols'),form=el('section',undefined,'nero-announcement-panel'),preview=el('section',undefined,'nero-announcement-panel');
+ cols.append(form,preview);rows.append(cols);
+ form.append(el('small','SERVIDOR SELECIONADO','nero-announcement-hint'),el('h3',guildName));
+ const field=(name,control)=>{const label=el('label',name);label.append(control);form.append(label);return control};
+ const channel=el('select');channel.append(option('Carregando canais...',''));field('Canal do Discord',channel);
+ const title=el('input');title.type='text';title.maxLength=180;title.value='🔴 NERO BOT | LANÇAMENTO OFICIAL';field('Título',title);
+ const message=el('textarea');message.rows=16;message.maxLength=3500;message.value=NERO_LANCAMENTO;field('Mensagem',message);
+ const row=el('div',undefined,'nero-announcement-buttons'),refresh=el('button','Atualizar canais','button ghost'),send=el('button','Revisar e publicar','button');
+ send.disabled=true;refresh.type='button';send.type='button';row.append(refresh,send);form.append(row);
+ const status=el('p','Selecione o canal para publicar.','nero-announcement-status');status.setAttribute('role','status');form.append(status);
+ preview.append(el('h3','Prévia no Discord'),el('small','O Discord aplicará a formatação da mensagem.','nero-announcement-hint'));
+ const box=el('div',undefined,'nero-announcement-discord'),user=el('div',undefined,'nero-announcement-user');
+ user.append(el('span','N','nero-announcement-avatar'),el('strong','Nero Bot'),el('small','APP'));
+ const embed=el('div',undefined,'nero-announcement-embed'),pTitle=el('strong'),pMessage=el('p'),pFooter=el('small','NERO BOT · Plataforma de Sistemas');
+ embed.append(pTitle,pMessage,pFooter);box.append(user,embed);preview.append(box);
+ preview.append(el('p','Apenas canais de texto/anúncios disponíveis. O bot precisa de permissão para enviar mensagens e embeds. Menções automáticas desativadas.','nero-announcement-hint'));
+ let sending=false;
+ const update=()=>{pTitle.textContent=title.value||'Título';pMessage.textContent=message.value||'Mensagem';send.disabled=sending||!channel.value||!title.value.trim()||!message.value.trim()};
+ title.oninput=update;message.oninput=update;channel.onchange=update;update();
+ async function loadChannels(){
+  if(sending)return;refresh.disabled=true;send.disabled=true;status.textContent='Consultando canais do Discord...';
+  try{
+   const result=await api('announce-channels?guildId='+encodeURIComponent(state.guild));
+   channel.replaceChildren(option('Selecione um canal...',''));
+   for(const c of result.channels||[])channel.append(option('#'+c.name+(c.kind==='anúncios'?' · anúncios':''),c.id));
+   status.textContent=result.channels?.length?'Escolha o canal e confira a prévia antes de publicar.':'Nenhum canal encontrado. Confira as permissões do Nero Bot.';
+  }catch(e){channel.replaceChildren(option('Não foi possível listar canais',''));status.textContent=e.message;status.className='nero-announcement-status error'}
+  finally{refresh.disabled=false;update()}
+ }
+ refresh.onclick=loadChannels;
+ send.onclick=async()=>{
+  if(sending||!channel.value||!title.value.trim()||!message.value.trim())return;
+  const channelId=channel.value,channelLabel=channel.selectedOptions[0]?.textContent||'canal escolhido';
+  const accepted=await uiModal({title:'Publicar comunicado?',message:'O Nero Bot vai enviar esta mensagem no canal '+channelLabel+' do servidor '+guildName+'. Confirma o envio?',confirmLabel:'Sim, publicar',cancelLabel:'Voltar'});
+  if(!accepted)return;
+  sending=true;refresh.disabled=true;update();status.className='nero-announcement-status';status.textContent='Enviando para o Discord...';
+  try{
+   const result=await api('announce?guildId='+encodeURIComponent(state.guild),{method:'POST',body:JSON.stringify({channelId,title:title.value.trim(),message:message.value.trim()})});
+   status.replaceChildren(el('span','Comunicado publicado! '));
+   const link=el('a','Ver no Discord');link.href=result.url;link.target='_blank';link.rel='noopener noreferrer';status.append(link);status.className='nero-announcement-status success';
+  }catch(e){status.textContent=e.message;status.className='nero-announcement-status error'}
+  finally{sending=false;refresh.disabled=false;update()}
+ };
+ loadChannels();
+}
+
 function setSidebarOpen(open){
  const side=$('sidebar'),overlay=$('sidebarOverlay');if(!side||side.hidden)return;
  side.classList.toggle('open',!!open);overlay.hidden=!open;overlay.classList.toggle('open',!!open);
@@ -480,8 +548,9 @@ function renderNav(){
  }
  $('moduleBack').hidden=state.tab==='inicio';
  if(state.tab!=='inicio'){const destination=parent||(pointPages.has(state.tab)?'bateponto':'sistemas');$('backToModule').onclick=()=>openTab(destination);$('backToModule').textContent='← Voltar para '+(destination==='inicio'?'Início':tabInfo[destination][0]);}
- const group=state.tab==='inicio'?'inicio':(pointPages.has(state.tab)?'bateponto':'sistemas');
+ const group=state.tab==='inicio'?'inicio':state.tab==='comunicados'?'comunicados':(pointPages.has(state.tab)?'bateponto':'sistemas');
  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===group));
+ document.querySelectorAll('[data-tab="comunicados"]').forEach(b=>b.hidden=!state.canEdit);
  $('mobileMore').classList.toggle('active',false);
 }
 function overview(){
@@ -507,6 +576,7 @@ function overview(){
   ['gestao','Gestão de cargos','Nova função de promoções e rebaixamentos.','ico-shield','Em preparação']]){
   const b=el('button',undefined,'home-module');b.type='button';const avatar=el('span',undefined,'home-module-icon');avatar.append(svgIcon(ico));const copy=el('span',undefined,'home-module-copy');copy.append(el('strong',title),el('small',descr),el('em',foot));const arrow=el('span',undefined,'home-module-arrow');arrow.append(svgIcon('ico-arrow'));b.append(avatar,copy,arrow);b.onclick=()=>openTab(key);cardsGrid.append(b)}rows.append(cardsGrid);
  const fullCatalog=el('button','Abrir catálogo completo de sistemas','button hub-explore');fullCatalog.type='button';fullCatalog.onclick=()=>openTab('sistemas');rows.append(fullCatalog);
+ if(state.canEdit){const b=el('button','Publicar comunicado no Discord','button hub-explore');b.type='button';b.onclick=()=>openTab('comunicados');rows.append(b)}
  rows.append(el('p','O Bate-ponto mantém TODOS os seus recursos atuais em um só sistema. As outras funções são independentes e serão implementadas gradualmente, sem misturar registros.','module-tip'));
 }
 function ownerLab(){
@@ -695,7 +765,7 @@ function botConfigPage(){
 }
 function render(){if(!state.data)return;const data=state.data;if(data.viewScope==='shift'&&!visibleShifts().includes(state.shift))state.shift=visibleShifts()[0]||'Noite';const all=cards(),period=all.filter(inPeriod),map=members();$('period').value=state.period;$('month').value=state.month||today().slice(0,7);renderNav();
 const summaries=[['Normais validadas',fmt(totaled(period,'Normal'))],['Extras validadas',fmt(totaled(period,'Extra'))],['Total validado',fmt(totaled(period))],['Em andamento',String(period.filter(active).length)+(period.filter(active).length===1?' registro':' registros')]];$('stats').replaceChildren();for(const [label,val] of summaries){const box=el('div',undefined,'stat');box.append(el('span',label),el('strong',val));$('stats').append(box)}
-const isHub=!!moduleDefs[state.tab]||state.tab==='inicio', hasPeriod=['ranking','mensal','relatorios','membros','ativos','cancelados'].includes(state.tab), hasStats=['ranking','relatorios'].includes(state.tab);
+const isHub=!!moduleDefs[state.tab]||state.tab==='inicio'||state.tab==='comunicados', hasPeriod=['ranking','mensal','relatorios','membros','ativos','cancelados'].includes(state.tab), hasStats=['ranking','relatorios'].includes(state.tab);
  $('periodToolbar').hidden=!hasPeriod;$('stats').hidden=!hasStats;
  $('moduleContent').classList.toggle('hub-content',isHub);const footerNote=$('footerNote');if(footerNote)footerNote.hidden=isHub;
  const filters=$('filters'),rows=$('rows');filters.replaceChildren();rows.replaceChildren();filters.hidden=isHub;
@@ -704,6 +774,7 @@ if(data.missingSchema?.length)filters.append(el('p','Banco Supabase ainda não a
 if(state.tab==='inicio')overview();
 else if(moduleDefs[state.tab])moduleHub(state.tab);
 else if(state.tab==='servidores')serversPage();
+else if(state.tab==='comunicados')announcementPage();
 else if(state.tab==='laboratorio')ownerLab();
 else if(state.tab==='site-preferencias'){if(window.centralSitePrefs)window.centralSitePrefs.render(rows,load);else note(rows,'Não foi possível carregar as preferências do site. Atualize a página.','error')}
 else if(state.tab.startsWith('bot-'))botConfigPage();

@@ -245,3 +245,29 @@ footer a:hover{text-decoration:underline}
  .point-mini-stat{padding:14px}
  .point-tool-heading{flex-wrap:wrap}
 }
+
+/* Nero Bot v6.9: editor de comunicados por canal */
+.nero-announcement-head{padding:21px;border:1px solid #693346;border-radius:14px;background:linear-gradient(135deg,#2a1420,#140e16);margin-bottom:18px}
+.nero-announcement-head h2{margin:10px 0;font-size:24px;color:#fff}
+.nero-announcement-head p{font-size:12px;color:#d2adb9;line-height:1.6;margin:0}
+.nero-announcement-cols{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.nero-announcement-panel{padding:19px;display:flex;flex-direction:column;gap:13px;border:1px solid #5d3142;background:#190f19;border-radius:13px;min-width:0}
+.nero-announcement-panel h3{margin:0;color:#fff;font-size:15px}
+.nero-announcement-panel label{display:grid;gap:7px;color:#edc1cd;font-size:12px;font-weight:770}
+.nero-announcement-panel input,.nero-announcement-panel select,.nero-announcement-panel textarea{width:100%;padding:11px!important;border-radius:9px!important;border:1px solid #66384a!important;background:#251321!important;color:#fff!important}
+.nero-announcement-panel textarea{resize:vertical;min-height:250px;font:inherit;line-height:1.55}
+.nero-announcement-hint{color:#b99ea9;font-size:11px;line-height:1.5}
+.nero-announcement-buttons{display:flex;gap:9px;flex-wrap:wrap}
+.nero-announcement-buttons button{flex:1;min-width:130px}
+.nero-announcement-status{font-size:12px;color:#d3abb9;line-height:1.5}
+.nero-announcement-status.error{color:#ffa1b5}.nero-announcement-status.success{color:#9de5bb}
+.nero-announcement-status a{color:#ffbbca;font-weight:800}
+.nero-announcement-discord{padding:15px;border-radius:11px;background:#2b2c35;border:1px solid #383b46;display:grid;gap:12px}
+.nero-announcement-user{display:flex;align-items:center;gap:9px;color:#fff;font-size:12px}
+.nero-announcement-avatar{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;font-weight:900;background:linear-gradient(135deg,#dc2543,#6c122f)}
+.nero-announcement-user small{font-size:9px;padding:2px 5px;border-radius:4px;background:#5765c8}
+.nero-announcement-embed{border-left:4px solid #e32d4d;border-radius:5px;padding:12px;background:#202128;display:grid;gap:12px;min-width:0}
+.nero-announcement-embed strong{color:#fff;font-size:13px}
+.nero-announcement-embed p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;color:#dce0e6;font-size:11px;line-height:1.6}
+.nero-announcement-embed small{font-size:10px;color:#9ea5b1}
+@media(max-width:960px){.nero-announcement-cols{grid-template-columns:1fr}.nero-announcement-panel{padding:15px}}
