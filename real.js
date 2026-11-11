@@ -379,7 +379,7 @@ function makeDiscordPreview(kind,getVisual){
  const message=el('div',undefined,'discord-preview-message');
  const avatar=el('span','C','discord-preview-avatar'),messageBody=el('div',undefined,'discord-preview-body');
  const author=el('div',undefined,'discord-preview-author');
- author.append(el('strong','Central de Horas'),el('span','BOT','discord-preview-bot'),el('small','prévia'));
+ author.append(el('strong','NERO'),el('span','BOT','discord-preview-bot'),el('small','prévia'));
  const embed=el('div',undefined,'discord-preview-embed'),title=el('strong',undefined,'discord-preview-title');
  const desc=el('p',undefined,'discord-preview-description'),gif=el('img');
  gif.className='discord-preview-gif';gif.alt='Animação configurada para este painel';gif.loading='lazy';gif.hidden=true;
