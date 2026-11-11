@@ -8,6 +8,14 @@
     {
       "source": "/api/warnings-preview",
       "destination": "/api/index?centralRoute=warnings-preview"
+    },
+    {
+      "source": "/api/announce",
+      "destination": "/api/index?centralRoute=announce"
+    },
+    {
+      "source": "/api/announce-channels",
+      "destination": "/api/index?centralRoute=announce-channels"
     }
   ]
 }
