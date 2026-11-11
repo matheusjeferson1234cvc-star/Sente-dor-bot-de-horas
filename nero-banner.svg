@@ -1,26 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 500" role="img" aria-label="Banner Nero azul-escuro com ave de asas azuladas e peito branco">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 500" role="img" aria-label="Banner Nero Bot preto e vermelho com ave de asas azul-escuras e peito branco">
 <defs>
  <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#050b18"/><stop offset=".45" stop-color="#081e3a"/><stop offset="1" stop-color="#040b16"/></linearGradient>
- <radialGradient id="light"><stop stop-color="#0b7bfd" stop-opacity=".4"/><stop offset="1" stop-color="#0b7bfd" stop-opacity="0"/></radialGradient>
+ <radialGradient id="light"><stop stop-color="#da2e4c" stop-opacity=".4"/><stop offset="1" stop-color="#da2e4c" stop-opacity="0"/></radialGradient>
  <linearGradient id="steel" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".55" stop-color="#d9eaff"/><stop offset="1" stop-color="#6b9ad9"/></linearGradient>
- <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" stroke="#2b6ca4" stroke-width=".8" opacity=".18" fill="none"/></pattern>
+ <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" stroke="#8a3344" stroke-width=".8" opacity=".18" fill="none"/></pattern>
 </defs>
 <rect width="1440" height="500" rx="33" fill="url(#bg)"/>
 <rect width="1440" height="500" rx="33" fill="url(#grid)"/>
 <ellipse cx="370" cy="260" rx="500" ry="330" fill="url(#light)"/>
 <ellipse cx="1150" cy="200" rx="370" ry="240" fill="url(#light)" opacity=".38"/>
-<g stroke="#0c76ef" stroke-width="5" opacity=".68" fill="none"><path d="M0 474h1440"/><path d="M60 49h155"/><path d="M1225 49h155"/></g>
+<g stroke="#d02c49" stroke-width="5" opacity=".68" fill="none"><path d="M0 474h1440"/><path d="M60 49h155"/><path d="M1225 49h155"/></g>
 <!-- Deep blue wing feathers with white central chest -->
 <g opacity=".85">
  <path d="M326 260Q178 159 0 102q124 135 255 206L86 282l191 104L347 335Z" fill="#0c3c82" stroke="#167eea" stroke-width="3"/>
  <path d="M347 260Q490 149 690 77Q564 240 418 316l137-36-181 99-67-48Z" fill="#0a4fa6" stroke="#168eea" stroke-width="3"/>
- <path d="M245 188Q279 124 345 131Q407 137 426 208L406 290Q363 316 321 314Q280 314 255 279Z" fill="#07162b" stroke="#29a7ff" stroke-width="4"/>
- <path d="M276 298Q306 337 353 338Q393 330 405 298Q432 390 373 431Q302 449 265 407Z" fill="#ecf6ff" stroke="#78acda" stroke-width="4"/>
- <path d="M312 235l25 11-19 8M389 235l-25 11 19 8" fill="#18d3ff" stroke="#1ad0ff" stroke-width="3"/>
+ <path d="M245 188Q279 124 345 131Q407 137 426 208L406 290Q363 316 321 314Q280 314 255 279Z" fill="#07162b" stroke="#e84962" stroke-width="4"/>
+ <path d="M276 298Q306 337 353 338Q393 330 405 298Q432 390 373 431Q302 449 265 407Z" fill="#ecf6ff" stroke="#e99fab" stroke-width="4"/>
+ <path d="M312 235l25 11-19 8M389 235l-25 11 19 8" fill="#ff6078" stroke="#ff6b81" stroke-width="3"/>
  <path d="M350 252l18 21-17 17-17-17Z" fill="#b8deff"/>
 </g>
 <text x="800" y="256" text-anchor="middle" font-family="Arial,sans-serif" font-size="145" font-weight="900" letter-spacing="15" fill="url(#steel)">NERO</text>
-<path d="M606 280h400" stroke="#1583ec" stroke-width="4" opacity=".9"/>
-<text x="803" y="337" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="650" letter-spacing="7" fill="#b2d8ff">SISTEMAS PARA DISCORD</text>
-<text x="807" y="386" text-anchor="middle" font-family="Arial,sans-serif" font-size="20" letter-spacing="3" fill="#7ea7cf">BOT  •  GESTÃO  •  CENTRAL DE HORAS</text>
+<path d="M606 280h400" stroke="#e62e4d" stroke-width="4" opacity=".9"/>
+<text x="803" y="337" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="650" letter-spacing="7" fill="#ffc4cd">SISTEMAS PARA DISCORD</text>
+<text x="807" y="386" text-anchor="middle" font-family="Arial,sans-serif" font-size="20" letter-spacing="3" fill="#d895a1">BOT  •  GESTÃO  •  CENTRAL DE HORAS</text>
 </svg>

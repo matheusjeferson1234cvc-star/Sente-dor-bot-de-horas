@@ -124,7 +124,12 @@ function timeOff(){const filters=$('filters'),rows=$('rows'),off=state.data?.set
  if(!state.canEdit)rows.append(el('p','Somente o dono ou um Administrador do Discord pode alterar folgas. O dono global do bot não pode editar servidores alheios sem autorização.','warning-note'));
 }
 const tabInfo={
- inicio:['Central de módulos','Escolha um sistema para acompanhar seus registros'],
+ inicio:['Nero Bot · Visão geral','Selecione um dos sistemas disponíveis'],
+ sistemas:['Central de Sistemas','Todos os módulos do Nero Bot, atuais e futuros'],
+ 'horas-normais':['Horas normais','Novo sistema independente em preparação'],
+ registro:['Registro de membros','Novo módulo em preparação'],
+ recrutamento:['Recrutamento','Novo módulo em preparação'],
+ gestao:['Gestão de cargos','Novo módulo em preparação'],
  jornada:['Jornada e ponto','Acompanhe turnos, presença e horas registradas'],
  resultados:['Resultados e relatórios','Ranking, membros e consultas em telas separadas'],
  administracao:['Administração','Justificativas, advertências, folgas e auditoria'],
@@ -153,7 +158,20 @@ const tabInfo={
 };
 // Os sistemas são agrupados por função. Cada ferramenta mantém sua tela independente.
 const moduleDefs={
- jornada:{title:'Jornada e ponto',intro:'Gestão de turnos e presença sem misturar com relatórios administrativos.',icon:'ico-clock',items:[
+ sistemas:{title:'Central de Sistemas',intro:'Explore as ferramentas do Nero Bot. Os módulos disponíveis continuam conectados ao Discord; os novos são identificados como em preparação.',icon:'ico-spark',items:[
+  ['jornada','Central de Horas · Tradicional','Bate-ponto por equipes, turnos e horas extras.','ico-clock'],
+  ['horas-normais','Horas normais · Novo sistema','Modalidade independente para futuros registros de horas.','ico-clock'],
+  ['resultados','Resultados e relatórios','Rankings e consultas dos pontos existentes.','ico-bar'],
+  ['administracao','Auditoria e administração','Justificativas, advertências e cartões cancelados.','ico-shield'],
+  ['registro','Registro de membros','Nova área de identificação e aprovação.','ico-file'],
+  ['recrutamento','Recrutamento','Novo fluxo de candidatos e avaliações.','ico-users'],
+  ['gestao','Gestão de cargos','Promoções, rebaixamentos e advertências em um módulo próprio.','ico-shield'],
+  ['configuracoes','Configurações do Nero Bot','Gerencie o bot e o site em áreas organizadas.','ico-settings']]},
+ 'horas-normais':{title:'Horas normais',intro:'Um novo módulo de horas, independente do bate-ponto por equipes e turnos que já está funcionando.',icon:'ico-clock',comingSoon:true,items:[]},
+ registro:{title:'Registro de membros',intro:'Módulo reservado para registros e aprovações no Discord.',icon:'ico-file',comingSoon:true,items:[]},
+ recrutamento:{title:'Recrutamento',intro:'Módulo reservado para perguntas, análise e aprovação de candidatos.',icon:'ico-users',comingSoon:true,items:[]},
+ gestao:{title:'Gestão de cargos',intro:'Módulo reservado para promoções, rebaixamentos e gestão de advertências. O histórico atual segue disponível em Administração.',icon:'ico-shield',comingSoon:true,items:[]},
+ jornada:{title:'Central de Horas · Tradicional',intro:'Bate-ponto existente por equipe e turno, com horas normais, extras e cartões sincronizados. As regras e os dados atuais foram preservados.',icon:'ico-clock',items:[
   ['presenca','Controle de presença','Acompanhe a meta diária, os turnos e as ausências confirmadas.','ico-check'],
   ['turno','Escalas e turnos','Membros do turno e horas extras realizadas.','ico-clock'],
   ['ativos','Em serviço','Veja os cartões que estão em andamento.','ico-activity'],
@@ -183,7 +201,10 @@ const moduleDefs={
   ['servidores','Trocar servidor','Escolha outro ambiente, se houver mais de um.','ico-users'],
   ['laboratorio','Laboratório do dono','Simule regras sem alterar registros reais.','ico-spark']]}
 };
-const parentTab=tab=>(state.navOrigin&&moduleDefs[state.navOrigin]?.items.some(item=>item[0]===tab)?state.navOrigin:null)||Object.keys(moduleDefs).find(key=>moduleDefs[key].items.some(item=>item[0]===tab))||null;
+const parentTab=tab=>{
+ if(['jornada','resultados','administracao','configuracoes'].includes(tab))return state.navOrigin==='sistemas'?'sistemas':null;
+ return (state.navOrigin&&moduleDefs[state.navOrigin]?.items.some(item=>item[0]===tab)?state.navOrigin:null)||Object.keys(moduleDefs).find(key=>moduleDefs[key].items.some(item=>item[0]===tab))||null;
+};
 const allowedFeature=tab=>(!tab.startsWith('bot-')||state.canEdit)&&(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner)&&(state.data?.viewScope!=='shift'||(!tab.startsWith('bot-')&&!['folgas','permissoes','laboratorio'].includes(tab)));
 function svgIcon(symbol){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('ico');svg.setAttribute('aria-hidden','true');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#'+symbol);svg.append(use);return svg}
 function moduleCard({tab,title,description,icon,meta}){
@@ -192,12 +213,17 @@ function moduleCard({tab,title,description,icon,meta}){
  const arrow=el('span',undefined,'feature-arrow');arrow.append(svgIcon('ico-arrow'));b.append(symbol,main,arrow);
  if(meta)b.append(el('span',meta,'feature-meta'));b.onclick=()=>openTab(tab);return b;
 }
-function moduleMetric(tab){const d=state.data||{};switch(tab){case 'presenca':return `${(d.members||[]).length} sincronizados`;case 'ativos':return `${cards().filter(active).length} ativos`;case 'membros':return `${(d.members||[]).length} membros`;case 'justificativas':return `${(d.justifications||[]).filter(x=>x.status==='pending').length} pendentes`;case 'advertencias':return `${(d.warnings||[]).length} registros`;case 'servidores':return `${state.guilds.length} ambiente(s)`;default:return ''}}
+function moduleMetric(tab){const d=state.data||{};if(moduleDefs[tab]?.comingSoon)return 'Em preparação';switch(tab){case 'presenca':return `${(d.members||[]).length} sincronizados`;case 'ativos':return `${cards().filter(active).length} ativos`;case 'membros':return `${(d.members||[]).length} membros`;case 'justificativas':return `${(d.justifications||[]).filter(x=>x.status==='pending').length} pendentes`;case 'advertencias':return `${(d.warnings||[]).length} registros`;case 'servidores':return `${state.guilds.length} ambiente(s)`;default:return ''}}
 function moduleHub(key){
  const def=moduleDefs[key],rows=$('rows');
  const hero=el('div',undefined,'module-hero'),lead=el('div');
  lead.append(el('span','SISTEMAS DISPONÍVEIS','module-kicker'),el('h2',def.title),el('p',def.intro));
  hero.append(lead);const mark=el('span',undefined,'module-hero-icon');mark.append(svgIcon(def.icon));hero.append(mark);rows.append(hero);
+ if(def.comingSoon){
+  const box=el('section',undefined,'planned-system');
+  box.append(el('span','EM PREPARAÇÃO','planned-system-tag'),el('h3','Espaço reservado para o próximo sistema'),el('p','Este módulo ainda não registra nem modifica dados. Quando a integração for implementada, ele terá suas próprias configurações e contagens, separadas da Central de Horas tradicional.'));
+  const back=el('button','Voltar à Central de Sistemas','button ghost');back.type='button';back.onclick=()=>openTab('sistemas');box.append(back);rows.append(box);return;
+ }
  if(key==='configuracoes'){
   const access=el('div',undefined,'bot-access-panel');
   const title=state.canEdit?'Edição do bot liberada':state.data?.viewScope==='shift'?'Acesso de responsável: somente seus turnos':'Bot em modo consulta · ajustes do site disponíveis';
@@ -326,7 +352,7 @@ function overview(){
  const pending=(data.justifications||[]).filter(x=>x.status==='pending').length;
  const currentName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Seu servidor';
  const section=el('section',undefined,'home-hero');
- const intro=el('div');intro.append(el('span','SEU ESPAÇO DE TRABALHO','module-kicker'),el('h2','O que vamos gerenciar hoje?'),el('p',`Você está conectado ao ambiente ${currentName}. Selecione um módulo para acessar suas ferramentas.`));
+ const intro=el('div');intro.append(el('span','SEU ESPAÇO DE TRABALHO','module-kicker'),el('h2','Seus sistemas, em um só lugar.'),el('p',`Você está conectado ao ambiente ${currentName}. Selecione um módulo para acessar suas ferramentas.`));
  const meta=el('div',undefined,'home-hero-badge');meta.append(svgIcon('ico-shield'),el('span','Ambiente conectado'));section.append(intro,meta);rows.append(section);
  const snapshot=el('div',undefined,'home-snapshot');
  for(const [label,value,subtitle] of [
@@ -334,15 +360,20 @@ function overview(){
   ['Em serviço',String(all.filter(active).length),'cartões ativos'],
   ['Pendências',String(pending),'justificativas em análise']]){
   const tile=el('div',undefined,'snapshot-card');tile.append(el('span',label),el('strong',value),el('small',subtitle));snapshot.append(tile)}rows.append(snapshot);
- rows.append(el('div','ESCOLHA UM SISTEMA','module-section-label'));
+ rows.append(el('div','CENTRAL DE SISTEMAS · ACESSO RÁPIDO','module-section-label'));
  const cardsGrid=el('div',undefined,'home-module-grid');
  for(const [key,title,descr,ico,foot] of [
-  ['jornada','Jornada e ponto','Presença, turnos, horas extras e histórico.','ico-clock','4 ferramentas'],
-  ['resultados','Resultados e relatórios','Ranking, membros e filtros avançados.','ico-bar','3 ferramentas'],
-  ['administracao','Administração','Justificativas, folgas, advertências e auditoria.','ico-shield','4 ferramentas'],
-  ['configuracoes','Configurações','Ponto, Discord, folgas, permissões e preferências do site.','ico-settings','Site e bot juntos']]){
+  ['jornada','Central de Horas','Bate-ponto tradicional por equipes, turnos e horas extras.','ico-clock','Disponível'],
+  ['horas-normais','Horas normais','Novo sistema de horas independente do tradicional.','ico-clock','Em preparação'],
+  ['resultados','Resultados e relatórios','Ranking, membros e histórico da Central de Horas.','ico-bar','Disponível'],
+  ['administracao','Auditoria e administração','Justificativas, folgas, advertências e cancelamentos.','ico-shield','Disponível'],
+  ['registro','Registro de membros','Nova área de registro e aprovação de integrantes.','ico-file','Em preparação'],
+  ['recrutamento','Recrutamento','Fluxos de perguntas, entrevistas e aprovação.','ico-users','Em preparação'],
+  ['gestao','Gestão de cargos','Promoção e rebaixamento em uma central própria.','ico-shield','Em preparação'],
+  ['configuracoes','Configurações','Ajustes do ponto, Discord e preferências do site.','ico-settings','Disponível']]){
   const b=el('button',undefined,'home-module');b.type='button';const avatar=el('span',undefined,'home-module-icon');avatar.append(svgIcon(ico));const copy=el('span',undefined,'home-module-copy');copy.append(el('strong',title),el('small',descr),el('em',foot));const arrow=el('span',undefined,'home-module-arrow');arrow.append(svgIcon('ico-arrow'));b.append(avatar,copy,arrow);b.onclick=()=>openTab(key);cardsGrid.append(b)}rows.append(cardsGrid);
- rows.append(el('p','Cada módulo contém suas próprias telas, consultas e filtros. Os dados continuam sendo recebidos do bot e do Supabase.','module-tip'));
+ const fullCatalog=el('button','Abrir catálogo completo de sistemas','button hub-explore');fullCatalog.type='button';fullCatalog.onclick=()=>openTab('sistemas');rows.append(fullCatalog);
+ rows.append(el('p','Os módulos em preparação não estão conectados à API e não alteram registros. O bate-ponto tradicional permanece integrado ao bot e ao Supabase.','module-tip'));
 }
 function ownerLab(){
  const rows=$('rows'),filters=$('filters'),data=state.data;

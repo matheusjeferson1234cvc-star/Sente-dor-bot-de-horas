@@ -3,7 +3,7 @@
 (function(){
  const STORAGE_KEY='central-de-horas:site-preferences:v1';
  const defaults={compact:false,reduceMotion:false,highContrast:false,autoRefresh:true,initialTab:'inicio',defaultPeriod:'week'};
- const entryPages=new Set(['inicio','jornada','resultados','administracao','configuracoes']);
+ const entryPages=new Set(['inicio','sistemas','jornada','resultados','administracao','configuracoes']);
  const periods=new Set(['week','month','all']);
  let fallback=null;
  const read=()=>{
@@ -85,7 +85,7 @@
   toggle(layout,'Contraste reforçado','Destaca bordas, textos e campos dos formulários.','highContrast');
   heading(navigation,'Navegação e atualização','Escolha onde começar e como consultar os registros.');
   choose(navigation,'Página inicial','Qual módulo aparece após entrar no Discord.','initialTab',[
-   ['Início','inicio'],['Jornada e ponto','jornada'],['Resultados e relatórios','resultados'],
+   ['Início','inicio'],['Central de Sistemas','sistemas'],['Central de Horas','jornada'],['Resultados e relatórios','resultados'],
    ['Administração','administracao'],['Central de configurações','configuracoes']
   ]);
   choose(navigation,'Período padrão de consulta','Aplicado ao entrar novamente no site.','defaultPeriod',[

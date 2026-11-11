@@ -2,6 +2,11 @@
 (function(){
  const destinations=[
  ['inicio','Início','Visão geral e atalhos'],
+ ['sistemas','Central de Sistemas','Catálogo de todos os módulos'],
+ ['horas-normais','Horas normais','Novo módulo em preparação'],
+ ['registro','Registro','Módulo em preparação'],
+ ['recrutamento','Recrutamento','Módulo em preparação'],
+ ['gestao','Gestão de cargos','Módulo em preparação'],
  ['jornada','Jornada e ponto','Turnos, presença e cartões'],
  ['presenca','Controle de presença','Meta diária e faltas'],
  ['turno','Escalas e turnos','Equipes e horas extras'],

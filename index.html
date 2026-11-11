@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#050b17">
-  <meta name="description" content="NERO — plataforma de sistemas para Discord. Central de Horas, equipes, turnos e gestão.">
-  <title>NERO | Sistemas para Discord</title>
-  <link rel="icon" type="image/svg+xml" href="/nero-mark.svg?v=650">
-  <link rel="preload" href="/nero-banner.svg" as="image" type="image/svg+xml">
+  <meta name="theme-color" content="#10090d">
+  <meta name="description" content="Nero Bot — plataforma de sistemas para Discord. Central de Horas e novos módulos independentes em um só lugar.">
+  <title>Nero Bot | Plataforma de Sistemas</title>
+  <link rel="icon" type="image/svg+xml" href="/nero-mark.svg?v=660">
+  <link rel="preload" href="/nero-banner.svg?v=660" as="image" type="image/svg+xml">
   <link rel="stylesheet" href="/dashboard.css?v=591">
   <link rel="stylesheet" href="/central-premium-v6.css?v=631">
   <link rel="stylesheet" href="/site-preferences-v6.css?v=610">
-  <link rel="stylesheet" href="/nero-theme.css?v=650">
+  <link rel="stylesheet" href="/nero-theme.css?v=660">
   <script defer src="/real.js?v=631"></script>
   <script defer src="/site-preferences-v6.js?v=630"></script>
   <script defer src="/quick-navigation-v6.js?v=610"></script>
@@ -44,15 +44,16 @@
     <aside id="sidebar" class="sidebar" hidden aria-label="Menu principal">
       <div class="sidebar-brand">
         <span class="brand-mark"><svg class="ico"><use href="#ico-clock"/></svg></span>
-        <div class="brand-wordmark"><strong>NERO</strong><small>Plataforma de sistemas</small></div>
+        <div class="brand-wordmark"><strong>NERO BOT</strong><small>Plataforma de sistemas</small></div>
         <button class="sidebar-close icon-btn" type="button" id="closeSidebar" aria-label="Fechar menu"><svg class="ico"><use href="#ico-x"/></svg></button>
       </div>
       <div class="sidebar-scroll">
         <nav class="tabs" aria-label="Sistemas da NERO">
           <span class="nav-group">PAINEL</span>
           <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg> Início</button>
-          <span class="nav-group">MÓDULOS DE GESTÃO</span>
-          <button type="button" data-tab="jornada"><svg class="ico"><use href="#ico-clock"/></svg> Jornada e ponto</button>
+          <button type="button" data-tab="sistemas"><svg class="ico"><use href="#ico-spark"/></svg> Central de Sistemas</button>
+          <span class="nav-group">SISTEMAS ATIVOS</span>
+          <button type="button" data-tab="jornada"><svg class="ico"><use href="#ico-clock"/></svg> Central de Horas</button>
           <button type="button" data-tab="resultados"><svg class="ico"><use href="#ico-users"/></svg> Resultados e relatórios</button>
           <button type="button" data-tab="administracao"><svg class="ico"><use href="#ico-shield"/></svg> Administração</button>
           <span class="nav-group">PLATAFORMA</span>
@@ -66,7 +67,7 @@
       <header class="top">
         <div class="top-left">
           <button id="openSidebar" class="menu-button icon-btn" type="button" aria-label="Abrir menu" aria-expanded="false" hidden><svg class="ico"><use href="#ico-menu"/></svg></button>
-          <div class="brand"><span class="brand-ico"><svg class="ico"><use href="#ico-clock"/></svg></span><div><strong>NERO</strong><small id="headerContext">Central de Horas</small></div></div>
+          <div class="brand"><span class="brand-ico"><svg class="ico"><use href="#ico-clock"/></svg></span><div><strong>NERO BOT</strong><small id="headerContext">Central de Horas</small></div></div>
         </div>
         <div class="top-right"><span id="syncStatus" class="status">Verificando conexão</span><span id="userBadge" class="user-badge" hidden>Discord conectado</span><button type="button" id="logout" class="button ghost logout-btn" hidden>Sair</button></div>
       </header>
@@ -75,7 +76,7 @@
         <section class="hero" id="hero" aria-label="Acessar a NERO">
           <div class="hero-copy">
             <span class="eyebrow"><span class="eyebrow-line"></span> NERO · SISTEMAS DISCORD</span>
-            <h1>NERO. Todos os sistemas.<br><em>Uma única central.</em></h1>
+            <h1>NERO BOT.<br><em>Uma plataforma. Vários sistemas.</em></h1>
             <p>Uma plataforma para evoluir com seu servidor. Comece pela Central de Horas e tenha equipes, turnos, relatórios e novas ferramentas em um ambiente integrado ao Discord.</p>
             <div class="login-benefits" aria-label="Recursos da NERO">
               <div><svg class="ico"><use href="#ico-check"/></svg><span>Jornada e ponto em um sistema próprio</span></div>
@@ -92,7 +93,7 @@
             <div class="login-header"><span class="login-logo"><svg class="ico"><use href="#ico-clock"/></svg></span><span class="login-edition">NERO <small>ACESSO SEGURO</small></span><span class="login-header-status"><span class="connected-dot"></span> Plataforma online</span></div>
             <div class="login-body">
               <span class="login-welcome">ACESSO À PLATAFORMA</span>
-              <h2>Bem-vindo ao Nero.</h2>
+              <h2>Bem-vindo ao Nero Bot.</h2>
               <p>Entre com sua conta para acompanhar a equipe e administrar seu servidor com segurança.</p>
               <section id="auth" class="auth" aria-live="polite"><p>Verificando sua conta Discord...</p></section>
               <div class="login-divider" aria-hidden="true"><span>ou</span></div>
@@ -121,13 +122,13 @@
           <p class="foot" id="footerNote">Dados sincronizados com o bot e o Supabase. Horas extras não substituem a meta normal. Faltas só são confirmadas após encerramento do turno e validação dos registros. Por padrão, o painel consulta os dados a cada 30 segundos; ajuste nas preferências do site.</p>
         </section>
       </main>
-      <footer><span>NERO <strong>v6.5.0</strong></span><span>Desenvolvido por Cetus · Gestão conectada ao Discord</span></footer>
+      <footer><span>NERO BOT <strong>v6.6.0</strong></span><span>Desenvolvido por Cetus · Gestão conectada ao Discord</span></footer>
     </div>
 
     <nav class="mobile-bottom" id="mobileBottom" aria-label="Navegação dos módulos" hidden>
       <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg><span>Início</span></button>
-      <button type="button" data-tab="jornada"><svg class="ico"><use href="#ico-clock"/></svg><span>Jornada</span></button>
-      <button type="button" data-tab="resultados"><svg class="ico"><use href="#ico-users"/></svg><span>Resultados</span></button>
+      <button type="button" data-tab="jornada"><svg class="ico"><use href="#ico-clock"/></svg><span>Horas</span></button>
+      <button type="button" data-tab="sistemas"><svg class="ico"><use href="#ico-spark"/></svg><span>Sistemas</span></button>
       <button type="button" data-tab="configuracoes"><svg class="ico"><use href="#ico-settings"/></svg><span>Bot</span></button>
       <button type="button" id="mobileMore"><svg class="ico"><use href="#ico-menu"/></svg><span>Mais</span></button>
     </nav>
