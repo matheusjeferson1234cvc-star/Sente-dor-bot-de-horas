@@ -306,6 +306,51 @@ module.exports=async(req,res)=>{
   const gid=String(req.query.guildId||'');
   if(!/^\d{15,25}$/.test(gid))return json(res,400,{error:'Servidor inválido'});
   const rights=await authorized(gid,user);if(!rights.view)return json(res,403,{error:'Sem acesso'});
+  if(path==='announce-channels'&&req.method==='GET'){
+   if(!rights.edit)return json(res,403,{error:'Somente donos e Administradores podem publicar comunicados'});
+   if(!process.env.DISCORD_BOT_TOKEN)return json(res,503,{error:'Nero Bot não está configurado na Vercel'});
+   let channels;
+   try{channels=await discord('/guilds/'+gid+'/channels')}catch(e){return editorDiscordError(res,e)}
+   return json(res,200,{channels:channels.filter(c=>(c.type===0||c.type===5)&&/^\d{15,25}$/.test(String(c.id||'')))
+    .map(c=>({id:String(c.id),name:String(c.name||'canal').slice(0,100),kind:c.type===5?'anúncios':'texto'}))
+    .sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'))});
+  }
+  if(path==='announce'&&req.method==='POST'){
+   if(!rights.edit)return json(res,403,{error:'Somente donos e Administradores podem publicar comunicados'});
+   if(!process.env.DISCORD_BOT_TOKEN)return json(res,503,{error:'Nero Bot não está configurado na Vercel'});
+   if(!req.headers.origin||!req.headers.host)return json(res,403,{error:'Origem de envio não identificada'});
+   try{
+    const origin=new URL(req.headers.origin);
+    if(origin.protocol!=='https:'||origin.host!==req.headers.host)return json(res,403,{error:'Origem não autorizada'});
+   }catch{return json(res,403,{error:'Origem inválida'})}
+   const body=req.body||{},channelId=String(body.channelId||'');
+   const title=typeof body.title==='string'?body.title.trim():'';
+   const message=typeof body.message==='string'?body.message.trim():'';
+   if(!/^\d{15,25}$/.test(channelId))return json(res,400,{error:'Selecione um canal válido'});
+   if(!title||title.length>180)return json(res,400,{error:'Título deve ter entre 1 e 180 caracteres'});
+   if(!message||message.length>3500)return json(res,400,{error:'Mensagem deve ter entre 1 e 3500 caracteres'});
+   let channels;
+   try{channels=await discord('/guilds/'+gid+'/channels')}catch(e){return editorDiscordError(res,e)}
+   if(!channels.some(c=>String(c.id)===channelId&&(c.type===0||c.type===5)))
+    return json(res,400,{error:'Este canal não pertence ao servidor ou não aceita comunicados'});
+   let response;
+   try{
+    response=await fetch('https://discord.com/api/v10/channels/'+channelId+'/messages',{
+     method:'POST',headers:{Authorization:'Bot '+process.env.DISCORD_BOT_TOKEN,'Content-Type':'application/json'},
+     body:JSON.stringify({embeds:[{title,description:message,color:0xE32D4D,footer:{text:'NERO BOT · Plataforma de Sistemas'}}],
+      allowed_mentions:{parse:[],replied_user:false},nonce:crypto.randomBytes(12).toString('hex')})
+    });
+   }catch(e){console.error('Anúncio Nero Bot / Discord:',e?.message);return json(res,503,{error:'Não foi possível conectar ao Discord'})}
+   if(!response.ok){
+    if(response.status===403)return json(res,403,{error:'O bot precisa de Ver canal, Enviar mensagens e Incorporar links neste canal'});
+    if(response.status===429)return json(res,429,{error:'Limite temporário do Discord. Tente mais tarde'});
+    if(response.status===401)return json(res,503,{error:'Token do Nero Bot rejeitado pelo Discord'});
+    return json(res,502,{error:'Discord recusou a publicação (HTTP '+response.status+')'});
+   }
+   const sent=await response.json();
+   if(!/^\d{15,25}$/.test(String(sent?.id||'')))return json(res,502,{error:'O Discord não confirmou a publicação'});
+   return json(res,200,{ok:true,url:'https://discord.com/channels/'+gid+'/'+channelId+'/'+sent.id,channelId,messageId:String(sent.id)});
+  }
   if(path==='data'&&req.method==='GET'){
    const missing=[];
    const [members,cards,settings,attendance,justifications,warnings]=await Promise.all([
