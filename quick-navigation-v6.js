@@ -1,4 +1,4 @@
-/* Busca global da Central de Horas — interface somente de navegacao. */
+/* Busca global da plataforma NERO — interface somente de navegacao. */
 (function(){
  const destinations=[
  ['inicio','Início','Visão geral e atalhos'],
@@ -30,7 +30,7 @@
  const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
  function initialize(){
   const header=document.querySelector('.top-right');if(!header||document.getElementById('quickSearchTrigger'))return;
-  const trigger=document.createElement('button');trigger.id='quickSearchTrigger';trigger.type='button';trigger.className='quick-search-trigger';trigger.hidden=true;trigger.setAttribute('aria-label','Buscar uma página na Central de Horas');
+  const trigger=document.createElement('button');trigger.id='quickSearchTrigger';trigger.type='button';trigger.className='quick-search-trigger';trigger.hidden=true;trigger.setAttribute('aria-label','Buscar uma página na plataforma NERO');
   trigger.innerHTML='<svg class="ico" aria-hidden="true"><use href="#ico-settings"/></svg><span>Buscar página</span><kbd>Ctrl K</kbd>';
   header.prepend(trigger);
   const dialog=document.createElement('dialog');dialog.className='quick-nav-dialog';dialog.setAttribute('aria-label','Navegação rápida');
