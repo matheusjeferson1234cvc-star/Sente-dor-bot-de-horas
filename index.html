@@ -11,10 +11,10 @@
   <link rel="stylesheet" href="/dashboard.css?v=591">
   <link rel="stylesheet" href="/central-premium-v6.css?v=631">
   <link rel="stylesheet" href="/site-preferences-v6.css?v=610">
-  <link rel="stylesheet" href="/nero-theme.css?v=660">
-  <script defer src="/real.js?v=631"></script>
-  <script defer src="/site-preferences-v6.js?v=630"></script>
-  <script defer src="/quick-navigation-v6.js?v=610"></script>
+  <link rel="stylesheet" href="/nero-theme.css?v=670">
+  <script defer src="/real.js?v=670"></script>
+  <script defer src="/site-preferences-v6.js?v=670"></script>
+  <script defer src="/quick-navigation-v6.js?v=670"></script>
 </head>
 <body>
   <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
@@ -53,11 +53,9 @@
           <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg> Início</button>
           <button type="button" data-tab="sistemas"><svg class="ico"><use href="#ico-spark"/></svg> Central de Sistemas</button>
           <span class="nav-group">SISTEMAS ATIVOS</span>
-          <button type="button" data-tab="jornada"><svg class="ico"><use href="#ico-clock"/></svg> Central de Horas</button>
-          <button type="button" data-tab="resultados"><svg class="ico"><use href="#ico-users"/></svg> Resultados e relatórios</button>
-          <button type="button" data-tab="administracao"><svg class="ico"><use href="#ico-shield"/></svg> Administração</button>
-          <span class="nav-group">PLATAFORMA</span>
-          <button type="button" data-tab="configuracoes"><svg class="ico"><use href="#ico-settings"/></svg> Configurações</button>
+          <button type="button" data-tab="bateponto"><svg class="ico"><use href="#ico-clock"/></svg> Bate-ponto</button>
+          <span class="nav-group">AMBIENTE</span>
+          <button type="button" data-tab="servidores"><svg class="ico"><use href="#ico-users"/></svg> Trocar servidor</button>
         </nav>
       </div>
       <div class="sidebar-footer"><div class="sidebar-server"><small>AMBIENTE ATUAL</small><strong id="sidebarGuildName">Servidor vinculado</strong><button type="button" data-tab="servidores" id="sidebarSwitchServer">Gerenciar acesso <svg class="ico"><use href="#ico-arrow"/></svg></button></div><span class="footer-status"><span class="connected-dot"></span> Plataforma integrada</span><small>Discord · Discloud · Supabase</small><a class="sidebar-add-bot" href="https://discord.com/oauth2/authorize?client_id=1533570095979298967&amp;permissions=8&amp;integration_type=0&amp;scope=bot%20applications.commands" target="_blank" rel="noopener noreferrer"><svg class="ico"><use href="#ico-plus"/></svg> Adicionar bot ao servidor</a><button type="button" id="sidebarLogout" class="button ghost sidebar-logout" hidden>Sair da conta</button></div>
@@ -67,7 +65,7 @@
       <header class="top">
         <div class="top-left">
           <button id="openSidebar" class="menu-button icon-btn" type="button" aria-label="Abrir menu" aria-expanded="false" hidden><svg class="ico"><use href="#ico-menu"/></svg></button>
-          <div class="brand"><span class="brand-ico"><svg class="ico"><use href="#ico-clock"/></svg></span><div><strong>NERO BOT</strong><small id="headerContext">Central de Horas</small></div></div>
+          <div class="brand"><span class="brand-ico"><svg class="ico"><use href="#ico-clock"/></svg></span><div><strong>NERO BOT</strong><small id="headerContext">Plataforma de sistemas</small></div></div>
         </div>
         <div class="top-right"><span id="syncStatus" class="status">Verificando conexão</span><span id="userBadge" class="user-badge" hidden>Discord conectado</span><button type="button" id="logout" class="button ghost logout-btn" hidden>Sair</button></div>
       </header>
@@ -77,7 +75,7 @@
           <div class="hero-copy">
             <span class="eyebrow"><span class="eyebrow-line"></span> NERO · SISTEMAS DISCORD</span>
             <h1>NERO BOT.<br><em>Uma plataforma. Vários sistemas.</em></h1>
-            <p>Uma plataforma para evoluir com seu servidor. Comece pela Central de Horas e tenha equipes, turnos, relatórios e novas ferramentas em um ambiente integrado ao Discord.</p>
+            <p>Entre pelo Discord, escolha o servidor que você administra e depois abra o sistema Bate-ponto completo — com cartões, justificativas, turnos, ranking, auditoria e configurações. Novos sistemas terão áreas separadas.</p>
             <div class="login-benefits" aria-label="Recursos da NERO">
               <div><svg class="ico"><use href="#ico-check"/></svg><span>Jornada e ponto em um sistema próprio</span></div>
               <div><svg class="ico"><use href="#ico-bar"/></svg><span>Relatórios, ranking e configurações independentes</span></div>
@@ -106,6 +104,19 @@
         </section>
 
         <section id="authFallback" class="panel auth-fallback" hidden aria-live="polite"></section>
+        <section id="serverPicker" class="server-picker" hidden aria-labelledby="serverPickerTitle">
+          <div class="server-picker-head">
+            <span class="module-kicker">ETAPA 1 DE 2 · SELEÇÃO DE SERVIDOR</span>
+            <h1 id="serverPickerTitle">Qual servidor vamos administrar?</h1>
+            <p>Escolha um servidor onde você é dono ou possui a permissão Administrador. Se o Nero Bot ainda não estiver instalado, você poderá adicioná-lo antes de configurar os sistemas.</p>
+            <div class="server-picker-actions">
+              <button type="button" class="button ghost" id="serverPickerRefresh"><svg class="ico"><use href="#ico-refresh"/></svg> Atualizar servidores</button>
+              <a class="button ghost" id="serverPickerReauth" href="/api/login" hidden>Autorizar lista de servidores</a>
+            </div>
+          </div>
+          <div id="serverPickerRows" class="server-picker-groups" aria-live="polite"></div>
+          <p class="server-picker-foot">O Nero Bot só permite configurar os servidores autorizados. Cada servidor mantém seus próprios cartões, equipes, logs e configurações.</p>
+        </section>
         <section id="content" hidden>
           <nav id="breadcrumbs" class="breadcrumbs" aria-label="Caminho de navegação"></nav>
           <div class="module-back" id="moduleBack" hidden><button type="button" id="backToModule"><svg class="ico"><use href="#ico-arrow"/></svg> Voltar aos módulos</button></div>
@@ -122,14 +133,14 @@
           <p class="foot" id="footerNote">Dados sincronizados com o bot e o Supabase. Horas extras não substituem a meta normal. Faltas só são confirmadas após encerramento do turno e validação dos registros. Por padrão, o painel consulta os dados a cada 30 segundos; ajuste nas preferências do site.</p>
         </section>
       </main>
-      <footer><span>NERO BOT <strong>v6.6.0</strong></span><span>Desenvolvido por Cetus · Gestão conectada ao Discord</span></footer>
+      <footer><span>NERO BOT <strong>v6.7.0</strong></span><span>Desenvolvido por Cetus · Gestão conectada ao Discord</span></footer>
     </div>
 
     <nav class="mobile-bottom" id="mobileBottom" aria-label="Navegação dos módulos" hidden>
       <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg><span>Início</span></button>
-      <button type="button" data-tab="jornada"><svg class="ico"><use href="#ico-clock"/></svg><span>Horas</span></button>
+      <button type="button" data-tab="bateponto"><svg class="ico"><use href="#ico-clock"/></svg><span>Bate-ponto</span></button>
       <button type="button" data-tab="sistemas"><svg class="ico"><use href="#ico-spark"/></svg><span>Sistemas</span></button>
-      <button type="button" data-tab="configuracoes"><svg class="ico"><use href="#ico-settings"/></svg><span>Bot</span></button>
+      <button type="button" data-tab="servidores"><svg class="ico"><use href="#ico-users"/></svg><span>Servidor</span></button>
       <button type="button" id="mobileMore"><svg class="ico"><use href="#ico-menu"/></svg><span>Mais</span></button>
     </nav>
     <dialog id="siteDialog" class="site-dialog" aria-labelledby="dialogTitle" aria-describedby="dialogMessage">

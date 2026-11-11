@@ -3,6 +3,7 @@
  const destinations=[
  ['inicio','Início','Visão geral e atalhos'],
  ['sistemas','Central de Sistemas','Catálogo de todos os módulos'],
+ ['bateponto','Bate-ponto','Cartões, justificativas, equipes, painéis, logs e configurações'],
  ['horas-normais','Horas normais','Novo módulo em preparação'],
  ['registro','Registro','Módulo em preparação'],
  ['recrutamento','Recrutamento','Módulo em preparação'],

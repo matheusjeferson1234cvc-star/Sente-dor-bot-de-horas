@@ -1,7 +1,7 @@
 'use strict';
 // O painel de produção lê exclusivamente a API autenticada. Dados fictícios ficam em /demo.html.
 const $=id=>document.getElementById(id);
-const state={guild:null,data:null,guilds:[],canEdit:false,tab:'inicio',period:'week',month:null,shift:'Noite',presenceDate:null,offShift:'all',search:'',status:'todos',kind:'todos',reportShift:'todos',roles:null,botEditor:null,botDraft:null,botLoading:false,botError:'',botDirty:false,botShift:'manha',navOrigin:null};
+const state={guild:null,data:null,guilds:[],managedGuilds:[],reauthRequired:false,canEdit:false,tab:'inicio',period:'week',month:null,shift:'Noite',presenceDate:null,offShift:'all',search:'',status:'todos',kind:'todos',reportShift:'todos',roles:null,botEditor:null,botDraft:null,botLoading:false,botError:'',botDirty:false,botShift:'manha',navOrigin:null};
 const shifts=['Manhã','Tarde','Noite','Madrugada'];
 const visibleShifts=()=>state.data?.viewScope==='shift'?shifts.filter(k=>(state.data.allowedShifts||[]).includes(shortShift[k])):shifts;
 const api=async (path,options={})=>{const r=await fetch('/api/'+path,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});let d;try{d=await r.json()}catch{throw Error('A API não respondeu em JSON. Confira se a pasta api foi publicada na raiz do projeto Vercel (possível erro 404).')}if(!r.ok)throw Error(d.error||`Erro HTTP ${r.status}`);return d};
@@ -125,15 +125,16 @@ function timeOff(){const filters=$('filters'),rows=$('rows'),off=state.data?.set
 }
 const tabInfo={
  inicio:['Nero Bot · Visão geral','Selecione um dos sistemas disponíveis'],
- sistemas:['Central de Sistemas','Todos os módulos do Nero Bot, atuais e futuros'],
+ sistemas:['Central de Sistemas','Escolha qual sistema deseja utilizar'],
+ bateponto:['Bate-ponto','Cartões, equipes, justificativas, relatórios, logs e configurações reunidos'],
  'horas-normais':['Horas normais','Novo sistema independente em preparação'],
  registro:['Registro de membros','Novo módulo em preparação'],
  recrutamento:['Recrutamento','Novo módulo em preparação'],
  gestao:['Gestão de cargos','Novo módulo em preparação'],
- jornada:['Jornada e ponto','Acompanhe turnos, presença e horas registradas'],
+ jornada:['Jornada e cartões','Acompanhe turnos, presença e horas registradas'],
  resultados:['Resultados e relatórios','Ranking, membros e consultas em telas separadas'],
  administracao:['Administração','Justificativas, advertências, folgas e auditoria'],
- configuracoes:['Central de configurações','Configurações do bot e do site em um só lugar'],
+ configuracoes:['Configurações do Bate-ponto','Painéis, regras, turnos, cargos, logs e notificações do ponto'],
  servidores:['Meus servidores','Consulte e alterne seus ambientes autorizados'],
  ranking:['Ranking','Horas validadas por membro e período'],
  presenca:['Controle de presença','Membros por turno, jornadas e ausências confirmadas'],
@@ -158,15 +159,25 @@ const tabInfo={
 };
 // Os sistemas são agrupados por função. Cada ferramenta mantém sua tela independente.
 const moduleDefs={
- sistemas:{title:'Central de Sistemas',intro:'Explore as ferramentas do Nero Bot. Os módulos disponíveis continuam conectados ao Discord; os novos são identificados como em preparação.',icon:'ico-spark',items:[
-  ['jornada','Central de Horas · Tradicional','Bate-ponto por equipes, turnos e horas extras.','ico-clock'],
-  ['horas-normais','Horas normais · Novo sistema','Modalidade independente para futuros registros de horas.','ico-clock'],
-  ['resultados','Resultados e relatórios','Rankings e consultas dos pontos existentes.','ico-bar'],
-  ['administracao','Auditoria e administração','Justificativas, advertências e cartões cancelados.','ico-shield'],
-  ['registro','Registro de membros','Nova área de identificação e aprovação.','ico-file'],
-  ['recrutamento','Recrutamento','Novo fluxo de candidatos e avaliações.','ico-users'],
-  ['gestao','Gestão de cargos','Promoções, rebaixamentos e advertências em um módulo próprio.','ico-shield'],
-  ['configuracoes','Configurações do Nero Bot','Gerencie o bot e o site em áreas organizadas.','ico-settings']]},
+ sistemas:{title:'Central de Sistemas',intro:'Selecione uma função para este servidor. Cada sistema tem sua própria área, sem misturar seus dados.',icon:'ico-spark',items:[
+  ['bateponto','Bate-ponto · Sistema completo','Equipes, cartões, turnos, justificativas, logs, relatórios e todas as configurações.','ico-clock'],
+  ['horas-normais','Novo sistema de horas','Modalidade futura, separada do Bate-ponto tradicional.','ico-clock'],
+  ['registro','Registro de membros','Novo sistema de identificação e aprovação.','ico-file'],
+  ['recrutamento','Recrutamento','Novo sistema de avaliação de candidatos.','ico-users'],
+  ['gestao','Gestão de cargos','Novo sistema de promoções e rebaixamentos.','ico-shield']]},
+ bateponto:{title:'Bate-ponto · Sistema completo',intro:'Tudo do Bate-ponto em uma única função: equipe, turnos, horas normais e extras, cartões ativos e cancelados, justificativas, advertências, relatórios, logs, painéis e configurações.',icon:'ico-clock',items:[
+  ['jornada','Jornada e equipes','Controle de presença, turnos, cartões e horas normais ou extras.','ico-clock'],
+  ['ativos','Cartões ativos','Acompanhe as equipes em serviço.','ico-activity'],
+  ['resultados','Ranking e relatórios','Histórico de pontos, membros e total de horas.','ico-bar'],
+  ['administracao','Justificativas e auditoria','Justificativas, advertências, folgas e cancelamentos.','ico-shield'],
+  ['justificativas','Histórico de justificativas','Solicitações e decisões recebidas do Discord.','ico-list'],
+  ['cancelados','Cartões cancelados','Auditoria dos cancelamentos e motivos.','ico-x'],
+  ['configuracoes','Configurar Bate-ponto','Todos os ajustes e painéis do sistema em um só lugar.','ico-settings'],
+  ['bot-painel','Painel de ponto no Discord','Título, descrição e GIF do bate-ponto.','ico-clock'],
+  ['bot-painel-just','Painel de justificativas','Personalize as mensagens e o painel de justificativas.','ico-file'],
+  ['bot-canais','Logs e canais','Canais, cargos e auditorias de registros.','ico-shield'],
+  ['bot-turnos','Turnos e cargos','Cargos, horários e responsáveis de cada turno.','ico-calendar'],
+  ['bot-geral','Regras e convites','Configure equipes, convites e regras do ponto.','ico-users']]},
  'horas-normais':{title:'Horas normais',intro:'Um novo módulo de horas, independente do bate-ponto por equipes e turnos que já está funcionando.',icon:'ico-clock',comingSoon:true,items:[]},
  registro:{title:'Registro de membros',intro:'Módulo reservado para registros e aprovações no Discord.',icon:'ico-file',comingSoon:true,items:[]},
  recrutamento:{title:'Recrutamento',intro:'Módulo reservado para perguntas, análise e aprovação de candidatos.',icon:'ico-users',comingSoon:true,items:[]},
@@ -202,9 +213,11 @@ const moduleDefs={
   ['laboratorio','Laboratório do dono','Simule regras sem alterar registros reais.','ico-spark']]}
 };
 const parentTab=tab=>{
- if(['jornada','resultados','administracao','configuracoes'].includes(tab))return state.navOrigin==='sistemas'?'sistemas':null;
- return (state.navOrigin&&moduleDefs[state.navOrigin]?.items.some(item=>item[0]===tab)?state.navOrigin:null)||Object.keys(moduleDefs).find(key=>moduleDefs[key].items.some(item=>item[0]===tab))||null;
+ if(tab==='bateponto')return 'sistemas';
+ if(['jornada','resultados','administracao','configuracoes'].includes(tab))return 'bateponto';
+ return (state.navOrigin&&moduleDefs[state.navOrigin]?.items.some(item=>item[0]===tab)?state.navOrigin:null)||Object.keys(moduleDefs).find(key=>key!=='sistemas'&&moduleDefs[key].items.some(item=>item[0]===tab))||null;
 };
+const pointPages=new Set(['bateponto','jornada','resultados','administracao','configuracoes','ativos','cancelados','justificativas','advertencias','folgas','ranking','presenca','turno','mensal','relatorios','membros','permissoes','laboratorio','bot-geral','bot-turnos','bot-canais','bot-painel','bot-painel-just','bot-alertas','site-preferencias']);
 const allowedFeature=tab=>(!tab.startsWith('bot-')||state.canEdit)&&(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner)&&(state.data?.viewScope!=='shift'||(!tab.startsWith('bot-')&&!['folgas','permissoes','laboratorio'].includes(tab)));
 function svgIcon(symbol){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('ico');svg.setAttribute('aria-hidden','true');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#'+symbol);svg.append(use);return svg}
 function moduleCard({tab,title,description,icon,meta}){
@@ -305,9 +318,68 @@ function moduleHub(key){
  }
  rows.append(tools);
 }
-function serversPage(){const rows=$('rows'),activeGuild=state.guild,top=el('div',undefined,'server-head');top.append(el('span','AMBIENTES AUTORIZADOS','module-kicker'),el('h2','Servidores vinculados'),el('p','O painel escolhe um servidor automaticamente. A troca só aparece aqui, sem atrapalhar as outras funções.'));rows.append(top);
- const list=el('div',undefined,'server-grid');for(const g of state.guilds){const b=el('button',undefined,'server-option'+(g.guild_id===activeGuild?' selected':''));b.type='button';const identity=el('span',undefined,'server-identity');const avatar=el('span',(g.name||'S').slice(0,1).toUpperCase(),'server-avatar');const txt=el('span');txt.append(el('strong',g.name||'Servidor sem nome'),el('small',g.guild_id===activeGuild?'Ambiente atual':'Servidor autorizado pelo Discord'));identity.append(avatar,txt);b.append(identity,el('span',g.guild_id===activeGuild?'Selecionado':'Selecionar','server-badge'));b.disabled=g.guild_id===activeGuild;b.onclick=async()=>{state.guild=g.guild_id;state.roles=null;state.botEditor=null;state.botDraft=null;state.botDirty=false;state.botError='';$('guild').value=g.guild_id;await load();};list.append(b)}
- rows.append(list);if(state.guilds.length===1)rows.append(el('p','Só existe um servidor autorizado para esta conta; ele já está selecionado.','module-tip'));
+function serverCard(g,linked){
+ const card=el('div',undefined,'server-select-card'),identity=el('div',undefined,'server-select-identity'),avatar=el('span',(g.name||'S').slice(0,1).toUpperCase(),'server-select-avatar'),copy=el('div');
+ copy.append(el('strong',g.name||'Servidor sem nome'),el('small',g.owner?'Você é dono deste servidor':linked?'Acesso autorizado pelo Discord':'Cargo Administrador detectado'));
+ identity.append(avatar,copy);card.append(identity);
+ if(linked){
+  const button=el('button','Abrir sistemas','button server-select-button');button.type='button';button.onclick=()=>chooseServer(g.guild_id);card.append(button);
+ }else if(!g.installed){
+  const install=el('a','Adicionar Nero Bot','button server-select-button');
+  install.href='/api/invite?guildId='+encodeURIComponent(g.guild_id);
+  card.append(install);
+ }else{
+  card.append(el('span','Acesso ou sincronização pendente','server-select-pending'));
+ }
+ return card;
+}
+function renderServerPicker(){
+ const rows=$('serverPickerRows');rows.replaceChildren();
+ $('serverPickerReauth').hidden=!state.reauthRequired;
+ const known=new Map(state.guilds.map(g=>[String(g.guild_id),g]));
+ const managed=state.managedGuilds||[];
+ const group=(title,desc,entries,linkedOnly=false)=>{
+  if(!entries.length)return;
+  const section=el('section',undefined,'server-picker-group');
+  section.append(el('h2',title),el('p',desc,'server-picker-group-desc'));
+  const cards=el('div',undefined,'server-select-grid');
+  for(const g of entries)cards.append(serverCard(g,linkedOnly||known.has(String(g.guild_id))));
+  section.append(cards);rows.append(section);
+ };
+ group('Servidores que você administra','Dono ou cargo com a permissão Administrador.',managed);
+ const managementIds=new Set(managed.map(g=>String(g.guild_id)));
+ const other=state.guilds.filter(g=>!managementIds.has(String(g.guild_id)));
+ group('Outros servidores com acesso','Acesso de leitura ou de responsável de turno, conforme suas permissões.',other,true);
+ if(!managed.length&&!other.length)rows.append(el('p',state.reauthRequired?'Autorize a lista de servidores no Discord para visualizar onde você pode instalar o Nero Bot.':'Nenhum servidor disponível. Você precisa ser dono ou Administrador, ou receber acesso do servidor.','server-picker-empty'));
+}
+function showServerPicker(){
+ setSidebarOpen(false);
+ $('content').hidden=true;$('serverPicker').hidden=false;
+ $('sidebar').hidden=true;$('mobileBottom').hidden=true;$('openSidebar').hidden=true;
+ $('syncStatus').textContent='Escolha um servidor';$('syncStatus').className='status';
+ renderServerPicker();
+ window.scrollTo({top:0,behavior:'auto'});
+}
+async function chooseServer(id){
+ if(!state.guilds.some(g=>String(g.guild_id)===String(id)))return;
+ state.guild=String(id);state.data=null;state.roles=null;state.botEditor=null;state.botDraft=null;
+ state.botDirty=false;state.botError='';state.navOrigin='sistemas';state.tab='sistemas';state.search='';
+ $('guild').value=state.guild;
+ $('serverPicker').hidden=true;$('content').hidden=false;
+ $('sidebar').hidden=false;$('mobileBottom').hidden=false;$('openSidebar').hidden=false;
+ await load();
+}
+async function refreshServers(){
+ const button=$('serverPickerRefresh');button.disabled=true;button.textContent='Consultando servidores...';
+ try{
+  const result=await api('guilds');
+  state.guilds=result.guilds||[];state.managedGuilds=result.managedGuilds||[];
+  state.reauthRequired=!!result.reauthRequired;
+  const select=$('guild');select.replaceChildren();
+  for(const g of state.guilds)select.append(option(g.name||g.guild_id,g.guild_id));
+  renderServerPicker();
+ }catch(e){$('serverPickerRows').replaceChildren(el('p',e.message,'error'))}
+ finally{button.disabled=false;button.textContent='Atualizar servidores'}
 }
 function setSidebarOpen(open){
  const side=$('sidebar'),overlay=$('sidebarOverlay');if(!side||side.hidden)return;
@@ -315,6 +387,7 @@ function setSidebarOpen(open){
  $('openSidebar').setAttribute('aria-expanded',String(!!open));
 }
 function openTab(tab){
+ if(tab==='servidores'){showServerPicker();return}
  if(!allowedFeature(tab))return;
  if(!(tab in tabInfo))return;
  if(moduleDefs[tab])state.navOrigin=tab;else if(tab==='inicio')state.navOrigin=null;else if(state.tab==='configuracoes')state.navOrigin='configuracoes';
@@ -325,8 +398,8 @@ function openTab(tab){
 function renderNav(){
  const [title,description]=tabInfo[state.tab]||tabInfo.inicio, parent=parentTab(state.tab);
  $('pageTitle').textContent=title;$('pageDescription').textContent=description;
- $('pageEyebrow').textContent=parent?`CENTRAL / ${tabInfo[parent][0].toLocaleUpperCase('pt-BR')}`:'CENTRAL / MÓDULOS';
- $('headerContext').textContent='Painel de gestão · '+title;
+ $('pageEyebrow').textContent=pointPages.has(state.tab)?'NERO BOT / BATE-PONTO':'NERO BOT / SISTEMAS';
+ $('headerContext').textContent='Servidor · '+title;
  $('ownerBadge').hidden=!state.data?.isBotOwner;
  const guildName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Servidor atual';
  $('sidebarGuildName').textContent=guildName;
@@ -337,13 +410,15 @@ function renderNav(){
    const addCrumb=(name,tab,current=false)=>{const c=el(current?'span':'button',name,current?'breadcrumb-current':'breadcrumb-link');if(!current){c.type='button';c.onclick=()=>openTab(tab)}else c.setAttribute('aria-current','page');crumbs.append(c)};
    addCrumb('Início','inicio');
    crumbs.append(el('span','/','breadcrumb-divider'));
+   if(state.tab!=='sistemas'&&parent!=='sistemas'){addCrumb('Sistemas','sistemas');crumbs.append(el('span','/','breadcrumb-divider'))}
+   if(pointPages.has(state.tab)&&state.tab!=='bateponto'&&parent!=='bateponto'){addCrumb('Bate-ponto','bateponto');crumbs.append(el('span','/','breadcrumb-divider'))}
    if(parent){addCrumb(tabInfo[parent][0],parent);crumbs.append(el('span','/','breadcrumb-divider'))}
    addCrumb(title,state.tab,true);
   }
  }
  $('moduleBack').hidden=state.tab==='inicio';
- if(state.tab!=='inicio'){const destination=parent||'inicio';$('backToModule').onclick=()=>openTab(destination);$('backToModule').textContent='← Voltar para '+(destination==='inicio'?'Início':tabInfo[destination][0]);}
- const group=parent||state.tab;
+ if(state.tab!=='inicio'){const destination=parent||(pointPages.has(state.tab)?'bateponto':'sistemas');$('backToModule').onclick=()=>openTab(destination);$('backToModule').textContent='← Voltar para '+(destination==='inicio'?'Início':tabInfo[destination][0]);}
+ const group=state.tab==='inicio'?'inicio':(pointPages.has(state.tab)?'bateponto':'sistemas');
  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===group));
  $('mobileMore').classList.toggle('active',false);
 }
@@ -360,20 +435,17 @@ function overview(){
   ['Em serviço',String(all.filter(active).length),'cartões ativos'],
   ['Pendências',String(pending),'justificativas em análise']]){
   const tile=el('div',undefined,'snapshot-card');tile.append(el('span',label),el('strong',value),el('small',subtitle));snapshot.append(tile)}rows.append(snapshot);
- rows.append(el('div','CENTRAL DE SISTEMAS · ACESSO RÁPIDO','module-section-label'));
+ rows.append(el('div','ESCOLHA A FUNÇÃO PARA ESTE SERVIDOR','module-section-label'));
  const cardsGrid=el('div',undefined,'home-module-grid');
  for(const [key,title,descr,ico,foot] of [
-  ['jornada','Central de Horas','Bate-ponto tradicional por equipes, turnos e horas extras.','ico-clock','Disponível'],
-  ['horas-normais','Horas normais','Novo sistema de horas independente do tradicional.','ico-clock','Em preparação'],
-  ['resultados','Resultados e relatórios','Ranking, membros e histórico da Central de Horas.','ico-bar','Disponível'],
-  ['administracao','Auditoria e administração','Justificativas, folgas, advertências e cancelamentos.','ico-shield','Disponível'],
-  ['registro','Registro de membros','Nova área de registro e aprovação de integrantes.','ico-file','Em preparação'],
-  ['recrutamento','Recrutamento','Fluxos de perguntas, entrevistas e aprovação.','ico-users','Em preparação'],
-  ['gestao','Gestão de cargos','Promoção e rebaixamento em uma central própria.','ico-shield','Em preparação'],
-  ['configuracoes','Configurações','Ajustes do ponto, Discord e preferências do site.','ico-settings','Disponível']]){
+  ['bateponto','Bate-ponto · Completo','Equipes, cartões, turnos, horas, justificativas, logs, relatórios, painéis e configurações.','ico-clock','Sistema disponível'],
+  ['horas-normais','Novo sistema de horas','Modalidade futura independente do Bate-ponto atual.','ico-clock','Em preparação'],
+  ['registro','Registro','Nova função de identificação e aprovação.','ico-file','Em preparação'],
+  ['recrutamento','Recrutamento','Nova função de seleção e avaliação.','ico-users','Em preparação'],
+  ['gestao','Gestão de cargos','Nova função de promoções e rebaixamentos.','ico-shield','Em preparação']]){
   const b=el('button',undefined,'home-module');b.type='button';const avatar=el('span',undefined,'home-module-icon');avatar.append(svgIcon(ico));const copy=el('span',undefined,'home-module-copy');copy.append(el('strong',title),el('small',descr),el('em',foot));const arrow=el('span',undefined,'home-module-arrow');arrow.append(svgIcon('ico-arrow'));b.append(avatar,copy,arrow);b.onclick=()=>openTab(key);cardsGrid.append(b)}rows.append(cardsGrid);
  const fullCatalog=el('button','Abrir catálogo completo de sistemas','button hub-explore');fullCatalog.type='button';fullCatalog.onclick=()=>openTab('sistemas');rows.append(fullCatalog);
- rows.append(el('p','Os módulos em preparação não estão conectados à API e não alteram registros. O bate-ponto tradicional permanece integrado ao bot e ao Supabase.','module-tip'));
+ rows.append(el('p','O Bate-ponto mantém TODOS os seus recursos atuais em um só sistema. As outras funções são independentes e serão implementadas gradualmente, sem misturar registros.','module-tip'));
 }
 function ownerLab(){
  const rows=$('rows'),filters=$('filters'),data=state.data;
@@ -615,7 +687,23 @@ async function start(){
  try{const me=await api('me');if(!me.user){$('auth').replaceChildren(el('p','Faça login pelo Discord para verificar seus servidores autorizados.'),(()=>{const a=el('a','Entrar com Discord','button login-main-btn');a.href='/api/login';a.append(svgIcon('ico-arrow'));return a})());$('syncStatus').textContent='Login necessário';return}
  $('auth').replaceChildren(el('p',`Conectado como ${me.user.name}`,'muted'));$('logout').hidden=false;$('sidebarLogout').hidden=false;$('sidebarLogout').onclick=()=>$('logout').click();$('logout').onclick=async()=>{try{await api('logout',{method:'POST'});location.reload()}catch(e){$('syncStatus').textContent=e.message}};
  $('userBadge').hidden=false;$('userBadge').textContent='◉ '+me.user.name;
- const result=await api('guilds');state.guilds=result.guilds||[];if(!state.guilds.length){$('auth').append(el('p','Nenhum servidor sincronizado e autorizado apareceu ainda. Confirme se o bot está ligado, fez a primeira sincronização e se sua conta é dona do servidor ou tem cargo permitido.','muted'));$('syncStatus').textContent='Sem servidor autorizado';return}
- $('auth').hidden=true;$('content').hidden=false;document.body.classList.add('logged-in');$('sidebar').hidden=false;$('mobileBottom').hidden=false;$('openSidebar').hidden=false;const guild=$('guild');guild.replaceChildren();for(const g of state.guilds)guild.append(option(g.name||g.guild_id,g.guild_id));state.guild=state.guilds[0].guild_id;guild.value=state.guild;const savedPrefs=window.centralSitePrefs?.read?.();if(savedPrefs){state.tab=savedPrefs.initialTab;state.period=savedPrefs.defaultPeriod;state.navOrigin=moduleDefs[state.tab]?state.tab:null}guild.onchange=()=>{state.guild=guild.value;state.roles=null;state.botEditor=null;state.botDraft=null;state.botDirty=false;load()};$('period').onchange=e=>{state.period=e.target.value;render()};$('month').value=today().slice(0,7);state.month=$('month').value;$('month').onchange=e=>{state.month=e.target.value;state.period='month';render()};$('reload').onclick=load;document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));$('openSidebar').onclick=()=>setSidebarOpen(true);$('mobileMore').onclick=()=>setSidebarOpen(true);$('closeSidebar').onclick=()=>setSidebarOpen(false);$('sidebarOverlay').onclick=()=>setSidebarOpen(false);document.addEventListener('keydown',e=>{if(e.key==='Escape')setSidebarOpen(false)});await load();setInterval(()=>{if(!document.hidden&&state.guild&&window.centralSitePrefs?.read?.().autoRefresh!==false)load().catch(()=>{})},30000);
+ const result=await api('guilds');
+ state.guilds=result.guilds||[];state.managedGuilds=result.managedGuilds||[];state.reauthRequired=!!result.reauthRequired;
+ $('auth').hidden=true;document.body.classList.add('logged-in');
+ const guild=$('guild');guild.replaceChildren();
+ for(const g of state.guilds)guild.append(option(g.name||g.guild_id,g.guild_id));
+ guild.onchange=()=>chooseServer(guild.value);
+ const savedPrefs=window.centralSitePrefs?.read?.();if(savedPrefs)state.period=savedPrefs.defaultPeriod;
+ $('period').onchange=e=>{state.period=e.target.value;render()};
+ $('month').value=today().slice(0,7);state.month=$('month').value;
+ $('month').onchange=e=>{state.month=e.target.value;state.period='month';render()};
+ $('reload').onclick=load;
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
+ $('serverPickerRefresh').onclick=refreshServers;
+ $('openSidebar').onclick=()=>setSidebarOpen(true);$('mobileMore').onclick=()=>setSidebarOpen(true);
+ $('closeSidebar').onclick=()=>setSidebarOpen(false);$('sidebarOverlay').onclick=()=>setSidebarOpen(false);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')setSidebarOpen(false)});
+ showServerPicker();
+ setInterval(()=>{if(!document.hidden&&state.guild&&window.centralSitePrefs?.read?.().autoRefresh!==false)load().catch(()=>{})},30000);
  }catch(e){$('auth').replaceChildren(el('p',e.message,'error'));$('syncStatus').textContent='Falha na configuração';$('syncStatus').className='status err'}}
 start();
