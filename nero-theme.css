@@ -195,3 +195,53 @@ body{background:radial-gradient(ellipse 58% 44% at 78% -6%,#a91d3328,transparent
 .feature-card:has(.feature-meta){border-color:#512734}
 @media(max-width:850px){.server-select-grid{grid-template-columns:1fr}}
 @media(max-width:740px){.server-picker{margin:6px auto 40px;gap:19px}.server-picker-head{padding:22px 18px;border-radius:15px}.server-select-card{padding:15px;flex-wrap:wrap}.server-select-button{width:100%}.server-picker-head p{font-size:12px}}
+
+/* Nero Bot 6.8 · suporte e organização modular do Bate-ponto */
+.sidebar-support{display:flex;align-items:center;gap:9px;padding:11px 13px;margin-top:8px;border-radius:11px;border:1px solid #663143;background:#21111a;color:#ffd9e0!important;font-size:12px;font-weight:750;text-decoration:none!important}
+.sidebar-support:hover{background:#391724;border-color:#d84a66}
+.sidebar-support .ico{width:16px;height:16px;flex:none}
+.sidebar-support .ico-external{margin-left:auto;width:14px}
+.login-support-link{display:flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:11px 12px;margin-top:14px;border:1px solid #703144;border-radius:10px;background:#27131d;color:#ffc4cf!important;font-size:12px;font-weight:780;text-decoration:none!important}
+.login-support-link:hover{background:#3b1a28;border-color:#f15b76}
+.login-support-link .ico{width:17px;height:17px;flex:none}
+.login-support-link span{flex:1;text-align:center}
+.server-help-row,.system-discord-tip{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border:1px solid #673344;background:linear-gradient(125deg,#29151e,#161017);border-radius:14px}
+.server-help-row div,.system-discord-tip div{display:grid;gap:5px}
+.server-help-row strong,.system-discord-tip strong{font-size:14px;color:#fff}
+.server-help-row span,.system-discord-tip span{font-size:12px;color:#c7a7b3;line-height:1.5}
+.server-help-row a,.system-discord-tip a{display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:none;padding:11px 16px;min-height:41px;border-radius:10px;border:1px solid #a9475a;background:#5b1d31;color:#ffeaf0;text-decoration:none;font-weight:800;font-size:12px}
+.server-help-row a:hover,.system-discord-tip a:hover{background:#82263d}
+.server-help-row .ico{width:16px;height:16px}
+.point-workspace-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;border:1px solid #552c3a;border-radius:14px;background:#1b0e16}
+.point-workspace-info{display:grid;gap:5px}
+.point-workspace-info strong{font-size:14px;color:#fff}
+.point-workspace-info span{color:#bfa4ad;font-size:12px;line-height:1.5}
+.point-workspace-bar .button{flex:none}
+.point-mini-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:15px}
+.point-mini-stat{display:grid;gap:6px;padding:18px;border-radius:13px;background:linear-gradient(140deg,#28131e,#130d14);border:1px solid #582c3b}
+.point-mini-stat span{font-size:11px;color:#d9aeb9;font-weight:780}
+.point-mini-stat strong{font-size:clamp(20px,2vw,27px);color:#fff;font-weight:850}
+.point-mini-stat small{font-size:10px;color:#9e8391}
+.point-search-panel{display:flex;align-items:center;gap:10px;margin:24px 0 10px;padding:4px 13px;border-radius:12px;background:#220f19;border:1px solid #78374a}
+.point-search-panel:focus-within{border-color:#e64a66;box-shadow:0 0 0 3px #ab1d3e29}
+.point-search-panel .ico{width:19px;height:19px;color:#f16b83;flex:none}
+.point-search-panel input{flex:1;min-width:0;min-height:46px;border:0!important;background:transparent!important;box-shadow:none!important;color:#fff}
+.point-tool-section{margin:16px 0 22px;padding:0 0 4px}
+.point-tool-heading{display:flex;align-items:start;justify-content:space-between;gap:10px;margin-bottom:13px}
+.point-tool-heading h3{font-size:17px;font-weight:830;color:#fff;margin:0 0 5px}
+.point-tool-heading p{color:#bf9ca9;font-size:12px;margin:0;line-height:1.5}
+.point-tool-count{white-space:nowrap;color:#eaa1b0;background:#2c1320;border:1px solid #613043;border-radius:30px;padding:6px 10px;font-size:10px;font-weight:800}
+.point-tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.point-tool-grid .feature-card{min-height:98px!important;padding:16px!important}
+.point-tool-grid .feature-card .feature-meta{font-size:10px}
+.point-no-results{padding:20px;border-radius:12px;background:#23121b;border:1px dashed #673244;color:#efb1c0}
+footer a{color:#f8aabb;text-decoration:none}
+footer a:hover{text-decoration:underline}
+@media(max-width:760px){
+ .server-help-row,.system-discord-tip,.point-workspace-bar{flex-direction:column;align-items:stretch}
+ .server-help-row a,.system-discord-tip a,.point-workspace-bar .button{width:100%}
+ .point-tool-grid{grid-template-columns:1fr}
+ .point-mini-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .point-mini-stat{padding:14px}
+ .point-tool-heading{flex-wrap:wrap}
+}

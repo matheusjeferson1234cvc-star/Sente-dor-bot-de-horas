@@ -237,6 +237,68 @@ function moduleHub(key){
   box.append(el('span','EM PREPARAÇÃO','planned-system-tag'),el('h3','Espaço reservado para o próximo sistema'),el('p','Este módulo ainda não registra nem modifica dados. Quando a integração for implementada, ele terá suas próprias configurações e contagens, separadas da Central de Horas tradicional.'));
   const back=el('button','Voltar à Central de Sistemas','button ghost');back.type='button';back.onclick=()=>openTab('sistemas');box.append(back);rows.append(box);return;
  }
+ if(key==='bateponto'){
+  const guildName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Servidor selecionado';
+  const bar=el('div',undefined,'point-workspace-bar');
+  const info=el('div',undefined,'point-workspace-info');
+  info.append(el('strong','Bate-ponto · '+guildName),el('span','Sistema completo, integrado aos cartões e às configurações do seu servidor.'));
+  const switcher=el('button','Trocar servidor','button ghost');switcher.type='button';switcher.onclick=showServerPicker;
+  bar.append(info,switcher);rows.append(bar);
+  const summary=el('div',undefined,'point-mini-summary');
+  const all=cards(),pending=(state.data?.justifications||[]).filter(x=>x.status==='pending').length;
+  for(const [name,value,detail] of [
+   ['Em serviço',String(all.filter(active).length),'cartões ativos'],
+   ['Horas validadas',fmt(totaled(all.filter(inPeriod))),'no período'],
+   ['Justificativas',String(pending),'em análise']]){
+   const item=el('div',undefined,'point-mini-stat');item.append(el('span',name),el('strong',value),el('small',detail));summary.append(item);
+  }
+  rows.append(summary);
+  const searchPanel=el('div',undefined,'point-search-panel'),input=el('input');
+  input.type='search';input.placeholder='Buscar cartões, justificativas, logs, painéis, turnos...';
+  input.setAttribute('aria-label','Buscar ferramentas do Bate-ponto');
+  searchPanel.append(svgIcon('ico-list'),input);rows.append(searchPanel);
+  const sections=[
+   {name:'Operação e cartões',desc:'Acompanhe as equipes, a presença e cada cartão de ponto.',tabs:['jornada','ativos','turno','presenca','cancelados']},
+   {name:'Horas, ranking e relatórios',desc:'Consulte horas normais, extras e histórico validado.',tabs:['resultados','ranking','mensal','relatorios','membros']},
+   {name:'Justificativas e auditoria',desc:'Analise registros, ausências, advertências e folgas.',tabs:['administracao','justificativas','advertencias','folgas']},
+   {name:'Painéis e configurações',desc:'Personalize o Discord, cargos, regras, logs e avisos do ponto.',tabs:['configuracoes','bot-painel','bot-painel-just','bot-canais','bot-turnos','bot-geral','bot-alertas','permissoes']}
+  ];
+  const allSections=[];
+  for(const item of sections){
+   const options=item.tabs.map(tab=>def.items.find(x=>x[0]===tab)||Object.values(moduleDefs).flatMap(x=>x.items).find(x=>x[0]===tab)).filter(x=>x&&allowedFeature(x[0]));
+   if(!options.length)continue;
+   const section=el('section',undefined,'point-tool-section'),heading=el('div',undefined,'point-tool-heading');
+   const headingCopy=el('div');headingCopy.append(el('h3',item.name),el('p',item.desc));
+   const count=el('span',options.length+' ferramentas','point-tool-count');
+   heading.append(headingCopy,count);
+   const grid=el('div',undefined,'point-tool-grid');
+   for(const [tab,title,description,icon] of options)grid.append(moduleCard({tab,title,description,icon,meta:moduleMetric(tab)}));
+   section.append(heading,grid);rows.append(section);allSections.push(section);
+  }
+  const noMatch=el('p','Nenhuma ferramenta encontrada no Bate-ponto. Tente outro termo.','point-no-results');
+  noMatch.hidden=true;rows.append(noMatch);
+  const normalize=s=>String(s||'').toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  input.oninput=()=>{
+   const query=normalize(input.value.trim());let shown=0;
+   for(const section of allSections){
+    let count=0;
+    for(const card of section.querySelectorAll('.feature-card')){
+     const matches=normalize(card.textContent).includes(query);
+     card.hidden=!matches;if(matches)count++;
+    }
+    section.hidden=!count;shown+=count;
+    section.querySelector('.point-tool-count').textContent=count+' '+(count===1?'ferramenta':'ferramentas');
+   }
+   noMatch.hidden=shown>0;
+  };
+  return;
+ }
+ if(key==='sistemas'){
+  const line=el('div',undefined,'system-discord-tip');
+  const copy=el('div');copy.append(el('strong','Dúvidas ou novidades do Nero Bot?'),el('span','Participe do nosso servidor oficial no Discord para suporte à plataforma.'));
+  const link=el('a','Abrir servidor oficial');link.href='https://discord.gg/SWTnKfXJ8R';link.target='_blank';link.rel='noopener noreferrer';
+  line.append(copy,link);rows.append(line);
+ }
  if(key==='configuracoes'){
   const access=el('div',undefined,'bot-access-panel');
   const title=state.canEdit?'Edição do bot liberada':state.data?.viewScope==='shift'?'Acesso de responsável: somente seus turnos':'Bot em modo consulta · ajustes do site disponíveis';
