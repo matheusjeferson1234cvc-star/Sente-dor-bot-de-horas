@@ -7,6 +7,37 @@ const json=(res,status,data)=>{res.status(status).setHeader('Cache-Control','no-
 const sign=v=>crypto.createHmac('sha256',process.env.SESSION_SECRET||'').update(v).digest('hex');
 const same=(a,b)=>{const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||''));return x.length>0&&x.length===y.length&&crypto.timingSafeEqual(x,y)};
 const session=req=>{const raw=cookie(req,'ch_session');if(!raw||!process.env.SESSION_SECRET)return null;const [payload,sig]=raw.split('.');if(!payload||!sig||!same(sign(payload),sig))return null;try{const data=JSON.parse(Buffer.from(payload,'base64url').toString());return data.exp>Date.now()?data:null}catch{return null}};
+// Token do usuário protegido com AES-GCM em cookie HttpOnly, nunca retornado ao frontend.
+const oauthKey=()=>crypto.createHash('sha256').update(String(process.env.SESSION_SECRET||'')).digest();
+const sealOAuth=data=>{
+ const iv=crypto.randomBytes(12),c=crypto.createCipheriv('aes-256-gcm',oauthKey(),iv);
+ const encrypted=Buffer.concat([c.update(JSON.stringify(data),'utf8'),c.final()]);
+ return [iv.toString('base64url'),c.getAuthTag().toString('base64url'),encrypted.toString('base64url')].join('.');
+};
+const oauthSession=req=>{
+ const u=session(req),raw=cookie(req,'ch_oauth');
+ if(!u||!raw||!process.env.SESSION_SECRET)return null;
+ try{
+  const [iv,tag,encrypted]=raw.split('.');
+  if(!iv||!tag||!encrypted)return null;
+  const decipher=crypto.createDecipheriv('aes-256-gcm',oauthKey(),Buffer.from(iv,'base64url'));
+  decipher.setAuthTag(Buffer.from(tag,'base64url'));
+  const result=JSON.parse(Buffer.concat([decipher.update(Buffer.from(encrypted,'base64url')),decipher.final()]).toString('utf8'));
+  return result.id===u.id&&result.exp>Date.now()&&typeof result.accessToken==='string'?result:null;
+ }catch{return null}
+};
+const canManageGuild=g=>{
+ if(!g||typeof g.id!=='string'||!/^[0-9]{15,25}$/.test(g.id))return false;
+ if(g.owner===true)return true;
+ try{return (BigInt(g.permissions||'0')&8n)===8n}catch{return false}
+};
+const ownDiscordGuilds=async oauth=>{
+ const response=await fetch('https://discord.com/api/v10/users/@me/guilds',{headers:{Authorization:'Bearer '+oauth.accessToken},cache:'no-store'});
+ if(!response.ok)throw Error('Não foi possível consultar os servidores autorizados no Discord');
+ const data=await response.json();
+ if(!Array.isArray(data))throw Error('Resposta inválida do Discord');
+ return data;
+};
 const db=async(table,options={})=>{
  const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
  if(!url||!key)throw Error('Supabase não configurado');
@@ -207,7 +238,20 @@ module.exports=async(req,res)=>{
    const requested=String(process.env.DISCORD_BOT_INVITE_PERMISSIONS||'268561408');
    const permissions=/^\d{1,20}$/.test(requested)?requested:'268561408';
    const link=new URL('https://discord.com/oauth2/authorize');
-   link.search=new URLSearchParams({client_id:appId,scope:'bot applications.commands',permissions,integration_type:'0'}).toString();
+   const params=new URLSearchParams({client_id:appId,scope:'bot applications.commands',permissions,integration_type:'0'});
+   if(req.query?.guildId!==undefined){
+    const selected=String(req.query.guildId||'');
+    if(!/^[0-9]{15,25}$/.test(selected))return json(res,400,{error:'Servidor inválido'});
+    const oauth=oauthSession(req);
+    if(!oauth)return json(res,401,{error:'Conecte sua conta Discord novamente para selecionar um servidor'});
+    try{
+     const allowed=(await ownDiscordGuilds(oauth)).some(g=>g.id===selected&&canManageGuild(g));
+     if(!allowed)return json(res,403,{error:'Você precisa ser dono ou ter permissão Administrador neste servidor'});
+    }catch(e){return json(res,503,{error:'Não foi possível verificar suas permissões no Discord'})}
+    params.set('guild_id',selected);
+    params.set('disable_guild_select','true');
+   }
+   link.search=params.toString();
    res.statusCode=302;
    res.setHeader('Cache-Control','no-store');
    res.setHeader('Location',link.toString());
@@ -217,7 +261,7 @@ module.exports=async(req,res)=>{
    if(!process.env.DISCORD_CLIENT_ID||!process.env.DISCORD_CLIENT_SECRET||!process.env.DISCORD_REDIRECT_URI||!process.env.SESSION_SECRET)return json(res,503,{error:'OAuth não configurado'});
    const nonce=crypto.randomBytes(20).toString('hex');
    res.setHeader('Set-Cookie',`ch_state=${nonce}.${sign(nonce)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600`);
-   return res.redirect(`https://discord.com/oauth2/authorize?${new URLSearchParams({client_id:process.env.DISCORD_CLIENT_ID,redirect_uri:process.env.DISCORD_REDIRECT_URI,response_type:'code',scope:'identify',state:nonce})}`);
+   return res.redirect(`https://discord.com/oauth2/authorize?${new URLSearchParams({client_id:process.env.DISCORD_CLIENT_ID,redirect_uri:process.env.DISCORD_REDIRECT_URI,response_type:'code',scope:'identify guilds',state:nonce})}`);
   }
   if(path==='callback'){
    const state=req.query.state,raw=cookie(req,'ch_state'),[nonce,sig]=(raw||'').split('.');
@@ -227,18 +271,37 @@ module.exports=async(req,res)=>{
    if(!r.ok)return json(res,401,{error:'Login Discord falhou'});
    const token=await r.json();if(!token.access_token)return json(res,401,{error:'Token OAuth inválido'});const profile=await fetch('https://discord.com/api/v10/users/@me',{headers:{Authorization:`Bearer ${token.access_token}`}});if(!profile.ok)return json(res,401,{error:'Não foi possível verificar o usuário Discord'});const u=await profile.json();if(!/^\d{15,25}$/.test(String(u.id||'')))return json(res,401,{error:'Identidade Discord inválida'});
    const payload=Buffer.from(JSON.stringify({id:u.id,name:u.global_name||u.username,exp:Date.now()+86400000})).toString('base64url');
-   res.setHeader('Set-Cookie',[`ch_session=${payload}.${sign(payload)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`,'ch_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0']);
+   const oauthLifetime=Math.max(60,Math.min(86400,Math.floor(Number(token.expires_in)||3600)));
+   const oauthCookie=sealOAuth({id:u.id,accessToken:token.access_token,exp:Date.now()+oauthLifetime*1000});
+   res.setHeader('Set-Cookie',[
+    `ch_session=${payload}.${sign(payload)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`,
+    `ch_oauth=${oauthCookie}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${oauthLifetime}`,
+    'ch_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0'
+   ]);
    return res.redirect('/');
   }
   if(path==='me')return json(res,200,{user:session(req)});
-  if(path==='logout'){if(req.method!=='POST')return json(res,405,{error:'Método não permitido'});res.setHeader('Set-Cookie','ch_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0');return json(res,200,{ok:true})}
+  if(path==='logout'){if(req.method!=='POST')return json(res,405,{error:'Método não permitido'});res.setHeader('Set-Cookie',['ch_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0','ch_oauth=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0']);return json(res,200,{ok:true})}
   const user=session(req);if(!user)return json(res,401,{error:'Faça login pelo Discord'});
   if(path==='guilds'){
-   // Liste servidores sincronizados pelo bot e filtre por autorização.
+   // Lista principal: servidores administrados pelo usuário, inclusive sem bot.
+   // A API de gerenciamento dos registros segue verificando os cargos via token do BOT.
    const rows=await db('guild_settings',{query:'?select=guild_id,name'});
    const permitted=[];
    for(const g of rows){try{if((await authorized(g.guild_id,user)).view)permitted.push(g)}catch{}}
-   return json(res,200,{guilds:permitted});
+   const oauth=oauthSession(req);
+   let managedGuilds=[],reauthRequired=!oauth;
+   if(oauth){
+    try{
+     const connected=new Set(rows.map(g=>String(g.guild_id)));
+     const guilds=await ownDiscordGuilds(oauth);
+     managedGuilds=guilds.filter(canManageGuild).map(g=>({
+      guild_id:g.id,name:String(g.name||'Servidor').slice(0,100),
+      owner:g.owner===true,installed:connected.has(g.id)
+     })).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+    }catch{reauthRequired=true}
+   }
+   return json(res,200,{guilds:permitted,managedGuilds,reauthRequired});
   }
   const gid=String(req.query.guildId||'');
   if(!/^\d{15,25}$/.test(gid))return json(res,400,{error:'Servidor inválido'});
