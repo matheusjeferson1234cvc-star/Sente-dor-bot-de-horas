@@ -84,10 +84,7 @@
   toggle(layout,'Reduzir animações','Remove movimentos e efeitos de transição sem alterar os dados.','reduceMotion');
   toggle(layout,'Contraste reforçado','Destaca bordas, textos e campos dos formulários.','highContrast');
   heading(navigation,'Navegação e atualização','Escolha onde começar e como consultar os registros.');
-  choose(navigation,'Página inicial','Qual módulo aparece após entrar no Discord.','initialTab',[
-   ['Início','inicio'],['Central de Sistemas','sistemas'],['Bate-ponto completo','bateponto'],['Jornada e cartões','jornada'],['Resultados e relatórios','resultados'],
-   ['Administração','administracao'],['Central de configurações','configuracoes']
-  ]);
+  navigation.append(node('p','Primeiro você escolhe o servidor. Em seguida, o Nero Bot abre a Central de Sistemas, onde o Bate-ponto e as próximas funções ficam separados.','site-settings-description'));
   choose(navigation,'Período padrão de consulta','Aplicado ao entrar novamente no site.','defaultPeriod',[
    ['Esta semana','week'],['Mês selecionado','month'],['Todo o histórico','all']
   ]);
