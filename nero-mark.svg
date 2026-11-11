@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Nero, ave azul-escura com peito branco">
+<defs>
+ <linearGradient id="back" x2="1" y2="1"><stop stop-color="#060d1d"/><stop offset="1" stop-color="#081a33"/></linearGradient>
+ <radialGradient id="halo"><stop stop-color="#145adb" stop-opacity=".55"/><stop offset=".72" stop-color="#0d58b3" stop-opacity=".10"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+ <linearGradient id="feathers" x2="1" y2=".1"><stop stop-color="#031328"/><stop offset=".45" stop-color="#083e8e"/><stop offset="1" stop-color="#08172f"/></linearGradient>
+ <linearGradient id="chest" x2=".18" y2="1"><stop stop-color="#fff"/><stop offset=".5" stop-color="#e4f0ff"/><stop offset="1" stop-color="#83a6cf"/></linearGradient>
+ <linearGradient id="name" x2="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#8ebeff"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="5"/></filter>
+</defs>
+<rect width="512" height="512" rx="110" fill="url(#back)"/>
+<circle cx="256" cy="225" r="240" fill="url(#halo)"/>
+<g opacity=".65" fill="none" stroke="#0b8bff" stroke-width="3"><path d="M38 440Q256 522 474 440"/><path d="M61 70Q256-14 451 70"/></g>
+<!-- Wings: deep navy on the back and electric-blue tips -->
+<g fill="url(#feathers)" stroke="#168dff" stroke-width="3">
+ <path d="M239 270C170 198 102 190 40 118c24 89 74 143 153 197l42 45Z"/>
+ <path d="M273 270c69-72 137-80 199-152-24 89-74 143-153 197l-42 45Z"/>
+</g>
+<g fill="#0755b5" opacity=".9">
+ <path d="M42 122Q112 278 211 321Q145 312 73 255Q104 298 197 340L162 365Q58 299 42 122Z"/>
+ <path d="M470 122Q400 278 301 321Q367 312 439 255Q408 298 315 340L350 365Q454 299 470 122Z"/>
+</g>
+<!-- White belly and navy head -->
+<path d="M195 290Q168 328 191 390Q216 423 256 421Q303 421 323 385Q343 333 317 290Q290 311 255 309Q217 309 195 290Z" fill="url(#chest)" stroke="#9cceff" stroke-width="4"/>
+<path d="M199 300Q208 249 192 201Q205 147 256 131Q307 147 320 201Q304 249 313 300Q272 333 256 332Q237 331 199 300Z" fill="#07172e" stroke="#1b83f4" stroke-width="4"/>
+<path d="M200 193q41-67 99-20l-6 13-23-16-5 30-26-20-21 40Z" fill="#0b3a83"/>
+<path d="M239 241Q256 265 274 240l-18 43Z" fill="#9bb9d0"/>
+<path d="M227 228l17 5-16 7M283 228l-17 5 16 7" fill="#1fe1ff" stroke="#21b8ff" stroke-width="3" stroke-linecap="round"/>
+<path d="M256 246l13 20-13 14-13-14Z" fill="#b0d9ff"/>
+<path d="M255 61l-15 26-23-11 14 37 25-8 25 8 14-37-23 11Z" fill="none" stroke="#23afff" stroke-width="7" stroke-linejoin="round" opacity=".85"/>
+<rect x="57" y="397" width="398" height="81" rx="24" fill="#061023" opacity=".88" stroke="#2065ac" stroke-width="2"/>
+<text x="256" y="455" text-anchor="middle" font-family="Arial,sans-serif" font-size="65" font-weight="900" letter-spacing="9" fill="url(#name)">NERO</text>
+</svg>
