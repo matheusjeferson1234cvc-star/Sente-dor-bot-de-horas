@@ -2,6 +2,7 @@ const warningDecision=require('../warning-decision');
 const botSchema=require('../bot-config-schema');
 const shiftAccess=require('../shift-access');
 const recruitment=require('../recruitment-config');
+const recruitmentPanel=require('../recruitment-panel');
 const crypto=require('node:crypto');
 const cookie=(req,key)=>Object.fromEntries((req.headers.cookie||'').split(';').map(x=>x.trim().split('=')))[key];
 const json=(res,status,data)=>{res.status(status).setHeader('Cache-Control','no-store');res.json(data)};
@@ -323,6 +324,44 @@ module.exports=async(req,res)=>{
    let config;try{config=recruitment.normalize(req.body||{});}catch(e){return json(res,400,{error:e.message});}
    await db('nero_recruitment_templates',{method:'POST',body:{guild_id:gid,kind,config,updated_at:new Date().toISOString()}});
    return json(res,200,{ok:true,guildId:gid,kind,questionCount:config.questions.length,applicationsOpen:false});
+  }
+  if(path==='recruitment-panel'&&req.method==='POST'){
+   if(!rights.edit)return json(res,403,{error:'Somente donos e Administradores podem publicar o painel de recrutamento'});
+   if(!process.env.DISCORD_BOT_TOKEN)return json(res,503,{error:'Nero Bot não está configurado na Vercel'});
+   if(!req.headers.origin||!req.headers.host)return json(res,403,{error:'Origem não identificada'});
+   try{
+    const origin=new URL(req.headers.origin);
+    if(origin.protocol!=='https:'||origin.host!==req.headers.host)return json(res,403,{error:'Origem não autorizada'});
+   }catch{return json(res,403,{error:'Origem inválida'})}
+   const channelId=String(req.body?.channelId||'');
+   if(!/^\d{15,25}$/.test(channelId))return json(res,400,{error:'Escolha um canal do Discord'});
+   let channels;
+   try{channels=await discord('/guilds/'+gid+'/channels')}catch(e){return editorDiscordError(res,e)}
+   if(!channels.some(c=>String(c.id)===channelId&&(c.type===0||c.type===5)))
+    return json(res,400,{error:'Canal não pertence ao servidor selecionado'});
+   const rows=await db('guild_settings',{query:'?guild_id=eq.'+gid+'&select=name&limit=1'});
+   if(!rows.length)return json(res,404,{error:'Servidor não cadastrado'});
+   let payload;
+   try{
+    payload=recruitmentPanel.recruitmentPayload(gid,rows[0].name,
+     process.env.NERO_RECRUITMENT_SITE_URL||'https://nero-recrutamento.vercel.app/');
+   }catch{return json(res,503,{error:'Link público de recrutamento inválido no servidor'})}
+   payload.nonce=crypto.randomBytes(12).toString('hex');
+   let response;
+   try{response=await fetch('https://discord.com/api/v10/channels/'+channelId+'/messages',{
+    method:'POST',headers:{Authorization:'Bot '+process.env.DISCORD_BOT_TOKEN,'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+   })}catch(e){console.error('Painel de recrutamento / Discord:',e?.message);return json(res,503,{error:'Não foi possível acessar o Discord'})}
+   if(!response.ok){
+    if(response.status===403)return json(res,403,{error:'O Nero precisa de Ver canal, Enviar mensagens e Incorporar links'});
+    if(response.status===401)return json(res,503,{error:'Discord rejeitou o token do Nero Bot'});
+    if(response.status===429)return json(res,429,{error:'Discord limitou temporariamente o envio'});
+    return json(res,502,{error:'Discord recusou o painel (HTTP '+response.status+')'});
+   }
+   const sent=await response.json();
+   if(!/^\d{15,25}$/.test(String(sent?.id||'')))return json(res,502,{error:'Discord não confirmou a mensagem'});
+   return json(res,200,{ok:true,channelId,messageId:String(sent.id),
+    url:'https://discord.com/channels/'+gid+'/'+channelId+'/'+sent.id,applicationsOpen:false});
   }
   if(path==='announce-channels'&&req.method==='GET'){
    if(!rights.edit)return json(res,403,{error:'Somente donos e Administradores podem publicar comunicados'});
