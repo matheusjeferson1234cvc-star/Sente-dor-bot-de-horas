@@ -271,3 +271,24 @@ footer a:hover{text-decoration:underline}
 .nero-announcement-embed p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;color:#dce0e6;font-size:11px;line-height:1.6}
 .nero-announcement-embed small{font-size:10px;color:#9ea5b1}
 @media(max-width:960px){.nero-announcement-cols{grid-template-columns:1fr}.nero-announcement-panel{padding:15px}}
+
+
+/* Nero Recrutamento — editor administrativo independente do bate-ponto */
+.recruit-editor{display:grid;gap:17px;margin-top:15px;padding:22px;background:linear-gradient(140deg,#24121c,#100d12);border:1px solid #743147;border-radius:16px}
+.recruit-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.recruit-heading h3{margin:0;font-size:20px}
+.recruit-heading select{min-width:175px}
+.recruit-editor label,.recruit-question-body label{display:grid;gap:7px;font-size:12px;color:#f0ced5}
+.recruit-editor input,.recruit-editor textarea,.recruit-editor select{width:100%;padding:11px 13px;border-radius:9px;background:#160e15;color:#fff;border:1px solid #783449;font:inherit;font-size:13px}
+.recruit-editor textarea{resize:vertical;min-height:60px;line-height:1.6}
+.recruit-editor input:focus-visible,.recruit-editor textarea:focus-visible,.recruit-editor select:focus-visible{outline:2px solid #fa5b79;outline-offset:1px}
+.recruit-score{max-width:270px}
+.recruit-count{margin:0;color:#e6aaba;font-weight:750}
+.recruit-question-list{display:grid;gap:11px}
+.recruit-question{border:1px solid #633447;border-radius:12px;background:#22131d;overflow:hidden}
+.recruit-question[open]{border-color:#b64d6a}
+.recruit-question summary{cursor:pointer;padding:15px 17px;font-size:14px;font-weight:700;line-height:1.45;overflow-wrap:anywhere}
+.recruit-question-body{padding:15px 17px 18px;border-top:1px solid #5d2b3d;display:grid;gap:14px}
+.recruit-actions{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
+.recruit-actions button{min-height:42px}
+@media(max-width:700px){.recruit-editor{padding:14px}.recruit-actions{display:grid;grid-template-columns:1fr}.recruit-heading select{width:100%}}
