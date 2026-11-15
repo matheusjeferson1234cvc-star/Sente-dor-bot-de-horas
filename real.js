@@ -1,7 +1,7 @@
 'use strict';
 // O painel de produção lê exclusivamente a API autenticada. Dados fictícios ficam em /demo.html.
 const $=id=>document.getElementById(id);
-const state={guild:null,data:null,guilds:[],managedGuilds:[],reauthRequired:false,canEdit:false,tab:'inicio',period:'week',month:null,shift:'Noite',presenceDate:null,offShift:'all',search:'',status:'todos',kind:'todos',reportShift:'todos',roles:null,botEditor:null,botDraft:null,botLoading:false,botError:'',botDirty:false,botShift:'manha',navOrigin:null};
+const state={guild:null,data:null,guilds:[],managedGuilds:[],reauthRequired:false,canEdit:false,tab:'inicio',period:'week',month:null,shift:'Noite',presenceDate:null,offShift:'all',search:'',status:'todos',kind:'todos',reportShift:'todos',roles:null,botEditor:null,botDraft:null,botLoading:false,botError:'',botDirty:false,botShift:'manha',navOrigin:null,recruitKind:'policia',recruitKey:null,recruitData:null,recruitLoading:false,recruitSaving:false,recruitError:'',recruitDirty:false};
 const shifts=['Manhã','Tarde','Noite','Madrugada'];
 const visibleShifts=()=>state.data?.viewScope==='shift'?shifts.filter(k=>(state.data.allowedShifts||[]).includes(shortShift[k])):shifts;
 const api=async (path,options={})=>{const r=await fetch('/api/'+path,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});let d;try{d=await r.json()}catch{throw Error('A API não respondeu em JSON. Confira se a pasta api foi publicada na raiz do projeto Vercel (possível erro 404).')}if(!r.ok)throw Error(d.error||`Erro HTTP ${r.status}`);return d};
@@ -228,26 +228,110 @@ function moduleCard({tab,title,description,icon,meta}){
  if(meta)b.append(el('span',meta,'feature-meta'));b.onclick=()=>openTab(tab);return b;
 }
 function moduleMetric(tab){const d=state.data||{};if(moduleDefs[tab]?.comingSoon)return 'Em preparação';switch(tab){case 'presenca':return `${(d.members||[]).length} sincronizados`;case 'ativos':return `${cards().filter(active).length} ativos`;case 'membros':return `${(d.members||[]).length} membros`;case 'justificativas':return `${(d.justifications||[]).filter(x=>x.status==='pending').length} pendentes`;case 'advertencias':return `${(d.warnings||[]).length} registros`;case 'servidores':return `${state.guilds.length} ambiente(s)`;default:return ''}}
+
+// Configurador administrativo. A prova permanece fechada na página pública.
+function renderRecruitmentModule(rows){
+ const guild=String(state.guild||''),validGuild=/^\d{15,25}$/.test(guild);
+ const area=el('section',undefined,'planned-system');
+ area.append(el('span','SITE SEPARADO · NERO','planned-system-tag'),el('h3','Recrutamento do servidor'),
+   el('p','Configure perguntas da Polícia ou Organização neste ambiente. O site de provas é independente e segue com inscrições fechadas até a verificação dos candidatos estar pronta.'));
+ if(validGuild){
+  const url='https://nero-recrutamento.vercel.app/?guild='+encodeURIComponent(guild);
+  const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.className='button';link.textContent='Abrir link do servidor ↗';
+  area.append(link);
+  const caption=el('p',url);caption.style.overflowWrap='anywhere';area.append(caption);
+ }else area.append(el('p','Selecione um servidor antes de configurar as provas.'));
+ rows.append(area);
+ if(!validGuild||!state.canEdit){rows.append(el('p','Somente donos e administradores com permissão real no Discord podem editar os gabaritos por enquanto.','warning-note'));return;}
+ const controls=el('section',undefined,'recruit-editor');
+ const head=el('div',undefined,'recruit-heading');head.append(el('h3','Editor de provas · 20 questões'));
+ const selectType=el('select');selectType.setAttribute('aria-label','Categoria da prova');
+ for(const [value,label] of [['policia','Polícia RP'],['organizacao','Organização RP']]){
+  const opt=el('option',label);opt.value=value;selectType.append(opt);
+ }
+ selectType.value=state.recruitKind;
+ selectType.onchange=()=>{state.recruitKind=selectType.value;state.recruitData=null;state.recruitKey=null;state.recruitDirty=false;render()};
+ head.append(selectType);controls.append(head);rows.append(controls);
+ const key=guild+':'+state.recruitKind;
+ if(state.recruitKey!==key){state.recruitKey=key;state.recruitData=null;state.recruitError='';state.recruitLoading=false;state.recruitDirty=false;}
+ if(!state.recruitData&&!state.recruitLoading&&!state.recruitError){
+  state.recruitLoading=true;
+  api('index?centralRoute=recruitment-config&guildId='+encodeURIComponent(guild)+'&kind='+state.recruitKind)
+   .then(d=>{if(state.recruitKey===key){state.recruitData=d.config;state.recruitError='';}})
+   .catch(e=>{if(state.recruitKey===key)state.recruitError=e.message||'Falha ao carregar prova';})
+   .finally(()=>{if(state.recruitKey===key){state.recruitLoading=false;if(state.tab==='recrutamento')render();}});
+ }
+ if(state.recruitLoading){controls.append(el('p','Carregando perguntas do servidor...'));return;}
+ if(state.recruitError){
+  controls.append(el('p',state.recruitError,'error'));
+  const retry=el('button','Tentar novamente','button ghost');retry.onclick=()=>{state.recruitError='';render()};controls.append(retry);
+  return;
+ }
+ const cfg=state.recruitData;if(!cfg)return;
+ const mark=()=>{state.recruitDirty=true;};
+ const brief=el('p','Questões de múltipla escolha com quatro alternativas e perguntas escritas com critérios de correção. Cada servidor edita seu próprio gabarito.');
+ controls.append(brief);
+ const score=el('label',undefined,'recruit-score');score.append(el('span','Nota mínima para aprovação (%)'));
+ const scoreInput=el('input');scoreInput.type='number';scoreInput.min='1';scoreInput.max='100';scoreInput.step='1';
+ scoreInput.value=String(cfg.passPercent);scoreInput.oninput=()=>{cfg.passPercent=Number(scoreInput.value);mark()};
+ score.append(scoreInput);controls.append(score);
+ const count=el('p',cfg.questions.length+' questões · '+cfg.questions.filter(q=>q.type==='choice').length+' de marcar · '+cfg.questions.filter(q=>q.type==='written').length+' escritas','recruit-count');controls.append(count);
+ const inputs=el('div',undefined,'recruit-question-list');
+ cfg.questions.forEach((question,i)=>{
+  const card=el('details',undefined,'recruit-question');if(i===0)card.open=true;
+  const summary=el('summary',(i+1)+'. '+question.title);card.append(summary);
+  const inner=el('div',undefined,'recruit-question-body');
+  const title=el('label',undefined);title.append(el('span','Pergunta'));
+  const titleInput=el('textarea');titleInput.rows=2;titleInput.maxLength=250;titleInput.value=question.title;titleInput.oninput=()=>{question.title=titleInput.value;summary.textContent=(i+1)+'. '+question.title;mark()};title.append(titleInput);inner.append(title);
+  const typeLabel=el('label');typeLabel.append(el('span','Tipo de resposta'));
+  const typeInput=el('select');for(const [v,l] of [['choice','Marcar alternativa'],['written','Resposta escrita']]){const o=el('option',l);o.value=v;typeInput.append(o)}
+  typeInput.value=question.type;typeInput.onchange=()=>{
+   const old=question.title;
+   cfg.questions[i]=typeInput.value==='choice'?{type:'choice',title:old,options:['Alternativa A','Alternativa B','Alternativa C','Alternativa D'],correct:0}:{type:'written',title:old,rubric:'Descreva os critérios esperados na resposta'};
+   mark();render();
+  };typeLabel.append(typeInput);inner.append(typeLabel);
+  if(question.type==='choice'){
+   question.options.forEach((option,j)=>{
+    const label=el('label');label.append(el('span','Alternativa '+String.fromCharCode(65+j)));
+    const input=el('input');input.type='text';input.maxLength=180;input.value=option;input.oninput=()=>{question.options[j]=input.value;mark()};
+    label.append(input);inner.append(label);
+   });
+   const answerLabel=el('label');answerLabel.append(el('span','Resposta correta'));
+   const answer=el('select');question.options.forEach((_,j)=>{const o=el('option',String.fromCharCode(65+j));o.value=String(j);answer.append(o)});
+   answer.value=String(question.correct);answer.onchange=()=>{question.correct=Number(answer.value);mark()};answerLabel.append(answer);inner.append(answerLabel);
+  }else{
+   const label=el('label');label.append(el('span','Critérios para correção e revisão'));
+   const input=el('textarea');input.rows=3;input.maxLength=800;input.value=question.rubric;input.oninput=()=>{question.rubric=input.value;mark()};label.append(input);inner.append(label);
+  }
+  const remove=el('button','Remover questão','button ghost');remove.type='button';remove.onclick=()=>{cfg.questions.splice(i,1);mark();render()};inner.append(remove);
+  card.append(inner);inputs.append(card);
+ });controls.append(inputs);
+ const actions=el('div',undefined,'recruit-actions');
+ for(const [type,label] of [['choice','Adicionar questão de marcar'],['written','Adicionar questão escrita']]){
+  const b=el('button',label,'button ghost');b.type='button';b.disabled=cfg.questions.length>=20;
+  b.onclick=()=>{cfg.questions.push(type==='choice'?{type,title:'Nova pergunta',options:['Alternativa A','Alternativa B','Alternativa C','Alternativa D'],correct:0}:{type,title:'Nova pergunta',rubric:'Descreva o critério de correção'});mark();render()};actions.append(b);
+ }
+ const save=el('button',state.recruitSaving?'Salvando...':'Salvar perguntas','button');
+ save.disabled=state.recruitSaving||!state.recruitDirty;
+ save.onclick=async()=>{
+  state.recruitSaving=true;save.disabled=true;save.textContent='Salvando...';
+  try{
+   await api('index?centralRoute=recruitment-config&guildId='+encodeURIComponent(guild)+'&kind='+state.recruitKind,{method:'POST',body:JSON.stringify(cfg)});
+   if(state.recruitKey===key){state.recruitDirty=false;state.recruitError='';await uiNotice('Prova salva para este servidor. As inscrições continuam fechadas.','Configuração salva');}
+  }catch(e){await uiNotice(e.message||'Erro ao salvar','Não foi possível salvar a prova')}
+  finally{state.recruitSaving=false;if(state.recruitKey===key)render()}
+ };actions.append(save);controls.append(actions);
+ controls.append(el('p','Abertura das inscrições, confirmação de identidade, correção e publicação de aprovados continuam indisponíveis até a integração com o bot ser testada.','warning-note'));
+}
+
 function moduleHub(key){
  const def=moduleDefs[key],rows=$('rows');
  const hero=el('div',undefined,'module-hero'),lead=el('div');
  lead.append(el('span','SISTEMAS DISPONÍVEIS','module-kicker'),el('h2',def.title),el('p',def.intro));
  hero.append(lead);const mark=el('span',undefined,'module-hero-icon');mark.append(svgIcon(def.icon));hero.append(mark);rows.append(hero);
  if(key==='recrutamento'){
-  // Cada link mantém o ID do servidor escolhido e não expõe cookies administrativos.
-  const validGuild=/^\d{15,25}$/.test(String(state.guild||''));
-  const box=el('section',undefined,'planned-system');
-  box.append(el('span','SITE SEPARADO · NERO','planned-system-tag'),
-   el('h3','Recrutamento deste servidor'),
-   el('p','Cada servidor terá seu próprio link. Por segurança, as inscrições permanecem fechadas até a implementação e a revisão das etapas de identificação, provas e aprovação.'));
-  if(validGuild){
-   const url='https://nero-recrutamento.vercel.app/?guild='+encodeURIComponent(state.guild);
-   const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.className='button';link.textContent='Abrir site deste servidor ↗';
-   box.append(link);
-   const helper=el('p','Link do servidor: '+url);helper.style.overflowWrap='anywhere';box.append(helper);
-  }else box.append(el('p','Selecione um servidor administrado para obter o link personalizado.'));
-  box.append(el('p',state.canEdit?'Configurações de provas (20 questões por categoria), abertura e revisão serão ligadas a este painel na próxima etapa.':'Somente administradores e recrutadores autorizados poderão gerenciar os resultados.'));
-  rows.append(box);return;
+  renderRecruitmentModule(rows);
+  return;
  }
 
  if(def.comingSoon){
