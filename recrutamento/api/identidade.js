@@ -118,6 +118,7 @@ module.exports=async(req,res)=>{
  res.setHeader('X-Content-Type-Options','nosniff');
  if(req.method!=='POST')return json(res,405,{error:'Método não permitido'});
  if(!sameOrigin(req))return json(res,403,{error:'Origem não autorizada'});
+ if(process.env.NERO_PUBLIC_EXAM_ENABLED!=='true')return json(res,423,{error:'Inscrições encerradas'});
  let b=req.body;
  if(typeof b==='string'){try{b=JSON.parse(b)}catch{return json(res,400,{error:'JSON inválido'})}}
  if(!b||typeof b!=='object'||Array.isArray(b)||JSON.stringify(b).length>4096)
