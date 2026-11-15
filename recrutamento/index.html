@@ -29,20 +29,39 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
 .id-flow{display:grid;gap:13px;padding-top:20px;margin-top:18px;border-top:1px solid #ffffff24}.id-flow[hidden],.code-step[hidden]{display:none}
 .id-flow label{display:block;font-size:12px;font-weight:700;color:#f3c8d3;margin:0 0 6px}.id-flow input{width:100%;background:#130d14;color:#fff;border:1px solid #835061;border-radius:9px;padding:13px;font-size:15px}
 .id-flow input:focus{outline:2px solid #f04c6d}.id-flow button{justify-self:start}.code-step{display:grid;gap:11px}.id-result{font-size:13px;color:#f9cad6;line-height:1.6}
+
+.portal-nav{display:flex;gap:9px;margin:20px 0 0;flex-wrap:wrap}
+.portal-nav button{background:#281420;border:1px solid #764358;padding:12px 18px}
+.portal-nav button[aria-selected="true"]{background:#a72243;border-color:#f65978}
+.portal-view[hidden],.results-view[hidden],#idHelpText[hidden],.hero-gif[hidden]{display:none!important}
+.results-view{margin-top:18px}.results-view h2{margin:0 0 10px}.results-list{display:grid;gap:12px;list-style:none;margin:16px 0 0;padding:0}
+.results-list li{border:1px solid #683847;border-radius:12px;padding:14px;background:#23131c}
+.results-list strong{display:block}.results-list small{color:#d3acb6}
+.help-button{background:#39212d;border:1px solid #8f4c61;margin:8px 0 0}
+#idHelpText{margin:12px 0 0;padding:12px;border:1px solid #704453;border-radius:10px;color:#ffd4dc;font-size:13px;line-height:1.6}
+.hero-gif{position:absolute;inset:0 0 0 auto;height:100%;width:auto;max-width:55%;object-fit:cover;opacity:.52;mask-image:linear-gradient(to right,transparent,black 35%)}
+@media(max-width:710px){.hero-gif{max-width:55%;opacity:.25}.portal-nav button{flex:1}}
+@media(prefers-reduced-motion:reduce){.hero-gif{display:none}}
 </style>
 </head>
 <body>
 <div class="shell">
 <header class="top"><a class="brand" href="/" aria-label="Nero Recrutamento"><img src="/nero-mark.svg" alt=""><span><strong>NERO RECRUTAMENTO</strong><small>Conectado ao Nero Bot</small></span></a><a class="top-link" href="https://central-de-horas1.vercel.app/" rel="noopener noreferrer">Painel principal</a></header>
 <main>
-<section class="hero"><div class="hero-inner"><span class="eyebrow">Processo seletivo · Roleplay</span><h1>Seu próximo passo <em>começa aqui.</em></h1><p>Um link por servidor, avaliações separadas e gerenciamento integrado ao Nero Bot.</p></div></section>
-<div class="content">
+<section class="hero"><img class="hero-gif" src="/nero-loop.gif" alt="" onerror="this.hidden=true"><div class="hero-inner"><span class="eyebrow">Processo seletivo · Roleplay</span><h1>Seu próximo passo <em>começa aqui.</em></h1><p>Um link por servidor, avaliações separadas e gerenciamento integrado ao Nero Bot.</p></div></section>
+<nav class="portal-nav" aria-label="Páginas do recrutamento" role="tablist">
+  <button type="button" id="tabProva" role="tab" aria-controls="viewProva" aria-selected="true">📝 Prova</button>
+  <button type="button" id="tabAprovados" role="tab" aria-controls="viewAprovados" aria-selected="false">🏆 Aprovados</button>
+</nav>
+<div class="content portal-view" id="viewProva" role="tabpanel" aria-labelledby="tabProva">
 <section class="panel" aria-labelledby="recruit-title">
 <div class="server"><span id="guildIcon" class="server-icon">N</span><span><strong id="guildName">Identificando servidor…</strong><small id="guildIdInfo">Nero Recrutamento</small></span></div>
 <span class="status"><span class="dot"></span><span id="statusText">Inscrições fechadas</span></span>
 <h2 id="recruit-title">Nenhum recrutamento aberto no momento</h2>
 <p id="statusDescription">Quando um recrutador autorizado abrir um processo seletivo, os candidatos poderão participar pelo link deste servidor.</p>
 <button type="button" disabled id="joinButton">Participar do recrutamento</button>
+<button type="button" class="help-button" id="idHelp">🪪 Pegar meu ID Discord</button>
+<p id="idHelpText" hidden>Na mensagem do painel Nero no Discord, toque em <strong>Pegar meu ID</strong>. O bot mostrará seu número em uma resposta privada para você copiar. Aqui no site, o ID não é detectado automaticamente sem login.</p>
 <form id="identityFlow" class="id-flow" hidden autocomplete="off">
   <div><label for="discordId">Seu ID numérico do Discord</label><input id="discordId" inputmode="numeric" maxlength="25" minlength="15" pattern="[0-9]{15,25}" placeholder="Ex.: 123456789012345678" required></div>
   <div id="captchaWidget" aria-label="Verificação de segurança"></div>
@@ -58,10 +77,17 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
 <aside class="panel" aria-label="Como participar"><span class="eyebrow">Como vai funcionar</span><ol class="steps">
 <li><b>1</b><span>Abra o link enviado pelo seu servidor de RP.</span></li>
 <li><b>2</b><span>Quando a prova estiver aberta, informe seu ID do Discord e confira seu nome e foto.</span></li>
-<li><b>3</b><span>Responda às perguntas de marcar e às escritas.</span></li>
+<li><b>3</b><span>Responda às perguntas de marcar e às escritas dentro do tempo configurado.</span></li>
 <li><b>4</b><span>Aguarde a correção, a revisão e a publicação dos aprovados.</span></li>
-</ol></aside>
+</ol><p class="muted" id="durationNote">⏱️ Duração: definida pelo recrutador.</p></aside>
 </div>
+<section class="panel results-view portal-view" id="viewAprovados" role="tabpanel" aria-labelledby="tabAprovados" hidden>
+  <span class="eyebrow">🏆 Resultado oficial</span>
+  <h2>Aprovados do servidor</h2>
+  <p>Somente candidatos confirmados por um recrutador e publicados oficialmente aparecem nesta lista. Respostas e notas privadas não são divulgadas.</p>
+  <p id="resultsMessage" role="status">Escolha a aba Aprovados para consultar os resultados.</p>
+  <ol id="resultsList" class="results-list"></ol>
+</section>
 </main>
 <footer>© Nero Bot · Plataforma de sistemas para Discord</footer>
 </div>
@@ -71,6 +97,45 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
  const params=new URLSearchParams(location.search);
  const guild=String(params.get('guild')||'');
  const $=id=>document.getElementById(id);
+ $('idHelp').onclick=()=>{$('idHelpText').hidden=!$('idHelpText').hidden};
+ let loadedResults=false;
+ function chooseTab(tab){
+  const approved=tab==='aprovados';
+  $('tabProva').setAttribute('aria-selected',String(!approved));
+  $('tabAprovados').setAttribute('aria-selected',String(approved));
+  $('viewProva').hidden=approved;$('viewAprovados').hidden=!approved;
+  const next=new URL(location.href);
+  if(approved)next.searchParams.set('tab','aprovados');else next.searchParams.delete('tab');
+  history.replaceState(null,'',next);
+  if(approved&&!loadedResults&&/^\d{15,25}$/.test(guild)){
+   loadedResults=true;loadResults();
+  }
+ }
+ async function loadResults(){
+  const msg=$('resultsMessage'),list=$('resultsList');
+  msg.textContent='Consultando resultados publicados…';list.replaceChildren();
+  try{
+   const r=await fetch('/api/aprovados?guild='+encodeURIComponent(guild),{cache:'no-store'});
+   if(!r.ok)throw Error('Consulta indisponível');
+   const data=await r.json();
+   if(!data.available){msg.textContent='A divulgação dos aprovados ainda está sendo preparada neste servidor.';return;}
+   const items=Array.isArray(data.items)?data.items:[];
+   if(!items.length){msg.textContent='Nenhum resultado publicado neste servidor até o momento.';return;}
+   msg.textContent=items.length+' aprovado(s) publicado(s).';
+   for(const item of items){
+    const li=document.createElement('li'),name=document.createElement('strong'),extra=document.createElement('small');
+    name.textContent='🏆 '+String(item.name||'Candidato aprovado');
+    const date=new Date(item.publishedAt);
+    const dateText=Number.isFinite(date.getTime())?date.toLocaleDateString('pt-BR'):'';
+    extra.textContent='Aprovado'+(dateText?' · Publicado em '+dateText:'')+
+      (Number.isFinite(item.scorePercent)?' · '+item.scorePercent+'%':'');
+    li.append(name,extra);list.append(li);
+   }
+  }catch{msg.textContent='Não foi possível carregar os resultados agora.'}
+ }
+ $('tabProva').onclick=()=>chooseTab('prova');
+ $('tabAprovados').onclick=()=>chooseTab('aprovados');
+ if(params.get('tab')==='aprovados')chooseTab('aprovados');
  if(!/^\d{15,25}$/.test(guild)){
    $('guildName').textContent='Servidor não selecionado';$('guildIdInfo').textContent='Solicite o link oficial do seu servidor';
    $('notice').textContent='Este link não identifica um servidor válido. Peça ao recrutador o link correto.';return;
@@ -137,6 +202,8 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
   .then(r=>r.ok?r.json():null).then(data=>{
    if(!data||data.guildId!==guild){$('guildName').textContent='Servidor não disponível';return;}
    $('guildName').textContent=data.name||'Servidor Discord';
+   if(Number.isInteger(data.durationMinutes)&&data.durationMinutes>=5&&data.durationMinutes<=180)
+    $('durationNote').textContent='⏱️ Duração prevista da prova: '+data.durationMinutes+' minutos.';
    if(data.status==='open'&&typeof data.siteKey==='string'&&data.siteKey)enableIdentity(data.siteKey);
    if(typeof data.iconUrl==='string'&&/^https:\/\/cdn\.discordapp\.com\//.test(data.iconUrl)){
     const img=document.createElement('img');img.src=data.iconUrl;img.alt='';$('guildIcon').replaceChildren(img);
