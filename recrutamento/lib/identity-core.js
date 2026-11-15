@@ -23,7 +23,7 @@ function isOpen(round,now=Date.now()){
 function issueSession(secret,{guildId,roundId,userId,closesAt},now=Date.now()){
  assertSecret(secret);
  if(!isSnowflake(guildId)||!isSnowflake(userId)||!/^[0-9a-f-]{36}$/i.test(roundId))throw Error('Sessão inválida');
- const expires=Math.min(now+30*60*1000,Date.parse(closesAt));
+ const expires=Math.min(now+3*60*60*1000,Date.parse(closesAt));
  if(!Number.isFinite(expires)||expires<=now)throw Error('Recrutamento encerrado');
  const payload=Buffer.from(JSON.stringify({guildId,roundId,userId,exp:expires})).toString('base64url');
  const mac=crypto.createHmac('sha256',secret).update(payload).digest('base64url');
