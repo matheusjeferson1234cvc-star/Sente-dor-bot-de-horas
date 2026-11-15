@@ -31,3 +31,22 @@ alter table public.nero_recruitment_identity_challenges enable row level securit
 revoke all on public.nero_recruitment_rounds from anon, authenticated;
 revoke all on public.nero_recruitment_identity_challenges from anon, authenticated;
 -- Sem políticas públicas: o backend server-side é a única via de acesso.
+
+-- Resultados visíveis somente após revisão humana E publicação.
+-- Escrita permitida apenas pelo backend administrativo autenticado.
+create table if not exists public.nero_recruitment_approvals (
+ guild_id text not null check(guild_id ~ '^[0-9]{15,25}$'),
+ round_id uuid not null references public.nero_recruitment_rounds(id) on delete cascade,
+ user_id text not null check(user_id ~ '^[0-9]{15,25}$'),
+ display_name text not null check(length(display_name) between 1 and 90),
+ score_percent numeric(5,2) check(score_percent between 0 and 100),
+ show_score boolean not null default false,
+ confirmed_by text not null check(confirmed_by ~ '^[0-9]{15,25}$'),
+ confirmed_at timestamptz not null,
+ published_at timestamptz,
+ primary key(guild_id,round_id,user_id)
+);
+create index if not exists idx_nero_recruit_published
+ on public.nero_recruitment_approvals(guild_id,published_at desc) where published_at is not null;
+alter table public.nero_recruitment_approvals enable row level security;
+revoke all on public.nero_recruitment_approvals from anon, authenticated;
