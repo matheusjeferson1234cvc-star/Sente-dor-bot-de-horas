@@ -1,6 +1,7 @@
 const warningDecision=require('../warning-decision');
 const botSchema=require('../bot-config-schema');
 const shiftAccess=require('../shift-access');
+const recruitment=require('../recruitment-config');
 const crypto=require('node:crypto');
 const cookie=(req,key)=>Object.fromEntries((req.headers.cookie||'').split(';').map(x=>x.trim().split('=')))[key];
 const json=(res,status,data)=>{res.status(status).setHeader('Cache-Control','no-store');res.json(data)};
@@ -306,6 +307,23 @@ module.exports=async(req,res)=>{
   const gid=String(req.query.guildId||'');
   if(!/^\d{15,25}$/.test(gid))return json(res,400,{error:'Servidor inválido'});
   const rights=await authorized(gid,user);if(!rights.view)return json(res,403,{error:'Sem acesso'});
+  if(path==='recruitment-config'){
+   // Apenas o dono ou administrador real do servidor acessa os gabaritos.
+   if(!rights.edit)return json(res,403,{error:'Somente administradores podem configurar provas'});
+   if(!['GET','POST'].includes(req.method))return json(res,405,{error:'Método não permitido'});
+   const kind=String(req.query?.kind||'');
+   if(!recruitment.kinds.includes(kind))return json(res,400,{error:'Tipo de prova inválido'});
+   if(req.method==='GET'){
+    const found=await db('nero_recruitment_templates',{query:'?guild_id=eq.'+gid+'&kind=eq.'+kind+'&select=config,updated_at&limit=1'});
+    return json(res,200,{guildId:gid,kind,config:found.length?found[0].config:recruitment.starting(kind),saved:!!found.length,updatedAt:found[0]?.updated_at||null,applicationsOpen:false});
+   }
+   if(!req.headers.origin||!req.headers.host)return json(res,403,{error:'Origem não identificada'});
+   try{const origin=new URL(req.headers.origin);if(origin.protocol!=='https:'||origin.host!==req.headers.host)return json(res,403,{error:'Origem não autorizada'});}
+   catch{return json(res,403,{error:'Origem inválida'})}
+   let config;try{config=recruitment.normalize(req.body||{});}catch(e){return json(res,400,{error:e.message});}
+   await db('nero_recruitment_templates',{method:'POST',body:{guild_id:gid,kind,config,updated_at:new Date().toISOString()}});
+   return json(res,200,{ok:true,guildId:gid,kind,questionCount:config.questions.length,applicationsOpen:false});
+  }
   if(path==='announce-channels'&&req.method==='GET'){
    if(!rights.edit)return json(res,403,{error:'Somente donos e Administradores podem publicar comunicados'});
    if(!process.env.DISCORD_BOT_TOKEN)return json(res,503,{error:'Nero Bot não está configurado na Vercel'});
