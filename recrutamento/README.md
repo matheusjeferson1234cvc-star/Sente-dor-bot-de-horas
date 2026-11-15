@@ -1,31 +1,37 @@
-# Nero Recrutamento · Painel Components V2
+# Nero Recrutamento V2 — guia de liberação
 
-Site separado do Nero principal, com inscrições fechadas por padrão e dados isolados por ID de servidor.
+O site de provas é separado do Nero Bot. Os candidatos não precisam fazer login via Discord, mas confirmam a posse do ID recebendo código privado do bot.
 
-## Painel Discord
-- Layout Components V2 (flag 32768), GIF original nero-loop.gif e botões Participar da prova, Pegar meu ID e Aprovados.
-- A duração da prova é configurável no editor do painel principal (5 a 180 minutos; padrão 30).
-- GIF de servidor opcional via HTTPS terminando em .gif. O emoji animado do servidor precisa de nome e ID válidos; sem esses dados aparecem emojis comuns.
-- A página pública oferece abas Prova e Aprovados. A API de aprovados retorna apenas resultados confirmados e publicados, nunca rascunhos, respostas ou gabaritos.
+## 1. Preparar o recrutamento
+1. No Nero principal, faça login Discord como administrador, selecione o servidor e clique em Recrutamento.
+2. Configure o cargo de recrutador. Admins podem editar todas as 20 questões e escolher duração da prova (5 a 180 minutos, padrão 30).
+3. Publique o painel Components V2 no canal escolhido (GIF, emoji, botões Participar, Meu ID, Aprovados).
+4. Em Central de liberação de provas, selecione a categoria e o período total de inscrições (15 a 1440 minutos).
+5. Clique em Abrir prova agora. Encerre manualmente quando quiser ou aguarde o fim do período.
 
-## Integração pendente no bot Discloud
-O botão Pegar meu ID envia a custom_id nero:recruit:my-id. O código do bot que recebe interactionCreate precisa chamar a função handleMyIdInteraction exportada por recruitment-panel.js. A função responde de modo privado ao autor do clique, com o ID obtido diretamente da interação Discord.
+## 2. Candidato
+- Usa o botão Pegar meu ID no Discord e recebe o número em mensagem privada do próprio bot, depois informa esse ID no site.
+- Código de oito números enviado por DM comprova a posse da conta; o site não exige OAuth.
+- Uma prova por usuário e por recrutamento. Tempo individual é validado no servidor desde a primeira entrada e limitado pelo encerramento do recrutamento.
+- Pode salvar rascunho e enviar. Após o prazo ou encerramento, não pode mais alterar respostas. O gabarito nunca é enviado ao candidato.
 
-## Configuração e segurança
-- Aplicar a migração SQL de recrutamento/sql/identity.sql no projeto Supabase adequado após revisar e testar.
-- Configurar SUPABASE_URL, SUPABASE_SECRET_KEY, DISCORD_BOT_TOKEN, NERO_IDENTITY_SECRET, TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY somente no backend Vercel, sem enviar segredos ao repositório.
-- NERO_PUBLIC_EXAM_ENABLED fica desligado até implementar e testar envio de provas, prazo por candidato, correção, revisão humana e publicação oficial.
-- Salvar a duração configura a prova, mas o bloqueio automático por tempo ainda depende do módulo de submissão que não está concluído.
-- A aba Aprovados funciona como consulta a registros oficialmente publicados; as aprovações só poderão ser escritas pelo backend administrativo autorizado, ainda pendente.
-- Nenhuma alteração nas contagens do bate-ponto.
+## 3. Correção e publicação
+- Na aba Revisão e publicação dos aprovados, selecione o recrutamento encerrado.
+- Questões objetivas têm correção exata; escritas recebem estimativa baseada em rubrica e **sempre exigem avaliação humana**. O recrutador ajusta nota e confirma a decisão.
+- A nota mínima é pelo menos 50%. Para aprovar, informe nome RP e ID RP. O apelido segue [TAG] Nome | ID RP.
+- Configure canal de anúncio, cargo de aprovado, TAG e se a nota aparece.
+- Depois de revisar todos, confirme Publicar aprovados. O backend tenta aplicar cargos/apelidos e mandar uma mensagem única. Se falhar, consulte os logs antes de repetir para não duplicar anúncios.
+- A página pública Aprovados mostra apenas decisões confirmadas e publicadas, sem respostas das provas.
 
-## Como liberar uma prova
+## Ambiente de publicação
+- Supabase: schema de recrutamento/sql/identity.sql, tabelas com RLS sem acesso público.
+- Site Nero principal na Vercel: DISCORD_BOT_TOKEN, SUPABASE_URL, SUPABASE_SECRET_KEY, SESSION_SECRET, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI.
+- Site Nero Recrutamento na Vercel (backend apenas): SUPABASE_URL, SUPABASE_SECRET_KEY, DISCORD_BOT_TOKEN, NERO_IDENTITY_SECRET (aleatório e com pelo menos 32 bytes), TURNSTILE_SECRET_KEY, TURNSTILE_SITE_KEY.
+- Usar NERO_PUBLIC_EXAM_ENABLED=true no site público somente quando os serviços de identidade, prova e bot estiverem configurados e testados; o painel administrativo verifica automaticamente a prontidão. Nunca colocar segredos no GitHub ou navegador.
+- O bot hospedado na Discloud precisa tratar a interação nero:recruit:my-id com handleMyIdInteraction do arquivo recruitment-panel.js. A resposta é privada (ephemeral).
+- **Atenção:** a Vercel de recrutamento precisa estar conectada à versão atualizada e com Root Directory recrutamento. Publicação do repositório não garante atualização automática se o projeto estiver vinculado a outro ramo.
+- Não há integração do Discord via webhook ou login de candidato. Não se alteram horas ou turnos.
 
-1. No projeto `nero-recrutamento` da Vercel, configure `SUPABASE_SECRET_KEY`, `DISCORD_BOT_TOKEN`, `TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET_KEY`. A URL do Supabase, o segredo privado de identidade e a trava de inscrições já foram cadastrados. Nunca cole tokens no GitHub nem no navegador do candidato.
-2. Depois de conferir as integrações, defina `NERO_PUBLIC_EXAM_ENABLED=true` **no projeto separado de recrutamento** e faça um novo deploy de produção. `/api/pronto` deve responder `ready:true` antes de abrir qualquer prova.
-3. Entre no painel principal `central-de-horas1.vercel.app` pelo Discord, selecione o servidor e abra `Recrutamento`.
-4. No editor da categoria Polícia RP ou Organização RP, ajuste as 20 perguntas, a nota mínima e o tempo individual (5 a 180 minutos), e clique em `Salvar perguntas`.
-5. Em `Central de liberação de provas`, escolha a categoria e por quanto tempo as inscrições ficarão abertas. Clique em `Abrir prova agora`. O período de inscrições é diferente do tempo individual de cada candidato.
-6. Se quiser encerrar antecipadamente, clique em `Encerrar prova agora`. O backend verifica o cargo verdadeiro do recrutador no Discord e bloqueia novas respostas quando a rodada fecha.
-
-**Observações:** publicar um painel no Discord não abre inscrições; o botão para abrir só funciona quando a integração pública estiver pronta. O prazo da prova é validado pelo servidor, não pelo relógio do navegador. Correção das questões escritas, revisão e publicação de aprovados exigem um módulo administrativo de avaliação separado. O botão de obter ID no Discord requer que o bot em Discloud tenha conectado o evento `interactionCreate` ao manipulador `handleMyIdInteraction`.
+## Estados do processo
+- closed: não aberto; open: inscrições abertas; review: revisão humana; publishing: publicação em andamento; complete: finalizado.
+- Falhas na publicação podem deixar o estado publishing e exigem inspeção de logs para evitar duplicidade.

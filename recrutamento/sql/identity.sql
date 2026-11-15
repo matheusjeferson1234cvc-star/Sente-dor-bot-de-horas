@@ -90,3 +90,27 @@ create table if not exists public.nero_recruitment_attempts (
 create index if not exists idx_nero_recruit_attempts_round on public.nero_recruitment_attempts(guild_id,round_id,state);
 alter table public.nero_recruitment_attempts enable row level security;
 revoke all on public.nero_recruitment_attempts from anon, authenticated;
+
+-- Revisão humana e publicação em lote (compatível com a migração já aplicada)
+alter table public.nero_recruitment_rounds drop constraint if exists nero_recruitment_rounds_state_check;
+alter table public.nero_recruitment_rounds add constraint nero_recruitment_rounds_state_check
+ check (state in ('closed','open','review','publishing','complete'));
+alter table public.nero_recruitment_attempts add column if not exists rp_name text;
+alter table public.nero_recruitment_attempts add column if not exists rp_id text;
+alter table public.nero_recruitment_permissions add column if not exists approved_role_id text;
+alter table public.nero_recruitment_permissions add column if not exists announce_channel_id text;
+alter table public.nero_recruitment_permissions add column if not exists nickname_tag text not null default 'PM';
+alter table public.nero_recruitment_permissions add column if not exists show_scores boolean not null default false;
+create table if not exists public.nero_recruitment_publications(
+ guild_id text not null check(guild_id ~ '^[0-9]{15,25}$'),
+ round_id uuid not null references public.nero_recruitment_rounds(id) on delete cascade,
+ channel_id text,
+ message_id text,
+ initiated_by text not null check(initiated_by ~ '^[0-9]{15,25}$'),
+ started_at timestamptz not null default now(),
+ published_at timestamptz,
+ state text not null check(state in ('publishing','sent','complete')),
+ primary key(guild_id,round_id)
+);
+alter table public.nero_recruitment_publications enable row level security;
+revoke all on public.nero_recruitment_publications from anon, authenticated;

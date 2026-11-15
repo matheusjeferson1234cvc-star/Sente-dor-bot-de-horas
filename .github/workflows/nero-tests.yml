@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - feat/nero-validacao-id-20261115
+      - feat/nero-publicacao-final-20261115
   pull_request:
     branches:
       - main
