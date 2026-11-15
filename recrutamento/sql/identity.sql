@@ -50,3 +50,43 @@ create index if not exists idx_nero_recruit_published
  on public.nero_recruitment_approvals(guild_id,published_at desc) where published_at is not null;
 alter table public.nero_recruitment_approvals enable row level security;
 revoke all on public.nero_recruitment_approvals from anon, authenticated;
+
+-- Controle administrativo de abertura/encerramento e responsáveis autorizados.
+alter table public.nero_recruitment_rounds
+ add column if not exists duration_minutes integer not null default 30 check(duration_minutes between 5 and 180);
+alter table public.nero_recruitment_rounds
+ add column if not exists config_snapshot jsonb not null default '{}'::jsonb;
+alter table public.nero_recruitment_rounds add column if not exists opened_by text;
+alter table public.nero_recruitment_rounds add column if not exists closed_by text;
+alter table public.nero_recruitment_rounds add column if not exists closed_at timestamptz;
+create unique index if not exists idx_nero_recruit_one_open_per_guild
+ on public.nero_recruitment_rounds (guild_id) where state='open';
+create table if not exists public.nero_recruitment_permissions (
+ guild_id text primary key check(guild_id ~ '^[0-9]{15,25}$'),
+ recruiter_role_id text check(recruiter_role_id is null or recruiter_role_id ~ '^[0-9]{15,25}$'),
+ updated_at timestamptz not null default now(),
+ updated_by text not null check(updated_by ~ '^[0-9]{15,25}$')
+);
+alter table public.nero_recruitment_permissions enable row level security;
+revoke all on public.nero_recruitment_permissions from anon, authenticated;
+
+-- Tempo individual, respostas e trilha de revisão mantidos privados.
+create table if not exists public.nero_recruitment_attempts (
+ guild_id text not null check(guild_id ~ '^[0-9]{15,25}$'),
+ round_id uuid not null references public.nero_recruitment_rounds(id) on delete cascade,
+ user_id text not null check(user_id ~ '^[0-9]{15,25}$'),
+ started_at timestamptz not null default now(),
+ deadline_at timestamptz not null,
+ submitted_at timestamptz,
+ answers jsonb not null default '[]'::jsonb,
+ state text not null default 'in_progress'
+  check(state in ('in_progress','submitted','expired','under_review','approved','rejected')),
+ reviewed_by text,
+ reviewed_at timestamptz,
+ final_score numeric(5,2) check(final_score between 0 and 100),
+ primary key(guild_id,round_id,user_id),
+ check(deadline_at >= started_at)
+);
+create index if not exists idx_nero_recruit_attempts_round on public.nero_recruitment_attempts(guild_id,round_id,state);
+alter table public.nero_recruitment_attempts enable row level security;
+revoke all on public.nero_recruitment_attempts from anon, authenticated;
