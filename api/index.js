@@ -122,6 +122,18 @@ const authorized=async(guild,user)=>{
   throw e;
  }
 };
+const checkRecruitmentPublicReady=async()=>{
+ try{
+  const base=process.env.NERO_RECRUITMENT_SITE_URL||'https://nero-recrutamento.vercel.app/';
+  const url=new URL('/api/pronto',base);
+  if(url.protocol!=='https:'||url.username||url.password)throw Error('URL inválida');
+  const response=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(6500)});
+  if(!response.ok)throw Error('Serviço não disponível');
+  const data=await response.json();
+  return {ready:data.ready===true,missing:Array.isArray(data.missing)?data.missing.slice(0,12):[]};
+ }catch{return {ready:false,missing:['Site separado de recrutamento indisponível']}}
+};
+
 module.exports=async(req,res)=>{
  try{
   const path=req.centralRoute||req.query?.centralRoute||(req.url||'').split('?')[0].replace(/^\/api\/?/,'');
@@ -349,9 +361,10 @@ module.exports=async(req,res)=>{
    if(!admin&&!recruiter)return json(res,403,{error:'Somente o administrador ou o cargo de recrutador configurado pode controlar as provas'});
    const list=await db('nero_recruitment_rounds',{query:'?guild_id=eq.'+gid+'&select=id,kind,state,opens_at,closes_at,duration_minutes,opened_by,closed_by,closed_at&order=created_at.desc&limit=12'});
    const now=Date.now(),live=list.find(r=>r.state==='open'&&Date.parse(r.opens_at)<=now&&Date.parse(r.closes_at)>now);
+   const readiness=await checkRecruitmentPublicReady();
    if(req.method==='GET'){
     return json(res,200,{
-     guildId:gid,admin,recruiter,enabled:process.env.NERO_RECRUITMENT_GO_LIVE==='true',
+     guildId:gid,admin,recruiter,enabled:readiness.ready,missing:readiness.missing,
      liveRound:live||null,
      rounds:list.map(r=>({...r,effectiveState:r.state==='open'&&Date.parse(r.closes_at)<=now?'review':r.state}))
     });
@@ -369,8 +382,8 @@ module.exports=async(req,res)=>{
     return json(res,200,{ok:true,closed:true,roundId:current.id,applicationsOpen:false,changed:changed.length});
    }
    if(action!=='open')return json(res,400,{error:'Ação inválida'});
-   if(process.env.NERO_RECRUITMENT_GO_LIVE!=='true')
-    return json(res,503,{error:'A liberação pública ainda não está ativada: integração de prova/Discord precisa passar pelos testes finais.'});
+   if(!readiness.ready)
+    return json(res,503,{error:'Não é possível abrir a prova: '+(readiness.missing.join(', ')||'integração pública indisponível')});
    const kind=String(req.body?.kind||'');
    const windowMinutes=Number(req.body?.windowMinutes||120);
    if(!recruitment.kinds.includes(kind))return json(res,400,{error:'Categoria da prova inválida'});
