@@ -26,6 +26,9 @@ h1{font-size:clamp(30px,6vw,50px);line-height:1.1;letter-spacing:-.035em;margin:
 footer{margin-top:25px;font-size:12px;color:#ac8c9b;text-align:center}.skeleton{opacity:.65}button{background:linear-gradient(110deg,#e22c4c,#9f1b3c);border:0;border-radius:10px;color:white;font-weight:800;padding:13px 19px;font-size:14px}
 button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
 @media(max-width:710px){.content{grid-template-columns:1fr}.shell{padding:15px 14px 40px}.hero-inner{padding:28px 22px}.hero:before{opacity:.18;background-position:right -75px center}.panel{padding:22px}.top-link{font-size:11px;padding:9px}.brand strong{font-size:13px}}
+.id-flow{display:grid;gap:13px;padding-top:20px;margin-top:18px;border-top:1px solid #ffffff24}.id-flow[hidden],.code-step[hidden]{display:none}
+.id-flow label{display:block;font-size:12px;font-weight:700;color:#f3c8d3;margin:0 0 6px}.id-flow input{width:100%;background:#130d14;color:#fff;border:1px solid #835061;border-radius:9px;padding:13px;font-size:15px}
+.id-flow input:focus{outline:2px solid #f04c6d}.id-flow button{justify-self:start}.code-step{display:grid;gap:11px}.id-result{font-size:13px;color:#f9cad6;line-height:1.6}
 </style>
 </head>
 <body>
@@ -40,6 +43,16 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
 <h2 id="recruit-title">Nenhum recrutamento aberto no momento</h2>
 <p id="statusDescription">Quando um recrutador autorizado abrir um processo seletivo, os candidatos poderão participar pelo link deste servidor.</p>
 <button type="button" disabled id="joinButton">Participar do recrutamento</button>
+<form id="identityFlow" class="id-flow" hidden autocomplete="off">
+  <div><label for="discordId">Seu ID numérico do Discord</label><input id="discordId" inputmode="numeric" maxlength="25" minlength="15" pattern="[0-9]{15,25}" placeholder="Ex.: 123456789012345678" required></div>
+  <div id="captchaWidget" aria-label="Verificação de segurança"></div>
+  <button type="button" id="sendCode">Enviar código no Discord</button>
+  <div id="codeStep" class="code-step" hidden>
+    <div><label for="discordCode">Código recebido na mensagem privada</label><input id="discordCode" inputmode="numeric" maxlength="8" minlength="8" pattern="[0-9]{8}" placeholder="8 dígitos"></div>
+    <button type="button" id="checkCode">Confirmar código</button>
+  </div>
+  <div id="identityResult" class="id-result" role="status" aria-live="polite">Não é necessário fazer login pelo Discord. Você precisa confirmar que a conta informada é sua.</div>
+</form>
 <div class="notice" role="status" id="notice">As inscrições e o envio de respostas permanecem bloqueados enquanto o recrutamento estiver fechado.</div>
 </section>
 <aside class="panel" aria-label="Como participar"><span class="eyebrow">Como vai funcionar</span><ol class="steps">
@@ -63,12 +76,68 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
    $('notice').textContent='Este link não identifica um servidor válido. Peça ao recrutador o link correto.';return;
  }
  $('guildIdInfo').textContent='Servidor Discord · '+guild;
+
+ function enableIdentity(siteKey){
+   $('statusText').textContent='Inscrições abertas';
+   $('recruit-title').textContent='Recrutamento aberto';
+   $('statusDescription').textContent='Confirme seu ID do Discord para participar do processo seletivo deste servidor.';
+   $('notice').textContent='Somente quem comprovar o controle da conta do Discord poderá enviar respostas.';
+   $('joinButton').disabled=false;
+   const result=$('identityResult'),button=$('joinButton');
+   let widgetId=null,loaded=false;
+   function say(message){result.textContent=message}
+   button.addEventListener('click',()=>{
+     $('identityFlow').hidden=false;button.hidden=true;
+     if(loaded)return;loaded=true;
+     const script=document.createElement('script');
+     script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+     script.async=true;
+     script.onload=()=>{
+       if(window.turnstile)widgetId=window.turnstile.render('#captchaWidget',{sitekey:siteKey});
+       else say('Verificação de segurança indisponível.');
+     };
+     script.onerror=()=>say('Não foi possível carregar a verificação de segurança.');
+     document.head.appendChild(script);
+   });
+   async function post(body){
+     const r=await fetch('/api/identidade',{method:'POST',credentials:'same-origin',
+       headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:guild,...body})});
+     const data=await r.json();
+     if(!r.ok)throw Error(data.error||'Serviço indisponível');
+     return data;
+   }
+   $('sendCode').addEventListener('click',async()=>{
+     const input=$('discordId');
+     if(!input.reportValidity())return;
+     const captcha=widgetId!==null&&window.turnstile?window.turnstile.getResponse(widgetId):'';
+     if(!captcha){say('Conclua a verificação de segurança antes de continuar.');return}
+     $('sendCode').disabled=true;say('Solicitação em andamento…');
+     try{
+       const d=await post({action:'start',userId:input.value,captchaToken:captcha});
+       say(d.message||'Confira suas mensagens privadas.');
+       $('codeStep').hidden=false;
+     }catch(e){say(e.message)}
+     finally{$('sendCode').disabled=false;if(widgetId!==null&&window.turnstile)window.turnstile.reset(widgetId)}
+   });
+   $('checkCode').addEventListener('click',async()=>{
+     const code=$('discordCode'),input=$('discordId');
+     if(!input.reportValidity()||!code.reportValidity())return;
+     $('checkCode').disabled=true;say('Conferindo código…');
+     try{
+       const d=await post({action:'confirm',userId:input.value,code:code.value});
+       say(d.message||'Conta confirmada.');$('codeStep').hidden=true;
+       $('sendCode').disabled=true;input.readOnly=true;
+     }catch(e){say(e.message)}
+     finally{$('checkCode').disabled=false}
+   });
+ }
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),7000);
  fetch('/api/status?guild='+encodeURIComponent(guild),{signal:controller.signal,cache:'no-store'})
   .then(r=>r.ok?r.json():null).then(data=>{
    if(!data||data.guildId!==guild){$('guildName').textContent='Servidor não disponível';return;}
    $('guildName').textContent=data.name||'Servidor Discord';
+   if(data.status==='open'&&typeof data.siteKey==='string'&&data.siteKey)enableIdentity(data.siteKey);
    if(typeof data.iconUrl==='string'&&/^https:\/\/cdn\.discordapp\.com\//.test(data.iconUrl)){
     const img=document.createElement('img');img.src=data.iconUrl;img.alt='';$('guildIcon').replaceChildren(img);
    }
