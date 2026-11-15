@@ -6,7 +6,7 @@
  ['bateponto','Bate-ponto','Cartões, justificativas, equipes, painéis, logs e configurações'],
  ['horas-normais','Horas normais','Novo módulo em preparação'],
  ['registro','Registro','Módulo em preparação'],
- ['recrutamento','Recrutamento','Módulo em preparação'],
+ ['recrutamento','Recrutamento','Link do site separado para o servidor selecionado'],
  ['gestao','Gestão de cargos','Módulo em preparação'],
  ['jornada','Jornada e ponto','Turnos, presença e cartões'],
  ['presenca','Controle de presença','Meta diária e faltas'],
