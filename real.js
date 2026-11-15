@@ -298,6 +298,7 @@ function renderRecruitmentModule(rows){
   const url='https://nero-recrutamento.vercel.app/?guild='+encodeURIComponent(guild);
   const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.className='button';link.textContent='Abrir link do servidor ↗';
   area.append(link);
+  const resultsLink=document.createElement('a');resultsLink.href=url+'&tab=aprovados';resultsLink.target='_blank';resultsLink.rel='noopener noreferrer';resultsLink.className='button ghost';resultsLink.textContent='🏆 Ver aba de aprovados ↗';area.append(resultsLink);
   const caption=el('p',url);caption.style.overflowWrap='anywhere';area.append(caption);
  }else area.append(el('p','Selecione um servidor antes de configurar as provas.'));
  rows.append(area);
