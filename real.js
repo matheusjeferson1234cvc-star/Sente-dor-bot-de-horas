@@ -238,7 +238,7 @@ function renderRecruitmentPublish(rows,guild){
  }
  const section=el('section',undefined,'recruit-editor');
  section.append(el('h3','Painel de recrutamento no Discord'),
-  el('p','Escolha o canal e publique uma mensagem do Nero Bot com o botão Participar do recrutamento. Cada servidor recebe seu próprio link. Isso não abre inscrições.'));
+  el('p','Escolha um canal e publique o painel Components V2 com GIF, emojis, duração da prova e botões Participar, Pegar meu ID e Aprovados. Publicar não abre inscrições.'));
  rows.append(section);
  if(cache.channels===null&&!cache.loading&&!cache.error){
   cache.loading=true;
@@ -274,7 +274,7 @@ function renderRecruitmentPublish(rows,guild){
   cache.sending=true;publish.disabled=true;publish.textContent='Publicando...';
   try{
    const result=await api('index?centralRoute=recruitment-panel&guildId='+encodeURIComponent(guild),{
-    method:'POST',body:JSON.stringify({channelId:cache.selected})
+    method:'POST',body:JSON.stringify({channelId:cache.selected,kind:state.recruitKind})
    });
    cache.lastSentUrl=result.url||'';
    await uiNotice('Painel enviado para o canal escolhido. As inscrições continuam fechadas.','Painel publicado');
@@ -335,6 +335,30 @@ function renderRecruitmentModule(rows){
  const scoreInput=el('input');scoreInput.type='number';scoreInput.min='1';scoreInput.max='100';scoreInput.step='1';
  scoreInput.value=String(cfg.passPercent);scoreInput.oninput=()=>{cfg.passPercent=Number(scoreInput.value);mark()};
  score.append(scoreInput);controls.append(score);
+ const duration=el('label',undefined,'recruit-score');
+ duration.append(el('span','⏱️ Duração máxima da prova (minutos)'));
+ const durationSelect=el('select');
+ for(const minutes of [5,10,15,20,30,45,60,90,120,180]){
+  const o=el('option',minutes+' minutos');o.value=String(minutes);durationSelect.append(o);
+ }
+ durationSelect.value=String(cfg.durationMinutes||30);
+ durationSelect.onchange=()=>{cfg.durationMinutes=Number(durationSelect.value);mark()};
+ duration.append(durationSelect);controls.append(duration);
+ const gifLabel=el('label',undefined,'recruit-score');gifLabel.append(el('span','🎞️ GIF do painel Discord (opcional)'));
+ const gifInput=el('input');gifInput.type='url';gifInput.placeholder='https://exemplo.com/nero.gif';
+ gifInput.maxLength=400;gifInput.value=String(cfg.gifUrl||'');
+ gifInput.oninput=()=>{cfg.gifUrl=gifInput.value.trim();mark()};
+ gifLabel.append(gifInput);controls.append(gifLabel);
+ const emojiNameLabel=el('label',undefined,'recruit-score');emojiNameLabel.append(el('span','✨ Nome do emoji animado do servidor (opcional)'));
+ const emojiNameInput=el('input');emojiNameInput.type='text';emojiNameInput.maxLength=32;emojiNameInput.placeholder='nero';
+ emojiNameInput.value=String(cfg.animatedEmojiName||'');
+ emojiNameInput.oninput=()=>{cfg.animatedEmojiName=emojiNameInput.value.trim();mark()};
+ emojiNameLabel.append(emojiNameInput);controls.append(emojiNameLabel);
+ const emojiIdLabel=el('label',undefined,'recruit-score');emojiIdLabel.append(el('span','✨ ID do emoji animado (opcional)'));
+ const emojiIdInput=el('input');emojiIdInput.type='text';emojiIdInput.inputMode='numeric';emojiIdInput.placeholder='123456789012345678';
+ emojiIdInput.value=String(cfg.animatedEmojiId||'');
+ emojiIdInput.oninput=()=>{cfg.animatedEmojiId=emojiIdInput.value.trim();mark()};
+ emojiIdLabel.append(emojiIdInput);controls.append(emojiIdLabel);
  const count=el('p',cfg.questions.length+' questões · '+cfg.questions.filter(q=>q.type==='choice').length+' de marcar · '+cfg.questions.filter(q=>q.type==='written').length+' escritas','recruit-count');controls.append(count);
  const inputs=el('div',undefined,'recruit-question-list');
  cfg.questions.forEach((question,i)=>{
