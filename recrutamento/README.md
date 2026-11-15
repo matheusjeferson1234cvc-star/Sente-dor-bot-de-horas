@@ -18,3 +18,14 @@ O botão Pegar meu ID envia a custom_id nero:recruit:my-id. O código do bot que
 - Salvar a duração configura a prova, mas o bloqueio automático por tempo ainda depende do módulo de submissão que não está concluído.
 - A aba Aprovados funciona como consulta a registros oficialmente publicados; as aprovações só poderão ser escritas pelo backend administrativo autorizado, ainda pendente.
 - Nenhuma alteração nas contagens do bate-ponto.
+
+## Como liberar uma prova
+
+1. No projeto `nero-recrutamento` da Vercel, configure `SUPABASE_SECRET_KEY`, `DISCORD_BOT_TOKEN`, `TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET_KEY`. A URL do Supabase, o segredo privado de identidade e a trava de inscrições já foram cadastrados. Nunca cole tokens no GitHub nem no navegador do candidato.
+2. Depois de conferir as integrações, defina `NERO_PUBLIC_EXAM_ENABLED=true` **no projeto separado de recrutamento** e faça um novo deploy de produção. `/api/pronto` deve responder `ready:true` antes de abrir qualquer prova.
+3. Entre no painel principal `central-de-horas1.vercel.app` pelo Discord, selecione o servidor e abra `Recrutamento`.
+4. No editor da categoria Polícia RP ou Organização RP, ajuste as 20 perguntas, a nota mínima e o tempo individual (5 a 180 minutos), e clique em `Salvar perguntas`.
+5. Em `Central de liberação de provas`, escolha a categoria e por quanto tempo as inscrições ficarão abertas. Clique em `Abrir prova agora`. O período de inscrições é diferente do tempo individual de cada candidato.
+6. Se quiser encerrar antecipadamente, clique em `Encerrar prova agora`. O backend verifica o cargo verdadeiro do recrutador no Discord e bloqueia novas respostas quando a rodada fecha.
+
+**Observações:** publicar um painel no Discord não abre inscrições; o botão para abrir só funciona quando a integração pública estiver pronta. O prazo da prova é validado pelo servidor, não pelo relógio do navegador. Correção das questões escritas, revisão e publicação de aprovados exigem um módulo administrativo de avaliação separado. O botão de obter ID no Discord requer que o bot em Discloud tenha conectado o evento `interactionCreate` ao manipulador `handleMyIdInteraction`.
