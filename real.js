@@ -238,7 +238,7 @@ function renderRecruitmentPublish(rows,guild){
  }
  const section=el('section',undefined,'recruit-editor');
  section.append(el('h3','Painel de recrutamento no Discord'),
-  el('p','Escolha o canal e publique uma mensagem do Nero Bot com o botão Participar do recrutamento. Cada servidor recebe seu próprio link. Isso não abre inscrições.'));
+  el('p','Escolha um canal e publique o painel Components V2 com GIF, emojis, duração da prova e botões Participar, Pegar meu ID e Aprovados. Publicar não abre inscrições.'));
  rows.append(section);
  if(cache.channels===null&&!cache.loading&&!cache.error){
   cache.loading=true;
@@ -274,7 +274,7 @@ function renderRecruitmentPublish(rows,guild){
   cache.sending=true;publish.disabled=true;publish.textContent='Publicando...';
   try{
    const result=await api('index?centralRoute=recruitment-panel&guildId='+encodeURIComponent(guild),{
-    method:'POST',body:JSON.stringify({channelId:cache.selected})
+    method:'POST',body:JSON.stringify({channelId:cache.selected,kind:state.recruitKind})
    });
    cache.lastSentUrl=result.url||'';
    await uiNotice('Painel enviado para o canal escolhido. As inscrições continuam fechadas.','Painel publicado');
@@ -288,6 +288,112 @@ function renderRecruitmentPublish(rows,guild){
   link.textContent='Ver painel publicado no Discord ↗';section.append(link);
  }
 }
+// Controle de abertura/encerramento. Autorização sempre refeita no backend pelo Discord.
+const recruitmentReleaseUI={guild:null,data:null,access:null,loading:false,accessLoading:false,accessError:false,error:'',busy:false,kind:'policia',windowMinutes:120};
+function renderRecruitmentRelease(rows,guild){
+ const cache=recruitmentReleaseUI;
+ if(cache.guild!==guild){cache.guild=guild;cache.data=null;cache.access=null;cache.loading=false;cache.accessLoading=false;cache.accessError=false;cache.error='';cache.busy=false;}
+ const box=el('section',undefined,'recruit-editor');
+ box.append(el('h3','🔓 Central de liberação de provas'));
+ rows.append(box);
+ if(!cache.data&&!cache.loading&&!cache.error){
+  cache.loading=true;
+  api('index?centralRoute=recruitment-round&guildId='+encodeURIComponent(guild))
+   .then(d=>{if(cache.guild===guild){cache.data=d;cache.error='';}})
+   .catch(e=>{if(cache.guild===guild)cache.error=e.message||'Falha ao consultar a liberação';})
+   .finally(()=>{if(cache.guild===guild){cache.loading=false;if(state.tab==='recrutamento')render();}});
+ }
+ if(cache.loading){box.append(el('p','Conferindo permissões e estado do recrutamento...'));return}
+ if(cache.error){
+  if(!state.canEdit)return;
+  box.append(el('p',cache.error,'warning-note'));
+  const retry=el('button','Atualizar status','button ghost');retry.onclick=()=>{cache.error='';render()};box.append(retry);return;
+ }
+ const data=cache.data;if(!data)return;
+ const live=data.liveRound;
+ const summary=live?'🟢 Inscrições abertas · '+(live.kind==='policia'?'Polícia RP':'Organização RP'):
+  '🔴 Nenhuma prova aberta neste servidor';
+ box.append(el('p',summary,'recruit-count'));
+ if(live){
+  const closes=new Date(live.closes_at);
+  const info=el('p','Fecha automaticamente em '+closes.toLocaleString('pt-BR')+
+   ' · tempo por candidato: '+live.duration_minutes+' minutos','hint');
+  box.append(info);
+ }else box.append(el('p','Para liberar: salve as perguntas, escolha a categoria e o tempo de inscrição, depois clique em Abrir prova.','hint'));
+ const fields=el('div',undefined,'recruit-actions');
+ const kindLabel=el('label',undefined,'recruit-score');kindLabel.append(el('span','📋 Qual prova liberar?'));
+ const kindSel=el('select');
+ for(const [v,label] of [['policia','Polícia RP'],['organizacao','Organização RP']]){
+  const opt=el('option',label);opt.value=v;kindSel.append(opt);
+ }
+ kindSel.value=cache.kind;kindSel.disabled=!!live;
+ kindSel.onchange=()=>{cache.kind=kindSel.value};kindLabel.append(kindSel);fields.append(kindLabel);
+ const timeLabel=el('label',undefined,'recruit-score');timeLabel.append(el('span','⏰ Inscrições abertas por'));
+ const timeSel=el('select');
+ for(const m of [30,60,120,180,240,360,720,1440]){
+  const opt=el('option',m<60?m+' minutos':m/60+' hora(s)');opt.value=String(m);timeSel.append(opt);
+ }
+ timeSel.value=String(cache.windowMinutes);timeSel.disabled=!!live;
+ timeSel.onchange=()=>{cache.windowMinutes=Number(timeSel.value)};timeLabel.append(timeSel);fields.append(timeLabel);
+ box.append(fields);
+ const actions=el('div',undefined,'recruit-actions');
+ const open=el('button','🔓 Abrir prova agora','button');
+ open.type='button';open.disabled=cache.busy||!!live||!data.enabled;
+ const close=el('button','🔒 Encerrar prova agora','button ghost');
+ close.type='button';close.disabled=cache.busy||!live;
+ const refresh=el('button','Atualizar status','button ghost');
+ refresh.type='button';refresh.disabled=cache.busy;
+ const act=async action=>{
+  if(cache.busy)return;
+  if(action==='open'&&!window.confirm('Liberar o recrutamento para os candidatos deste servidor agora?'))return;
+  if(action==='close'&&!window.confirm('Encerrar as inscrições e encaminhar as provas à revisão?'))return;
+  cache.busy=true;open.disabled=true;close.disabled=true;refresh.disabled=true;
+  try{
+   await api('index?centralRoute=recruitment-round&guildId='+encodeURIComponent(guild),{
+    method:'POST',body:JSON.stringify({action,kind:cache.kind,windowMinutes:cache.windowMinutes})
+   });
+   const updated=await api('index?centralRoute=recruitment-round&guildId='+encodeURIComponent(guild));
+   cache.data=updated;
+   await uiNotice(action==='open'?'A prova foi aberta para este servidor.':'Inscrições encerradas; etapa de revisão iniciada.',action==='open'?'Recrutamento aberto':'Prova encerrada');
+  }catch(e){await uiNotice(e.message||'Falha na operação','Não foi possível alterar a prova')}
+  finally{cache.busy=false;if(cache.guild===guild)render()}
+ };
+ open.onclick=()=>act('open');close.onclick=()=>act('close');
+ refresh.onclick=()=>{cache.data=null;cache.error='';render()};
+ actions.append(open,close,refresh);box.append(actions);
+ if(!data.enabled)box.append(el('p','⚠️ A liberação pública ainda não está habilitada no backend. O botão Abrir ficará bloqueado até a integração ser concluída e testada.','warning-note'));
+ if(!state.canEdit)return;
+ // Apenas o dono/administrador escolhe o cargo de recrutador.
+ if(!cache.access&&!cache.accessLoading&&!cache.accessError){
+  cache.accessLoading=true;
+  api('index?centralRoute=recruitment-access&guildId='+encodeURIComponent(guild))
+   .then(d=>{if(cache.guild===guild)cache.access=d})
+   .catch(()=>{if(cache.guild===guild)cache.accessError=true})
+   .finally(()=>{if(cache.guild===guild){cache.accessLoading=false;if(state.tab==='recrutamento')render()}});
+ }
+ if(cache.access){
+  const roleLabel=el('label',undefined,'recruit-score');roleLabel.append(el('span','👥 Cargo autorizado a abrir/encerrar provas'));
+  const roleSel=el('select');
+  const none=el('option','Apenas administradores');none.value='';roleSel.append(none);
+  for(const role of cache.access.roles||[]){const opt=el('option',role.name);opt.value=role.id;roleSel.append(opt)}
+  roleSel.value=cache.access.roleId||'';
+  roleLabel.append(roleSel);box.append(roleLabel);
+  const save=el('button','Salvar cargo de recrutador','button ghost');
+  save.type='button';save.disabled=cache.busy;
+  save.onclick=async()=>{
+   cache.busy=true;save.disabled=true;
+   try{
+    const updated=await api('index?centralRoute=recruitment-access&guildId='+encodeURIComponent(guild),{
+     method:'POST',body:JSON.stringify({roleId:roleSel.value||null})
+    });
+    cache.access.roleId=updated.roleId;
+    await uiNotice('Permissão salva. O bot consultará os cargos reais no Discord.','Cargo configurado');
+   }catch(e){await uiNotice(e.message||'Falha ao salvar','Permissão não alterada')}
+   finally{cache.busy=false;render()}
+  };
+  box.append(save);
+ }
+}
 // Configurador administrativo. A prova permanece fechada na página pública.
 function renderRecruitmentModule(rows){
  const guild=String(state.guild||''),validGuild=/^\d{15,25}$/.test(guild);
@@ -298,9 +404,11 @@ function renderRecruitmentModule(rows){
   const url='https://nero-recrutamento.vercel.app/?guild='+encodeURIComponent(guild);
   const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.className='button';link.textContent='Abrir link do servidor ↗';
   area.append(link);
+  const resultsLink=document.createElement('a');resultsLink.href=url+'&tab=aprovados';resultsLink.target='_blank';resultsLink.rel='noopener noreferrer';resultsLink.className='button ghost';resultsLink.textContent='🏆 Ver aba de aprovados ↗';area.append(resultsLink);
   const caption=el('p',url);caption.style.overflowWrap='anywhere';area.append(caption);
  }else area.append(el('p','Selecione um servidor antes de configurar as provas.'));
  rows.append(area);
+ if(validGuild)renderRecruitmentRelease(rows,guild);
  if(!validGuild||!state.canEdit){rows.append(el('p','Somente donos e administradores com permissão real no Discord podem editar os gabaritos por enquanto.','warning-note'));return;}
  renderRecruitmentPublish(rows,guild);
  const controls=el('section',undefined,'recruit-editor');
@@ -335,6 +443,30 @@ function renderRecruitmentModule(rows){
  const scoreInput=el('input');scoreInput.type='number';scoreInput.min='1';scoreInput.max='100';scoreInput.step='1';
  scoreInput.value=String(cfg.passPercent);scoreInput.oninput=()=>{cfg.passPercent=Number(scoreInput.value);mark()};
  score.append(scoreInput);controls.append(score);
+ const duration=el('label',undefined,'recruit-score');
+ duration.append(el('span','⏱️ Duração máxima da prova (minutos)'));
+ const durationSelect=el('select');
+ for(const minutes of [5,10,15,20,30,45,60,90,120,180]){
+  const o=el('option',minutes+' minutos');o.value=String(minutes);durationSelect.append(o);
+ }
+ durationSelect.value=String(cfg.durationMinutes||30);
+ durationSelect.onchange=()=>{cfg.durationMinutes=Number(durationSelect.value);mark()};
+ duration.append(durationSelect);controls.append(duration);
+ const gifLabel=el('label',undefined,'recruit-score');gifLabel.append(el('span','🎞️ GIF do painel Discord (opcional)'));
+ const gifInput=el('input');gifInput.type='url';gifInput.placeholder='https://exemplo.com/nero.gif';
+ gifInput.maxLength=400;gifInput.value=String(cfg.gifUrl||'');
+ gifInput.oninput=()=>{cfg.gifUrl=gifInput.value.trim();mark()};
+ gifLabel.append(gifInput);controls.append(gifLabel);
+ const emojiNameLabel=el('label',undefined,'recruit-score');emojiNameLabel.append(el('span','✨ Nome do emoji animado do servidor (opcional)'));
+ const emojiNameInput=el('input');emojiNameInput.type='text';emojiNameInput.maxLength=32;emojiNameInput.placeholder='nero';
+ emojiNameInput.value=String(cfg.animatedEmojiName||'');
+ emojiNameInput.oninput=()=>{cfg.animatedEmojiName=emojiNameInput.value.trim();mark()};
+ emojiNameLabel.append(emojiNameInput);controls.append(emojiNameLabel);
+ const emojiIdLabel=el('label',undefined,'recruit-score');emojiIdLabel.append(el('span','✨ ID do emoji animado (opcional)'));
+ const emojiIdInput=el('input');emojiIdInput.type='text';emojiIdInput.inputMode='numeric';emojiIdInput.placeholder='123456789012345678';
+ emojiIdInput.value=String(cfg.animatedEmojiId||'');
+ emojiIdInput.oninput=()=>{cfg.animatedEmojiId=emojiIdInput.value.trim();mark()};
+ emojiIdLabel.append(emojiIdInput);controls.append(emojiIdLabel);
  const count=el('p',cfg.questions.length+' questões · '+cfg.questions.filter(q=>q.type==='choice').length+' de marcar · '+cfg.questions.filter(q=>q.type==='written').length+' escritas','recruit-count');controls.append(count);
  const inputs=el('div',undefined,'recruit-question-list');
  cfg.questions.forEach((question,i)=>{

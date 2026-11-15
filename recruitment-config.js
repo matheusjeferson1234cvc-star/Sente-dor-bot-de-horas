@@ -356,7 +356,7 @@ const kinds=Object.keys(DEFAULTS);
 const clone=v=>JSON.parse(JSON.stringify(v));
 const starting=kind=>{
  if(!kinds.includes(kind))throw Error('Tipo de prova inválido');
- return {passPercent:50,questions:clone(DEFAULTS[kind])};
+ return {passPercent:50,durationMinutes:30,gifUrl:'',animatedEmojiId:'',animatedEmojiName:'',questions:clone(DEFAULTS[kind])};
 };
 const cleanString=(v,max,label)=>{
  if(typeof v!=='string'||v.trim().length<2||v.length>max)throw Error(label+' inválido');
@@ -366,6 +366,19 @@ function normalize(input){
  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Configuração inválida');
  const passPercent=Number(input.passPercent);
  if(!Number.isInteger(passPercent)||passPercent<1||passPercent>100)throw Error('Nota mínima deve ser de 1 a 100%');
+ const durationMinutes=Number(input.durationMinutes===undefined?30:input.durationMinutes);
+ if(!Number.isInteger(durationMinutes)||durationMinutes<5||durationMinutes>180)throw Error('Duração da prova deve ser entre 5 e 180 minutos');
+ const gifUrl=String(input.gifUrl||'').trim();
+ if(gifUrl){
+  if(gifUrl.length>400)throw Error('Endereço do GIF muito longo');
+  let url;try{url=new URL(gifUrl)}catch{throw Error('Endereço do GIF inválido')}
+  if(url.protocol!=='https:'||url.username||url.password||!url.pathname.toLowerCase().endsWith('.gif'))throw Error('O GIF precisa ser uma URL HTTPS terminada em .gif');
+ }
+ const animatedEmojiId=String(input.animatedEmojiId||'').trim();
+ const animatedEmojiName=String(input.animatedEmojiName||'').trim();
+ if(animatedEmojiId&&!/^\d{15,25}$/.test(animatedEmojiId))throw Error('ID do emoji animado inválido');
+ if(animatedEmojiName&&!/^[a-zA-Z0-9_]{2,32}$/.test(animatedEmojiName))throw Error('Nome do emoji animado inválido');
+ if(!!animatedEmojiId!==!!animatedEmojiName)throw Error('Informe nome e ID do emoji animado');
  if(!Array.isArray(input.questions)||input.questions.length<1||input.questions.length>20)throw Error('A prova deve ter de 1 a 20 questões');
  const questions=input.questions.map((q,i)=>{
   if(!q||typeof q!=='object')throw Error('Questão '+(i+1)+' inválida');
@@ -379,6 +392,6 @@ function normalize(input){
   if(q.type==='written')return written(title,cleanString(q.rubric,800,'Critério de correção'));
   throw Error('Questão '+(i+1)+': tipo inválido');
  });
- return {passPercent,questions};
+ return {passPercent,durationMinutes,gifUrl,animatedEmojiId,animatedEmojiName,questions};
 }
 module.exports={DEFAULTS,starting,normalize,kinds};
