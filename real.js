@@ -361,7 +361,7 @@ function renderRecruitmentRelease(rows,guild){
  open.onclick=()=>act('open');close.onclick=()=>act('close');
  refresh.onclick=()=>{cache.data=null;cache.error='';render()};
  actions.append(open,close,refresh);box.append(actions);
- if(!data.enabled)box.append(el('p','⚠️ A liberação pública ainda não está habilitada no backend. O botão Abrir ficará bloqueado até a integração ser concluída e testada.','warning-note'));
+ if(!data.enabled)box.append(el('p','⚠️ O botão Abrir está bloqueado porque ainda falta configurar: '+(Array.isArray(data.missing)&&data.missing.length?data.missing.join(', '):'integração pública do recrutamento')+'. Configure essas variáveis no projeto nero-recrutamento da Vercel e atualize o status.','warning-note'));
  if(!state.canEdit)return;
  // Apenas o dono/administrador escolhe o cargo de recrutador.
  if(!cache.access&&!cache.accessLoading&&!cache.accessError){
