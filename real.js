@@ -394,6 +394,142 @@ function renderRecruitmentRelease(rows,guild){
   box.append(save);
  }
 }
+
+const neroReviewUI={guild:null,roundId:'',data:null,settings:null,loading:false,settingsLoading:false,error:'',busy:false};
+function renderNeroReview(rows,guild){
+ const cache=neroReviewUI;
+ if(cache.guild!==guild){cache.guild=guild;cache.roundId='';cache.data=null;cache.settings=null;cache.loading=false;cache.settingsLoading=false;cache.error='';cache.busy=false;}
+ const block=el('section',undefined,'recruit-editor');
+ block.append(el('h3','🏆 Revisão e publicação dos aprovados'),
+  el('p','Revise todas as respostas e confirme a nota. As escritas recebem somente uma sugestão automática; a decisão final é humana.'));
+ rows.append(block);
+ const rounds=recruitmentReleaseUI.data?.rounds||[];
+ const completed=rounds.filter(x=>x.state==='review'||x.state==='complete'||x.effectiveState==='review');
+ if(!completed.length){block.append(el('p','Nenhuma prova encerrada para revisão.','hint'));return;}
+ const select=el('select');select.setAttribute('aria-label','Escolher recrutamento para revisão');
+ for(const r of completed){const option=el('option',(r.kind==='policia'?'Polícia RP':'Organização RP')+' · '+new Date(r.opens_at).toLocaleDateString('pt-BR')+' · '+(r.state==='complete'?'Publicado':'Aguardando revisão'));option.value=r.id;select.append(option)}
+ if(!completed.some(x=>x.id===cache.roundId)){cache.roundId=completed[0].id;cache.data=null}
+ select.value=cache.roundId;select.onchange=()=>{cache.roundId=select.value;cache.data=null;cache.error='';render()};
+ block.append(select);
+ if(!cache.data&&!cache.loading&&!cache.error){
+  cache.loading=true;
+  api('index?centralRoute=recruitment-review&guildId='+encodeURIComponent(guild)+'&roundId='+encodeURIComponent(cache.roundId))
+   .then(d=>{if(cache.guild===guild&&cache.roundId===d.roundId){cache.data=d;cache.error=''}})
+   .catch(e=>{if(cache.guild===guild)cache.error=e.message||'Falha ao carregar provas'})
+   .finally(()=>{cache.loading=false;if(state.tab==='recrutamento')render()});
+ }
+ if(cache.loading){block.append(el('p','Carregando provas para revisão...'));return}
+ if(cache.error){block.append(el('p',cache.error,'warning-note'));const retry=el('button','Tentar novamente','button ghost');retry.onclick=()=>{cache.error='';render()};block.append(retry);return}
+ const d=cache.data;
+ if(!d)return;
+ block.append(el('p',d.items.length+' participante(s) · Nota mínima '+d.threshold+'% · '+(d.state==='complete'?'Resultado publicado':'Em revisão'),'recruit-count'));
+ if(!d.items.length){block.append(el('p','Nenhuma prova enviada neste recrutamento.'));return}
+ for(const item of d.items){
+  const card=el('details',undefined,'recruit-question');
+  const summary=el('summary','👤 '+item.userId+' · '+(item.state==='approved'?'✅ Aprovado':item.state==='rejected'?'❌ Reprovado':'⏳ Aguardando revisão'));
+  card.append(summary);
+  const body=el('div',undefined,'recruit-question-body');
+  body.append(el('p','Correção sugerida: '+item.assessment.provisionalScore+'% · Questões escritas precisam de revisão humana.','hint'));
+  (d.questions||[]).forEach((q,i)=>{
+   const row=el('div',undefined,'recruit-question');
+   row.append(el('strong',(i+1)+'. '+q.title));
+   const answer=Array.isArray(item.answers)?item.answers[i]:null;
+   let received='Sem resposta';
+   if(q.type==='choice'&&Number.isInteger(answer))received=q.options[answer]||'Alternativa inválida';
+   else if(typeof answer==='string'&&answer.trim())received=answer;
+   row.append(el('p','Resposta: '+received));
+   if(q.type==='written')row.append(el('p','Critério esperado: '+q.rubric,'hint'));
+   else row.append(el('p','Gabarito: '+q.options[q.correct],'hint'));
+   row.append(el('small','Pontuação sugerida: '+Math.round(100*(item.assessment.questions[i]?.score||0))+'%'));
+   body.append(row);
+  });
+  if(d.state==='review'){
+   const scoreLabel=el('label',undefined,'recruit-score');scoreLabel.append(el('span','Nota final (%)'));
+   const scoreInput=el('input');scoreInput.type='number';scoreInput.min='0';scoreInput.max='100';scoreInput.step='0.01';
+   scoreInput.value=String(item.score??item.assessment.provisionalScore);scoreLabel.append(scoreInput);body.append(scoreLabel);
+   const nameLabel=el('label',undefined,'recruit-score');nameLabel.append(el('span','Nome do personagem RP'));
+   const nameInput=el('input');nameInput.value=item.rpName||'';nameInput.maxLength=24;nameInput.placeholder='Ex.: Lucas';nameLabel.append(nameInput);body.append(nameLabel);
+   const idLabel=el('label',undefined,'recruit-score');idLabel.append(el('span','ID do personagem RP'));
+   const idInput=el('input');idInput.value=item.rpId||'';idInput.maxLength=12;idInput.placeholder='Ex.: 105';idLabel.append(idInput);body.append(idLabel);
+   const actions=el('div',undefined,'recruit-actions');
+   const decide=async decision=>{
+    if(cache.busy)return;
+    cache.busy=true;approve.disabled=true;reject.disabled=true;
+    try{
+     await api('index?centralRoute=recruitment-review&guildId='+encodeURIComponent(guild),{
+      method:'POST',body:JSON.stringify({roundId:cache.roundId,userId:item.userId,decision,
+       score:Number(scoreInput.value),rpName:nameInput.value,rpId:idInput.value})
+     });
+     cache.data=null;
+     await uiNotice(decision==='approved'?'Candidato aprovado na revisão.':'Candidato reprovado na revisão.','Decisão registrada');
+    }catch(e){await uiNotice(e.message||'Falha ao registrar a decisão','Revisão não concluída')}
+    finally{cache.busy=false;render()}
+   };
+   const approve=el('button','✅ Confirmar aprovação','button');approve.disabled=cache.busy;approve.onclick=()=>decide('approved');
+   const reject=el('button','❌ Confirmar reprovação','button ghost');reject.disabled=cache.busy;reject.onclick=()=>decide('rejected');
+   actions.append(approve,reject);body.append(actions);
+  }
+  card.append(body);block.append(card);
+ }
+ if(!state.canEdit)return;
+ const settingsBox=el('section',undefined,'recruit-editor');
+ settingsBox.append(el('h3','⚙️ Publicação no Discord'));
+ block.append(settingsBox);
+ if(!cache.settings&&!cache.settingsLoading){
+  cache.settingsLoading=true;
+  api('index?centralRoute=recruitment-settings&guildId='+encodeURIComponent(guild))
+   .then(d=>{if(cache.guild===guild)cache.settings=d})
+   .catch(e=>{if(cache.guild===guild)cache.error=e.message||'Falha ao carregar canais'})
+   .finally(()=>{cache.settingsLoading=false;if(state.tab==='recrutamento')render()});
+ }
+ if(cache.settingsLoading){settingsBox.append(el('p','Carregando configuração do Discord...'));return}
+ const options=cache.settings;
+ if(options){
+  const form=el('div',undefined,'recruit-question-body');
+  const picker=(title,choices,current)=>{
+   const label=el('label',undefined,'recruit-score');label.append(el('span',title));
+   const sel=el('select');const none=el('option','Selecione');none.value='';sel.append(none);
+   for(const c of choices||[]){const option=el('option',c.name);option.value=c.id;sel.append(option)}
+   sel.value=current||'';label.append(sel);form.append(label);return sel;
+  };
+  const role=picker('Cargo de aprovado',options.roles,options.config.approved_role_id);
+  const channel=picker('Canal de anúncio',options.channels,options.config.announce_channel_id);
+  const label=el('label',undefined,'recruit-score');label.append(el('span','TAG do apelido (ex.: PM)'));
+  const tag=el('input');tag.maxLength=8;tag.value=options.config.nickname_tag||'PM';label.append(tag);form.append(label);
+  const show=el('label',undefined,'recruit-score');show.append(el('span','Incluir nota no anúncio?'));
+  const showScore=el('input');showScore.type='checkbox';showScore.checked=options.config.show_scores===true;show.append(showScore);form.append(show);
+  const save=el('button','Salvar canal, cargo e TAG','button ghost');
+  save.disabled=cache.busy;
+  save.onclick=async()=>{
+   cache.busy=true;save.disabled=true;
+   try{
+    await api('index?centralRoute=recruitment-settings&guildId='+encodeURIComponent(guild),{
+     method:'POST',body:JSON.stringify({approvedRoleId:role.value,announceChannelId:channel.value,
+      nicknameTag:tag.value,showScores:showScore.checked})
+    });
+    cache.settings=null;await uiNotice('Configurações de aprovação salvas.','Discord configurado');
+   }catch(e){await uiNotice(e.message||'Falha ao salvar configuração','Erro')}
+   finally{cache.busy=false;render()}
+  };
+  form.append(save);settingsBox.append(form);
+ }
+ const publish=el('button',d.state==='complete'?'🏆 Resultados já publicados':'🏆 Publicar aprovados no Discord','button');
+ publish.disabled=cache.busy||!d.allReviewed||d.state==='complete'||d.state==='publishing';
+ publish.onclick=async()=>{
+  if(!window.confirm('Confirma publicação definitiva? Todos os aprovados receberão o cargo e o anúncio será enviado ao canal escolhido.'))return;
+  cache.busy=true;publish.disabled=true;
+  try{
+   await api('index?centralRoute=recruitment-publish&guildId='+encodeURIComponent(guild),{
+    method:'POST',body:JSON.stringify({roundId:cache.roundId})
+   });
+   cache.data=null;await uiNotice('Resultados publicados no Discord e no site.','Publicação concluída');
+  }catch(e){await uiNotice(e.message||'Falha na publicação','Publicação incompleta')}
+  finally{cache.busy=false;render()}
+ };
+ settingsBox.append(publish);
+ if(!d.allReviewed)settingsBox.append(el('p','Para publicar, revise e confirme a decisão de todos os candidatos.','warning-note'));
+}
+
 // Configurador administrativo. A prova permanece fechada na página pública.
 function renderRecruitmentModule(rows){
  const guild=String(state.guild||''),validGuild=/^\d{15,25}$/.test(guild);
@@ -409,6 +545,7 @@ function renderRecruitmentModule(rows){
  }else area.append(el('p','Selecione um servidor antes de configurar as provas.'));
  rows.append(area);
  if(validGuild)renderRecruitmentRelease(rows,guild);
+ if(validGuild)renderNeroReview(rows,guild);
  if(!validGuild||!state.canEdit){rows.append(el('p','Somente donos e administradores com permissão real no Discord podem editar os gabaritos por enquanto.','warning-note'));return;}
  renderRecruitmentPublish(rows,guild);
  const controls=el('section',undefined,'recruit-editor');
