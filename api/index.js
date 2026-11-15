@@ -3,6 +3,8 @@ const botSchema=require('../bot-config-schema');
 const shiftAccess=require('../shift-access');
 const recruitment=require('../recruitment-config');
 const recruitmentPanel=require('../recruitment-panel');
+const recruitmentReviewAdmin=require('../recruitment-review-admin');
+const recruitmentPublish=require('../recruitment-publish');
 const crypto=require('node:crypto');
 const cookie=(req,key)=>Object.fromEntries((req.headers.cookie||'').split(';').map(x=>x.trim().split('=')))[key];
 const json=(res,status,data)=>{res.status(status).setHeader('Cache-Control','no-store');res.json(data)};
@@ -307,6 +309,30 @@ module.exports=async(req,res)=>{
   }
   const gid=String(req.query.guildId||'');
   if(!/^\d{15,25}$/.test(gid))return json(res,400,{error:'Servidor inválido'});
+
+  // Revisão, correção e publicação: mesmas permissões reais do Discord.
+  if(['recruitment-review','recruitment-settings','recruitment-publish'].includes(path)){
+   if(!['GET','POST'].includes(req.method))return json(res,405,{error:'Método não permitido'});
+   if(req.method==='POST'){
+    if(!req.headers.origin||!req.headers.host)return json(res,403,{error:'Origem não identificada'});
+    try{const o=new URL(req.headers.origin);if(o.protocol!=='https:'||o.host!==req.headers.host)return json(res,403,{error:'Origem não autorizada'})}
+    catch{return json(res,403,{error:'Origem inválida'})}
+   }
+   const rights=await authorized(gid,user);const admin=rights.edit===true;
+   let recruiter=false;
+   if(!admin){
+    const permissions=await db('nero_recruitment_permissions',{query:'?guild_id=eq.'+gid+'&select=recruiter_role_id&limit=1'});
+    const recruiterRole=String(permissions[0]?.recruiter_role_id||'');
+    if(/^\d{15,25}$/.test(recruiterRole)){
+     const member=await discord('/guilds/'+gid+'/members/'+user.id);
+     recruiter=Array.isArray(member.roles)&&member.roles.includes(recruiterRole);
+    }
+   }
+   if(!admin&&!recruiter)return json(res,403,{error:'Sem permissão para revisar recrutamentos'});
+   if(path==='recruitment-review')return recruitmentReviewAdmin({req,res,gid,user,db,json});
+   if(path==='recruitment-settings')return recruitmentPublish.settings({req,res,gid,user,admin,db,discord,json});
+   return recruitmentPublish.publish({req,res,gid,user,db,json});
+  }
 
   // Administração de recrutamentos: autenticação Discord e papéis reais no backend.
   if(path==='recruitment-access'||path==='recruitment-round'){
