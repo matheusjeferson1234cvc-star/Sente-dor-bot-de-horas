@@ -289,10 +289,10 @@ function renderRecruitmentPublish(rows,guild){
  }
 }
 // Controle de abertura/encerramento. Autorização sempre refeita no backend pelo Discord.
-const recruitmentReleaseUI={guild:null,data:null,access:null,loading:false,accessLoading:false,error:'',busy:false,kind:'policia',windowMinutes:120};
+const recruitmentReleaseUI={guild:null,data:null,access:null,loading:false,accessLoading:false,accessError:false,error:'',busy:false,kind:'policia',windowMinutes:120};
 function renderRecruitmentRelease(rows,guild){
  const cache=recruitmentReleaseUI;
- if(cache.guild!==guild){cache.guild=guild;cache.data=null;cache.access=null;cache.loading=false;cache.accessLoading=false;cache.error='';cache.busy=false;}
+ if(cache.guild!==guild){cache.guild=guild;cache.data=null;cache.access=null;cache.loading=false;cache.accessLoading=false;cache.accessError=false;cache.error='';cache.busy=false;}
  const box=el('section',undefined,'recruit-editor');
  box.append(el('h3','🔓 Central de liberação de provas'));
  rows.append(box);
@@ -364,11 +364,11 @@ function renderRecruitmentRelease(rows,guild){
  if(!data.enabled)box.append(el('p','⚠️ A liberação pública ainda não está habilitada no backend. O botão Abrir ficará bloqueado até a integração ser concluída e testada.','warning-note'));
  if(!state.canEdit)return;
  // Apenas o dono/administrador escolhe o cargo de recrutador.
- if(!cache.access&&!cache.accessLoading){
+ if(!cache.access&&!cache.accessLoading&&!cache.accessError){
   cache.accessLoading=true;
   api('index?centralRoute=recruitment-access&guildId='+encodeURIComponent(guild))
    .then(d=>{if(cache.guild===guild)cache.access=d})
-   .catch(()=>{})
+   .catch(()=>{if(cache.guild===guild)cache.accessError=true})
    .finally(()=>{if(cache.guild===guild){cache.accessLoading=false;if(state.tab==='recrutamento')render()}});
  }
  if(cache.access){
