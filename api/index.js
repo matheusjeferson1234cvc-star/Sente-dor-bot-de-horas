@@ -316,7 +316,7 @@ module.exports=async(req,res)=>{
    if(!recruitment.kinds.includes(kind))return json(res,400,{error:'Tipo de prova inválido'});
    if(req.method==='GET'){
     const found=await db('nero_recruitment_templates',{query:'?guild_id=eq.'+gid+'&kind=eq.'+kind+'&select=config,updated_at&limit=1'});
-    return json(res,200,{guildId:gid,kind,config:found.length?found[0].config:recruitment.starting(kind),saved:!!found.length,updatedAt:found[0]?.updated_at||null,applicationsOpen:false});
+    return json(res,200,{guildId:gid,kind,config:found.length?{...recruitment.starting(kind),...found[0].config}:recruitment.starting(kind),saved:!!found.length,updatedAt:found[0]?.updated_at||null,applicationsOpen:false});
    }
    if(!req.headers.origin||!req.headers.host)return json(res,403,{error:'Origem não identificada'});
    try{const origin=new URL(req.headers.origin);if(origin.protocol!=='https:'||origin.host!==req.headers.host)return json(res,403,{error:'Origem não autorizada'});}
@@ -343,8 +343,11 @@ module.exports=async(req,res)=>{
    if(!rows.length)return json(res,404,{error:'Servidor não cadastrado'});
    let payload;
    try{
+    const kind=recruitment.kinds.includes(String(req.body?.kind||''))?String(req.body.kind):'policia';
+    const selected=await db('nero_recruitment_templates',{query:'?guild_id=eq.'+gid+'&kind=eq.'+kind+'&select=config&limit=1'});
+    const cfg=selected[0]?.config||recruitment.starting(kind);
     payload=recruitmentPanel.recruitmentPayload(gid,rows[0].name,
-     process.env.NERO_RECRUITMENT_SITE_URL||'https://nero-recrutamento.vercel.app/');
+     process.env.NERO_RECRUITMENT_SITE_URL||'https://nero-recrutamento.vercel.app/',cfg);
    }catch{return json(res,503,{error:'Link público de recrutamento inválido no servidor'})}
    payload.nonce=crypto.randomBytes(12).toString('hex');
    let response;
