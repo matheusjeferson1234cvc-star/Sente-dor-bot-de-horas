@@ -11,7 +11,8 @@ function digest(secret,guildId,roundId,userId,code){
  return crypto.createHmac('sha256',secret).update([guildId,roundId,userId,code].join(':')).digest('hex');
 }
 function matchesHash(actual,expected){
- const a=Buffer.from(String(actual||''),'hex'),b=Buffer.from(String(expected||''),'hex');
+ if(!/^[a-f0-9]{64}$/i.test(String(actual||''))||!/^[a-f0-9]{64}$/i.test(String(expected||'')))return false;
+ const a=Buffer.from(String(actual),'hex'),b=Buffer.from(String(expected),'hex');
  return a.length===32&&b.length===32&&crypto.timingSafeEqual(a,b);
 }
 function isOpen(round,now=Date.now()){
