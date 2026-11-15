@@ -307,6 +307,94 @@ module.exports=async(req,res)=>{
   }
   const gid=String(req.query.guildId||'');
   if(!/^\d{15,25}$/.test(gid))return json(res,400,{error:'Servidor inválido'});
+
+  // Administração de recrutamentos: autenticação Discord e papéis reais no backend.
+  if(path==='recruitment-access'||path==='recruitment-round'){
+   if(!['GET','POST'].includes(req.method))return json(res,405,{error:'Método não permitido'});
+   const rights=await authorized(gid,user);
+   const admin=rights.edit===true;
+   let roleId=null;
+   try{
+    const permissionRows=await db('nero_recruitment_permissions',{query:'?guild_id=eq.'+gid+'&select=recruiter_role_id&limit=1'});
+    roleId=permissionRows[0]?.recruiter_role_id||null;
+   }catch(e){
+    if(!missingSchema(e))throw e;
+    return json(res,409,{error:'Banco do recrutamento não preparado. Aplique a migração de recrutamento no Supabase.'});
+   }
+   let recruiter=false;
+   if(!admin&&roleId&&/^\d{15,25}$/.test(roleId)){
+    try{
+     const member=await discord('/guilds/'+gid+'/members/'+user.id);
+     recruiter=Array.isArray(member.roles)&&member.roles.includes(roleId);
+    }catch(e){return editorDiscordError(res,e)}
+   }
+   if(path==='recruitment-access'){
+    if(!admin)return json(res,403,{error:'Somente administradores podem configurar o cargo de recrutador'});
+    if(req.method==='GET'){
+     const roles=await discord('/guilds/'+gid+'/roles');
+     return json(res,200,{guildId:gid,roleId,roles:roles.filter(r=>r.id!==gid&&r.managed!==true).map(r=>({id:r.id,name:r.name})).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'))});
+    }
+    if(!req.headers.origin||!req.headers.host)return json(res,403,{error:'Origem não identificada'});
+    try{const o=new URL(req.headers.origin);if(o.protocol!=='https:'||o.host!==req.headers.host)return json(res,403,{error:'Origem não autorizada'})}
+    catch{return json(res,403,{error:'Origem inválida'})}
+    const requested=req.body?.roleId===null?'':String(req.body?.roleId||'');
+    if(requested&&!/^\d{15,25}$/.test(requested))return json(res,400,{error:'Cargo inválido'});
+    if(requested){
+     const roles=await discord('/guilds/'+gid+'/roles');
+     if(!roles.some(r=>r.id===requested&&r.managed!==true))return json(res,400,{error:'Cargo não encontrado neste servidor'});
+    }
+    await db('nero_recruitment_permissions',{method:'POST',body:{guild_id:gid,recruiter_role_id:requested||null,updated_by:user.id,updated_at:new Date().toISOString()}});
+    return json(res,200,{ok:true,roleId:requested||null});
+   }
+   if(!admin&&!recruiter)return json(res,403,{error:'Somente o administrador ou o cargo de recrutador configurado pode controlar as provas'});
+   const list=await db('nero_recruitment_rounds',{query:'?guild_id=eq.'+gid+'&select=id,kind,state,opens_at,closes_at,duration_minutes,opened_by,closed_by,closed_at&order=created_at.desc&limit=12'});
+   const now=Date.now(),live=list.find(r=>r.state==='open'&&Date.parse(r.opens_at)<=now&&Date.parse(r.closes_at)>now);
+   if(req.method==='GET'){
+    return json(res,200,{
+     guildId:gid,admin,recruiter,enabled:process.env.NERO_RECRUITMENT_GO_LIVE==='true',
+     liveRound:live||null,
+     rounds:list.map(r=>({...r,effectiveState:r.state==='open'&&Date.parse(r.closes_at)<=now?'review':r.state}))
+    });
+   }
+   if(!req.headers.origin||!req.headers.host)return json(res,403,{error:'Origem não identificada'});
+   try{const o=new URL(req.headers.origin);if(o.protocol!=='https:'||o.host!==req.headers.host)return json(res,403,{error:'Origem não autorizada'})}
+   catch{return json(res,403,{error:'Origem inválida'})}
+   const action=String(req.body?.action||'');
+   if(action==='close'){
+    const current=list.find(r=>r.state==='open');
+    if(!current)return json(res,409,{error:'Nenhuma prova aberta neste servidor'});
+    const changed=await db('nero_recruitment_rounds',{method:'PATCH',
+     query:'?guild_id=eq.'+gid+'&id=eq.'+current.id+'&state=eq.open',
+     body:{state:'review',closed_at:new Date().toISOString(),closed_by:user.id}});
+    return json(res,200,{ok:true,closed:true,roundId:current.id,applicationsOpen:false,changed:changed.length});
+   }
+   if(action!=='open')return json(res,400,{error:'Ação inválida'});
+   if(process.env.NERO_RECRUITMENT_GO_LIVE!=='true')
+    return json(res,503,{error:'A liberação pública ainda não está ativada: integração de prova/Discord precisa passar pelos testes finais.'});
+   const kind=String(req.body?.kind||'');
+   const windowMinutes=Number(req.body?.windowMinutes||120);
+   if(!recruitment.kinds.includes(kind))return json(res,400,{error:'Categoria da prova inválida'});
+   if(!Number.isInteger(windowMinutes)||windowMinutes<15||windowMinutes>1440)return json(res,400,{error:'Período de inscrições deve ser entre 15 e 1440 minutos'});
+   if(live)return json(res,409,{error:'Já existe uma prova aberta neste servidor'});
+   // Finalizar rodadas cujo prazo acabou antes de abrir uma nova.
+   const expired=list.filter(r=>r.state==='open'&&Date.parse(r.closes_at)<=now);
+   for(const r of expired)await db('nero_recruitment_rounds',{method:'PATCH',
+    query:'?guild_id=eq.'+gid+'&id=eq.'+r.id+'&state=eq.open',
+    body:{state:'review',closed_at:new Date().toISOString(),closed_by:user.id}});
+   const templates=await db('nero_recruitment_templates',{query:'?guild_id=eq.'+gid+'&kind=eq.'+kind+'&select=config&limit=1'});
+   if(!templates.length)return json(res,409,{error:'Salve as perguntas desta categoria antes de abrir a prova'});
+   let cfg;try{cfg=recruitment.normalize(templates[0].config)}catch(e){return json(res,400,{error:'Configuração de prova inválida: '+e.message})}
+   const opensAt=new Date(),closesAt=new Date(opensAt.getTime()+windowMinutes*60000);
+   let created;
+   try{created=await db('nero_recruitment_rounds',{method:'POST',
+    body:{guild_id:gid,kind,state:'open',opens_at:opensAt.toISOString(),closes_at:closesAt.toISOString(),duration_minutes:cfg.durationMinutes,config_snapshot:cfg,opened_by:user.id}
+   })}catch(e){
+    if(/409|23505|duplicate/i.test(String(e.message)))return json(res,409,{error:'Um recrutamento já está aberto neste servidor'});
+    throw e;
+   }
+   return json(res,201,{ok:true,applicationsOpen:true,roundId:created[0]?.id,kind,opensAt:opensAt.toISOString(),closesAt:closesAt.toISOString(),durationMinutes:cfg.durationMinutes});
+  }
+
   const rights=await authorized(gid,user);if(!rights.view)return json(res,403,{error:'Sem acesso'});
   if(path==='recruitment-config'){
    // Apenas o dono ou administrador real do servidor acessa os gabaritos.
