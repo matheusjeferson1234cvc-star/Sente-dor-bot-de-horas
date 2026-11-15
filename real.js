@@ -129,7 +129,7 @@ const tabInfo={
  bateponto:['Bate-ponto','Cartões, equipes, justificativas, relatórios, logs e configurações reunidos'],
  'horas-normais':['Horas normais','Novo sistema independente em preparação'],
  registro:['Registro de membros','Novo módulo em preparação'],
- recrutamento:['Recrutamento','Novo módulo em preparação'],
+ recrutamento:['Recrutamento','Site separado por servidor · inscrições fechadas até a ativação segura'],
  gestao:['Gestão de cargos','Novo módulo em preparação'],
  jornada:['Jornada e cartões','Acompanhe turnos, presença e horas registradas'],
  resultados:['Resultados e relatórios','Ranking, membros e consultas em telas separadas'],
@@ -181,7 +181,7 @@ const moduleDefs={
   ['bot-geral','Regras e convites','Configure equipes, convites e regras do ponto.','ico-users']]},
  'horas-normais':{title:'Horas normais',intro:'Um novo módulo de horas, independente do bate-ponto por equipes e turnos que já está funcionando.',icon:'ico-clock',comingSoon:true,items:[]},
  registro:{title:'Registro de membros',intro:'Módulo reservado para registros e aprovações no Discord.',icon:'ico-file',comingSoon:true,items:[]},
- recrutamento:{title:'Recrutamento',intro:'Módulo reservado para perguntas, análise e aprovação de candidatos.',icon:'ico-users',comingSoon:true,items:[]},
+ recrutamento:{title:'Recrutamento',intro:'Acesse o site separado do recrutamento vinculado ao servidor selecionado. Candidatos não precisam entrar no painel administrativo.',icon:'ico-users',items:[]},
  gestao:{title:'Gestão de cargos',intro:'Módulo reservado para promoções, rebaixamentos e gestão de advertências. O histórico atual segue disponível em Administração.',icon:'ico-shield',comingSoon:true,items:[]},
  jornada:{title:'Central de Horas · Tradicional',intro:'Bate-ponto existente por equipe e turno, com horas normais, extras e cartões sincronizados. As regras e os dados atuais foram preservados.',icon:'ico-clock',items:[
   ['presenca','Controle de presença','Acompanhe a meta diária, os turnos e as ausências confirmadas.','ico-check'],
@@ -233,6 +233,23 @@ function moduleHub(key){
  const hero=el('div',undefined,'module-hero'),lead=el('div');
  lead.append(el('span','SISTEMAS DISPONÍVEIS','module-kicker'),el('h2',def.title),el('p',def.intro));
  hero.append(lead);const mark=el('span',undefined,'module-hero-icon');mark.append(svgIcon(def.icon));hero.append(mark);rows.append(hero);
+ if(key==='recrutamento'){
+  // Cada link mantém o ID do servidor escolhido e não expõe cookies administrativos.
+  const validGuild=/^\d{15,25}$/.test(String(state.guild||''));
+  const box=el('section',undefined,'planned-system');
+  box.append(el('span','SITE SEPARADO · NERO','planned-system-tag'),
+   el('h3','Recrutamento deste servidor'),
+   el('p','Cada servidor terá seu próprio link. Por segurança, as inscrições permanecem fechadas até a implementação e a revisão das etapas de identificação, provas e aprovação.'));
+  if(validGuild){
+   const url='https://nero-recrutamento.vercel.app/?guild='+encodeURIComponent(state.guild);
+   const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.className='button';link.textContent='Abrir site deste servidor ↗';
+   box.append(link);
+   const helper=el('p','Link do servidor: '+url);helper.style.overflowWrap='anywhere';box.append(helper);
+  }else box.append(el('p','Selecione um servidor administrado para obter o link personalizado.'));
+  box.append(el('p',state.canEdit?'Configurações de provas (20 questões por categoria), abertura e revisão serão ligadas a este painel na próxima etapa.':'Somente administradores e recrutadores autorizados poderão gerenciar os resultados.'));
+  rows.append(box);return;
+ }
+
  if(def.comingSoon){
   const box=el('section',undefined,'planned-system');
   box.append(el('span','EM PREPARAÇÃO','planned-system-tag'),el('h3','Espaço reservado para o próximo sistema'),el('p','Este módulo ainda não registra nem modifica dados. Quando a integração for implementada, ele terá suas próprias configurações e contagens, separadas da Central de Horas tradicional.'));
