@@ -1,0 +1,10 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const id=require('../lib/identity-core');
+const secret='0123456789abcdef0123456789abcdef0123456789abcdef';
+const guild='123456789012345678',user='234567890123456789',round='7b96205b-cd43-41ef-a982-8bd38e3071ad';
+test('aceita apenas snowflakes do Discord',()=>{assert.equal(id.isSnowflake(guild),true);assert.equal(id.isSnowflake('abc'),false);assert.equal(id.isSnowflake('123'),false)});
+test('códigos são numéricos de oito dígitos e hashes não revelam código',()=>{const code=id.newCode();assert.match(code,/^\d{8}$/);const hash=id.digest(secret,guild,round,user,code);assert.match(hash,/^[a-f0-9]{64}$/);assert.equal(id.matchesHash(hash,hash),true);assert.equal(id.matchesHash(hash,id.digest(secret,guild,round,user,'00000000')+'f'),false)});
+test('recrutamento só fica aberto no intervalo informado',()=>{const r={state:'open',opens_at:'2026-11-15T15:00:00.000Z',closes_at:'2026-11-15T16:00:00.000Z'};assert.equal(id.isOpen(r,Date.parse('2026-11-15T15:30:00Z')),true);assert.equal(id.isOpen({...r,state:'closed'},Date.parse('2026-11-15T15:30:00Z')),false);assert.equal(id.isOpen(r,Date.parse('2026-11-15T16:00:00Z')),false)});
+test('sessão verificada expira, respeita encerramento e impede adulteração',()=>{const now=1000000000000;const a=id.issueSession(secret,{guildId:guild,roundId:round,userId:user,closesAt:new Date(now+2*60000).toISOString()},now);assert.equal(a.maxAge,120);assert.equal(id.readSession(secret,a.token,now+1000).userId,user);assert.equal(id.readSession(secret,a.token,now+121000),null);assert.equal(id.readSession(secret,a.token+'x',now),null);assert.equal(id.readSession('different-secret-value-of-minimum-32-chars',a.token,now),null)});
+test('sem segredo longo, falha fechado',()=>{assert.throws(()=>id.issueSession('curta',{guildId:guild,roundId:round,userId:user,closesAt:new Date().toISOString()}));assert.equal(id.readSession('curta','invalido'),null)});
