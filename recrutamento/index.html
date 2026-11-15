@@ -42,6 +42,16 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
 .hero-gif{position:absolute;inset:0 0 0 auto;height:100%;width:auto;max-width:55%;object-fit:cover;opacity:.52;mask-image:linear-gradient(to right,transparent,black 35%)}
 @media(max-width:710px){.hero-gif{max-width:55%;opacity:.25}.portal-nav button{flex:1}}
 @media(prefers-reduced-motion:reduce){.hero-gif{display:none}}
+
+.exam-panel[hidden]{display:none!important}.exam-panel{display:grid;gap:15px;padding-top:22px;margin-top:15px;border-top:1px solid #ffffff25}
+.exam-header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center}
+.exam-timer{font-weight:800;color:#ff9dab;background:#4b1d2b;border:1px solid #ba4d63;border-radius:9px;padding:10px 15px}
+.exam-card{background:#1a121b;border:1px solid #583445;border-radius:14px;padding:18px}
+.exam-card h3{font-size:15px;line-height:1.5;margin:0 0 12px}
+.exam-choice{display:flex;align-items:flex-start;gap:10px;margin:9px 0;padding:9px;background:#241923;border-radius:8px;font-size:13px}
+.exam-choice input{accent-color:#ec3860;margin:3px}
+.exam-card textarea{display:block;width:100%;border-radius:10px;resize:vertical;min-height:88px;background:#110d14;color:#fff;border:1px solid #734357;padding:12px;font:inherit;font-size:14px}
+.exam-actions{display:flex;flex-wrap:wrap;gap:9px}.exam-actions button{flex:1}
 </style>
 </head>
 <body>
@@ -72,6 +82,15 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
   </div>
   <div id="identityResult" class="id-result" role="status" aria-live="polite">Não é necessário fazer login pelo Discord. Você precisa confirmar que a conta informada é sua.</div>
 </form>
+<section id="examFlow" class="exam-panel" hidden aria-label="Prova do recrutamento">
+ <div class="exam-header"><h2>📝 Sua prova</h2><span id="examTimer" class="exam-timer" role="timer">--:--</span></div>
+ <p id="examStatus" role="status">Preparando prova…</p>
+ <div id="examQuestions"></div>
+ <div class="exam-actions">
+  <button id="examSave" type="button">💾 Salvar rascunho</button>
+  <button id="examSubmit" type="button">✅ Enviar prova</button>
+ </div>
+</section>
 <div class="notice" role="status" id="notice">As inscrições e o envio de respostas permanecem bloqueados enquanto o recrutamento estiver fechado.</div>
 </section>
 <aside class="panel" aria-label="Como participar"><span class="eyebrow">Como vai funcionar</span><ol class="steps">
@@ -142,6 +161,95 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
  }
  $('guildIdInfo').textContent='Servidor Discord · '+guild;
 
+
+ let examData=null,examAnswers=[],examInterval=null,examSaving=false;
+ const examRequest=async(method,body)=>{
+  const url='/api/prova?guild='+encodeURIComponent(guild);
+  const r=await fetch(url,{
+   method,credentials:'same-origin',cache:'no-store',
+   headers:method==='POST'?{'Content-Type':'application/json'}:{},
+   body:method==='POST'?JSON.stringify({guildId:guild,...body}):undefined
+  });
+  const data=await r.json().catch(()=>({error:'Falha ao consultar a prova'}));
+  if(!r.ok)throw Error(data.error||'A prova está indisponível');
+  return data;
+ };
+ function formAnswers(){
+  const questionNodes=$('examQuestions').querySelectorAll('[data-exam-question]');
+  questionNodes.forEach((node,i)=>{
+   if(examData.questions[i].type==='choice'){
+    const checked=node.querySelector('input[type=radio]:checked');
+    examAnswers[i]=checked?Number(checked.value):null;
+   }else examAnswers[i]=node.querySelector('textarea').value;
+  });
+  return examAnswers.slice();
+ }
+ function stopExam(message){
+  clearInterval(examInterval);
+  $('examStatus').textContent=message;
+  $('examQuestions').replaceChildren();
+  $('examSave').hidden=true;$('examSubmit').hidden=true;
+ }
+ function drawQuestions(){
+  const area=$('examQuestions');area.replaceChildren();
+  examData.questions.forEach((q,i)=>{
+   const card=document.createElement('article');card.className='exam-card';card.dataset.examQuestion=String(i);
+   const heading=document.createElement('h3');heading.textContent=(i+1)+'. '+q.title;card.append(heading);
+   if(q.type==='choice'){
+    q.options.forEach((option,j)=>{
+     const label=document.createElement('label');label.className='exam-choice';
+     const radio=document.createElement('input');radio.type='radio';radio.name='question_'+i;radio.value=String(j);
+     radio.checked=examAnswers[i]===j;
+     const text=document.createElement('span');text.textContent=option;label.append(radio,text);card.append(label);
+    });
+   }else{
+    const textarea=document.createElement('textarea');
+    textarea.maxLength=1800;textarea.placeholder='Escreva sua resposta aqui';
+    textarea.value=typeof examAnswers[i]==='string'?examAnswers[i]:'';
+    textarea.setAttribute('aria-label','Resposta da questão '+(i+1));card.append(textarea);
+   }
+   area.append(card);
+  });
+ }
+ function updateCountdown(){
+  if(!examData||examData.state!=='in_progress')return;
+  const seconds=Math.max(0,Math.floor((Date.parse(examData.deadlineAt)-Date.now())/1000));
+  const mm=Math.floor(seconds/60),ss=seconds%60;
+  $('examTimer').textContent=String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+  if(!seconds){stopExam('Seu tempo de prova acabou. Respostas não enviadas serão encaminhadas para revisão conforme os rascunhos salvos.')}
+ }
+ async function beginExam(resuming=false){
+  if(examData&&examData.state==='in_progress')return;
+  try{
+   const data=await examRequest('GET');
+   $('examFlow').hidden=false;
+   if(data.state!=='in_progress'){stopExam('Sua prova foi encerrada ou enviada. Aguarde a avaliação da equipe.');return}
+   examData=data;
+   examAnswers=Array.isArray(data.answers)?data.answers:Array(data.questions.length).fill(null);
+   $('identityFlow').hidden=true;$('joinButton').hidden=true;
+   $('examSave').hidden=false;$('examSubmit').hidden=false;
+   $('examStatus').textContent='Responda às questões e envie antes do prazo. O rascunho pode ser salvo.';
+   drawQuestions();updateCountdown();
+   clearInterval(examInterval);examInterval=setInterval(updateCountdown,1000);
+  }catch(e){
+   if(resuming&&/Confirme seu ID/.test(e.message))return;
+   $('examFlow').hidden=false;$('examStatus').textContent=e.message;
+  }
+ }
+ async function saveExam(submit=false){
+  if(!examData||examSaving)return;
+  if(submit&&!confirm('Enviar suas respostas agora? Depois do envio não será possível editar.'))return;
+  examSaving=true;$('examSave').disabled=true;$('examSubmit').disabled=true;
+  try{
+   const data=await examRequest('POST',{action:submit?'submit':'save',answers:formAnswers()});
+   if(data.submitted){examData.state='submitted';stopExam('Prova enviada! Aguarde a correção e a revisão do recrutador.')}
+   else $('examStatus').textContent='Rascunho salvo. Continue respondendo dentro do prazo.';
+  }catch(e){$('examStatus').textContent=e.message;if(/prazo|tempo|encerrad/i.test(e.message))stopExam(e.message)}
+  finally{examSaving=false;$('examSave').disabled=false;$('examSubmit').disabled=false}
+ }
+ $('examSave').onclick=()=>saveExam(false);
+ $('examSubmit').onclick=()=>saveExam(true);
+
  function enableIdentity(siteKey){
    $('statusText').textContent='Inscrições abertas';
    $('recruit-title').textContent='Recrutamento aberto';
@@ -192,6 +300,7 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
        const d=await post({action:'confirm',userId:input.value,code:code.value});
        say(d.message||'Conta confirmada.');$('codeStep').hidden=true;
        $('sendCode').disabled=true;input.readOnly=true;
+       beginExam();
      }catch(e){say(e.message)}
      finally{$('checkCode').disabled=false}
    });
@@ -204,7 +313,7 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
    $('guildName').textContent=data.name||'Servidor Discord';
    if(Number.isInteger(data.durationMinutes)&&data.durationMinutes>=5&&data.durationMinutes<=180)
     $('durationNote').textContent='⏱️ Duração prevista da prova: '+data.durationMinutes+' minutos.';
-   if(data.status==='open'&&typeof data.siteKey==='string'&&data.siteKey)enableIdentity(data.siteKey);
+   if(data.status==='open'&&typeof data.siteKey==='string'&&data.siteKey){enableIdentity(data.siteKey);beginExam(true);}
    if(typeof data.iconUrl==='string'&&/^https:\/\/cdn\.discordapp\.com\//.test(data.iconUrl)){
     const img=document.createElement('img');img.src=data.iconUrl;img.alt='';$('guildIcon').replaceChildren(img);
    }
