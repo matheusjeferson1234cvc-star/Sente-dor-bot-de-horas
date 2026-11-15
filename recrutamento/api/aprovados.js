@@ -30,7 +30,7 @@ module.exports=async(req,res)=>{
    roundId:String(x.round_id||'').slice(0,36),
    name:String(x.display_name||'Aprovado').slice(0,90),
    publishedAt:String(x.published_at||''),
-   scorePercent:x.show_score===true&&Number.isFinite(Number(x.score_percent))?Number(x.score_percent):null
+   scorePercent:x.show_score===true&&x.score_percent!==null&&x.score_percent!==undefined&&Number.isFinite(Number(x.score_percent))?Number(x.score_percent):null
   }));
   return res.status(200).json({guildId,available:true,items});
  }catch(e){
