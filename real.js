@@ -229,6 +229,65 @@ function moduleCard({tab,title,description,icon,meta}){
 }
 function moduleMetric(tab){const d=state.data||{};if(moduleDefs[tab]?.comingSoon)return 'Em preparação';switch(tab){case 'presenca':return `${(d.members||[]).length} sincronizados`;case 'ativos':return `${cards().filter(active).length} ativos`;case 'membros':return `${(d.members||[]).length} membros`;case 'justificativas':return `${(d.justifications||[]).filter(x=>x.status==='pending').length} pendentes`;case 'advertencias':return `${(d.warnings||[]).length} registros`;case 'servidores':return `${state.guilds.length} ambiente(s)`;default:return ''}}
 
+// Publicação de painel Discord sem liberar inscrições no site público.
+const recruitmentPanelUI={guild:null,channels:null,selected:'',loading:false,error:'',sending:false,lastSentUrl:''};
+function renderRecruitmentPublish(rows,guild){
+ const cache=recruitmentPanelUI;
+ if(cache.guild!==guild){
+  cache.guild=guild;cache.channels=null;cache.selected='';cache.loading=false;cache.error='';cache.sending=false;cache.lastSentUrl='';
+ }
+ const section=el('section',undefined,'recruit-editor');
+ section.append(el('h3','Painel de recrutamento no Discord'),
+  el('p','Escolha o canal e publique uma mensagem do Nero Bot com o botão Participar do recrutamento. Cada servidor recebe seu próprio link. Isso não abre inscrições.'));
+ rows.append(section);
+ if(cache.channels===null&&!cache.loading&&!cache.error){
+  cache.loading=true;
+  api('index?centralRoute=announce-channels&guildId='+encodeURIComponent(guild))
+   .then(data=>{if(cache.guild===guild){cache.channels=Array.isArray(data.channels)?data.channels:[];cache.error='';}})
+   .catch(err=>{if(cache.guild===guild)cache.error=err.message||'Erro ao listar os canais';})
+   .finally(()=>{if(cache.guild===guild){cache.loading=false;if(state.tab==='recrutamento')render();}});
+ }
+ if(cache.loading){section.append(el('p','Carregando os canais do Discord...','hint'));return;}
+ if(cache.error){
+  section.append(el('p',cache.error,'error'));
+  const retry=el('button','Tentar novamente','button ghost');
+  retry.type='button';retry.onclick=()=>{cache.error='';render()};section.append(retry);return;
+ }
+ if(!cache.channels||!cache.channels.length){
+  section.append(el('p','Nenhum canal de texto disponível neste servidor.','warning-note'));return;
+ }
+ const label=el('label',undefined,'bot-field');label.append(el('span','Canal para publicar'));
+ const select=el('select');
+ const placeholder=el('option','Selecione um canal');placeholder.value='';select.append(placeholder);
+ for(const channel of cache.channels){
+  const option=el('option','#'+channel.name+(channel.kind==='anúncios'?' · anúncios':''));
+  option.value=channel.id;select.append(option);
+ }
+ if(!cache.channels.some(c=>c.id===cache.selected))cache.selected='';
+ select.value=cache.selected;
+ label.append(select);section.append(label);
+ const publish=el('button',cache.sending?'Publicando...':'Publicar painel no Discord','button');
+ publish.type='button';publish.disabled=cache.sending||!cache.selected;
+ select.onchange=()=>{cache.selected=select.value;publish.disabled=cache.sending||!cache.selected;};
+ publish.onclick=async()=>{
+  if(cache.sending||!cache.selected)return;
+  cache.sending=true;publish.disabled=true;publish.textContent='Publicando...';
+  try{
+   const result=await api('index?centralRoute=recruitment-panel&guildId='+encodeURIComponent(guild),{
+    method:'POST',body:JSON.stringify({channelId:cache.selected})
+   });
+   cache.lastSentUrl=result.url||'';
+   await uiNotice('Painel enviado para o canal escolhido. As inscrições continuam fechadas.','Painel publicado');
+  }catch(err){await uiNotice(err.message||'Falha ao publicar o painel','Publicação não realizada')}
+  finally{cache.sending=false;if(cache.guild===guild&&state.tab==='recrutamento')render();}
+ };
+ section.append(publish);
+ if(cache.lastSentUrl){
+  const link=document.createElement('a');link.href=cache.lastSentUrl;link.target='_blank';
+  link.rel='noopener noreferrer';link.className='button';
+  link.textContent='Ver painel publicado no Discord ↗';section.append(link);
+ }
+}
 // Configurador administrativo. A prova permanece fechada na página pública.
 function renderRecruitmentModule(rows){
  const guild=String(state.guild||''),validGuild=/^\d{15,25}$/.test(guild);
@@ -243,6 +302,7 @@ function renderRecruitmentModule(rows){
  }else area.append(el('p','Selecione um servidor antes de configurar as provas.'));
  rows.append(area);
  if(!validGuild||!state.canEdit){rows.append(el('p','Somente donos e administradores com permissão real no Discord podem editar os gabaritos por enquanto.','warning-note'));return;}
+ renderRecruitmentPublish(rows,guild);
  const controls=el('section',undefined,'recruit-editor');
  const head=el('div',undefined,'recruit-heading');head.append(el('h3','Editor de provas · 20 questões'));
  const selectType=el('select');selectType.setAttribute('aria-label','Categoria da prova');
