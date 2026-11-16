@@ -48,7 +48,7 @@ module.exports=async(req,res)=>{
   }
   // Só exibir aberto se houver sessão ativa e todo o mecanismo de identidade estiver configurado.
   let status='closed',siteKey=null,durationMinutes=null;
-  if(process.env.NERO_PUBLIC_EXAM_ENABLED==='true'&&process.env.DISCORD_BOT_TOKEN&&process.env.TURNSTILE_SITE_KEY&&process.env.TURNSTILE_SECRET_KEY&&process.env.NERO_IDENTITY_SECRET?.length>=32){
+  if(process.env.NERO_PUBLIC_EXAM_ENABLED==='true'&&process.env.DISCORD_BOT_TOKEN&&process.env.DISCORD_CLIENT_ID&&process.env.DISCORD_CLIENT_SECRET&&process.env.DISCORD_RECRUIT_REDIRECT_URI&&process.env.NERO_IDENTITY_SECRET?.length>=32){
    try{
     const rounds=new URL('/rest/v1/nero_recruitment_rounds',url);
     rounds.searchParams.set('guild_id','eq.'+gid);
@@ -61,7 +61,7 @@ module.exports=async(req,res)=>{
      const now=Date.now(),list=await q.json();
      const active=list.find(x=>x.state==='open'&&Date.parse(x.opens_at)<=now&&Date.parse(x.closes_at)>now);
      if(active){
-      status='open';siteKey=process.env.TURNSTILE_SITE_KEY;durationMinutes=30;
+      status='open';durationMinutes=30;
       if(active.kind==='policia'||active.kind==='organizacao'){
        try{
         const configUrl=new URL('/rest/v1/nero_recruitment_templates',url);
