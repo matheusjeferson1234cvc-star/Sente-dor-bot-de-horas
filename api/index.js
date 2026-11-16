@@ -5,6 +5,7 @@ const recruitment=require('../recruitment-config');
 const recruitmentPanel=require('../recruitment-panel');
 const recruitmentReviewAdmin=require('../recruitment-review-admin');
 const recruitmentPublish=require('../recruitment-publish');
+const neroUpdates=require('../nero-updates');
 const crypto=require('node:crypto');
 const cookie=(req,key)=>Object.fromEntries((req.headers.cookie||'').split(';').map(x=>x.trim().split('=')))[key];
 const json=(res,status,data)=>{res.status(status).setHeader('Cache-Control','no-store');res.json(data)};
@@ -492,6 +493,11 @@ module.exports=async(req,res)=>{
    if(!/^\d{15,25}$/.test(String(sent?.id||'')))return json(res,502,{error:'Discord não confirmou a mensagem'});
    return json(res,200,{ok:true,channelId,messageId:String(sent.id),
     url:'https://discord.com/channels/'+gid+'/'+channelId+'/'+sent.id,applicationsOpen:false});
+  }
+  if(path==='nero-updates'){
+   if(!rights.edit)return json(res,403,{error:'Somente donos e Administradores podem gerenciar atualizações permanentes'});
+   try{return await neroUpdates({req,res,gid,user,db,json,discord})}
+   catch(e){console.error('Atualizações Nero:',String(e.message||e).slice(0,140));return json(res,503,{error:'Não foi possível carregar ou publicar atualizações. Confira o bot e o banco.'})}
   }
   if(path==='announce-channels'&&req.method==='GET'){
    if(!rights.edit)return json(res,403,{error:'Somente donos e Administradores podem publicar comunicados'});
