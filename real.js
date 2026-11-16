@@ -559,6 +559,40 @@ function renderRecruitmentModule(rows){
   const caption=el('p',url);caption.style.overflowWrap='anywhere';area.append(caption);
  }else area.append(el('p','Selecione um servidor para configurar as provas.'));
  sections.resumo.append(area);
+ const dashboardData=recruitmentReleaseUI.data?.guildId===guild?recruitmentReleaseUI.data:null;
+ if(dashboardData){
+  const summary=dashboardData.summary||{};
+  const stats=el('div',undefined,'nero-recruit-stat-grid');
+  for(const [label,value] of [['Inscritos',summary.total||0],['Em prova',summary.inProgress||0],
+   ['Aprovados',summary.approved||0],['Reprovados',summary.rejected||0],['Aguardando análise',summary.pending||0]]){
+   const tile=el('div',undefined,'nero-recruit-stat');
+   tile.append(el('small',label),el('strong',String(value)));stats.append(tile);
+  }
+  sections.resumo.append(stats);
+  const latest=dashboardData.rounds?.[0];
+  const summaryBox=el('div',undefined,'nero-recruit-summary');
+  summaryBox.append(el('h3','Situação da automação'));
+  summaryBox.append(el('p',latest?.auto_enabled?
+   '🤖 Automação ativada neste recrutamento. Provas objetivas são corrigidas pelo gabarito; respostas escritas aguardam revisão quando necessário.':
+   'Configure e abra um novo recrutamento para ativar o fluxo automático.','hint'));
+  if(!dashboardData.enabled)summaryBox.append(el('p','⚠️ Integração pendente: '+(dashboardData.missing||[]).join(', '),'warning-note'));
+  sections.resumo.append(summaryBox);
+  const recent=Array.isArray(dashboardData.recent)?dashboardData.recent:[];
+  if(recent.length){
+   const list=el('section',undefined,'nero-recruit-summary');
+   list.append(el('h3','Candidatos recentes'));
+   for(const item of recent.slice(0,12)){
+    const row=el('div',undefined,'nero-recruit-member');
+    const info=el('div');info.append(el('strong',item.rpName||'Candidato'),
+     el('small','RP: '+(item.rpId||'—')+' · Discord: '+item.userId));
+    const result=el('span',item.state==='approved'?'Aprovado · '+Number(item.score||0).toFixed(0)+'%':
+     item.state==='rejected'?'Reprovado · '+Number(item.score||0).toFixed(0)+'%':
+     item.state==='in_progress'?'Em prova':'Aguardando revisão','nero-recruit-member-status');
+    row.append(info,result);list.append(row);
+   }
+   sections.resumo.append(list);
+  }
+ }
  if(validGuild)renderRecruitmentRelease(sections.abertura,guild);
  if(validGuild)renderNeroReview(sections.correcao,guild);
  if(!validGuild||!state.canEdit){
