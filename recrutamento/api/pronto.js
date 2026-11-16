@@ -10,8 +10,9 @@ module.exports=async(req,res)=>{
  if(!env.SUPABASE_SECRET_KEY&&!env.SUPABASE_SERVICE_ROLE_KEY)missing.push('SUPABASE_SECRET_KEY');
  if(!env.DISCORD_BOT_TOKEN)missing.push('DISCORD_BOT_TOKEN');
  if(!env.NERO_IDENTITY_SECRET||env.NERO_IDENTITY_SECRET.length<32)missing.push('NERO_IDENTITY_SECRET');
- if(!env.TURNSTILE_SITE_KEY)missing.push('TURNSTILE_SITE_KEY');
- if(!env.TURNSTILE_SECRET_KEY)missing.push('TURNSTILE_SECRET_KEY');
+ if(!env.DISCORD_CLIENT_ID)missing.push('DISCORD_CLIENT_ID');
+ if(!env.DISCORD_CLIENT_SECRET)missing.push('DISCORD_CLIENT_SECRET');
+ if(!env.DISCORD_RECRUIT_REDIRECT_URI)missing.push('DISCORD_RECRUIT_REDIRECT_URI');
  if(missing.length)return res.status(200).json({ready:false,missing});
  try{
   const headers={apikey:env.SUPABASE_SECRET_KEY||env.SUPABASE_SERVICE_ROLE_KEY};
