@@ -2,7 +2,7 @@
 // Prova por candidato: ID validado por DM, prazo em servidor, respostas privadas.
 const {readSession,isOpen,isSnowflake}=require('../lib/identity-core');
 const {authUser}=require('../lib/oauth-core');
-const {assess}=require('../../recruitment-review');
+const {assessObjective}=require('../lib/scoring');
 const output=(res,status,data)=>res.status(status).setHeader('Cache-Control','no-store').json(data);
 const db=async(path,{method='GET',body,prefer='return=representation'}={})=>{
  const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -108,14 +108,13 @@ module.exports=async(req,res)=>{
   const patch={answers};
   if(action==='submit'){
    patch.submitted_at=new Date().toISOString();
-   const assessment=assess(config,answers);
-   // Respostas escritas não são aprovadas só pela coincidência de palavras-chave.
-   // Provas objetivas usam o gabarito salvo na abertura e dispensam revisão.
-   if(assessment.questions.some(q=>q.needsHuman)){
+   const assessment=assessObjective(config,answers);
+   if(!assessment){
+    // Não reprovar/aprovar respostas escritas com uma regra frágil de palavras-chave.
     patch.state='under_review';
    }else{
-    patch.final_score=assessment.provisionalScore;
-    patch.state=assessment.provisionalScore>=assessment.passPercent?'approved':'rejected';
+    patch.final_score=assessment.score;
+    patch.state=assessment.decision;
     patch.reviewed_at=new Date().toISOString();
     patch.reviewed_by=null;
    }
