@@ -1018,7 +1018,7 @@ function renderNav(){
  }
  $('moduleBack').hidden=state.tab==='inicio';
  if(state.tab!=='inicio'){const destination=parent||(pointPages.has(state.tab)?'bateponto':'sistemas');$('backToModule').onclick=()=>openTab(destination);$('backToModule').textContent='← Voltar para '+(destination==='inicio'?'Início':tabInfo[destination][0]);}
- const group=state.tab==='inicio'?'inicio':state.tab==='comunicados'?'comunicados':(pointPages.has(state.tab)?'bateponto':'sistemas');
+ const group=state.tab==='inicio'?'inicio':state.tab==='comunicados'?'comunicados':state.tab==='recrutamento'?'recrutamento':(pointPages.has(state.tab)?'bateponto':'sistemas');
  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===group));
  document.querySelectorAll('[data-tab="comunicados"]').forEach(b=>b.hidden=!state.canEdit);
  $('mobileMore').classList.toggle('active',false);
