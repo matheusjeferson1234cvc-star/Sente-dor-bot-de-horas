@@ -142,8 +142,7 @@ module.exports=async(req,res)=>{
  if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(401).json({error:'Não autorizado'});
  if(!process.env.DISCORD_BOT_TOKEN)return res.status(503).json({error:'Bot indisponível'});
  try{
-  const now=encodeURIComponent(stamp());
-  const rows=await db('nero_recruitment_rounds?state=in.(open,review,publishing)&select=*&order=closes_at.asc&limit=25');
+  const rows=await db('nero_recruitment_rounds?auto_enabled=eq.true&state=in.(open,review,publishing)&select=*&order=closes_at.asc&limit=25');
   const due=rows.find(x=>x.state!=='open'||Date.parse(x.closes_at)<=Date.now());
   if(!due)return res.status(200).json({ok:true,status:'nothing-due'});
   const result=await processRound(due);
