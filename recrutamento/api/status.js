@@ -7,7 +7,7 @@ module.exports=async(req,res)=>{
  if(req.method!=='GET')return res.status(405).json({error:'Método não permitido'});
  const gid=String(req.query?.guild||'');
  if(!guildPattern.test(gid))return res.status(400).json({error:'Servidor inválido'});
- const fallback={guildId:gid,name:'Servidor Discord',iconUrl:null,status:'closed'};
+ const fallback={guildId:gid,name:'Servidor Discord',iconUrl:null,bannerUrl:null,accentColor:null,status:'closed'};
  const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
  if(!url||!key)return res.status(200).json(fallback);
  try{
@@ -19,12 +19,31 @@ module.exports=async(req,res)=>{
   if(!response.ok)throw Error('Supabase '+response.status);
   const rows=await response.json();
   if(!rows.length)return res.status(404).json({error:'Servidor não encontrado'});
-  const name=String(rows[0]?.name||'Servidor Discord').slice(0,100);
-  let iconUrl=null;
+  let name=String(rows[0]?.name||'Servidor Discord').slice(0,100);
+  let iconUrl=null,bannerUrl=null,accentColor=null;
   if(process.env.DISCORD_BOT_TOKEN){
    try{
     const r=await fetch('https://discord.com/api/v10/guilds/'+gid,{headers:{Authorization:'Bot '+process.env.DISCORD_BOT_TOKEN},signal:AbortSignal.timeout(4000)});
-    if(r.ok){const g=await r.json();if(g.icon&&/^[a-zA-Z0-9_]+$/.test(g.icon))iconUrl='https://cdn.discordapp.com/icons/'+gid+'/'+g.icon+'.png?size=128';}
+    if(r.ok){
+     const g=await r.json();
+     // Usa somente imagens oficiais CDN do servidor, não URLs arbitrárias enviadas pelo visitante.
+     if(typeof g.name==='string'&&g.name.trim())name=g.name.trim().slice(0,100);
+     if(g.icon&&/^[a-zA-Z0-9_]+$/.test(g.icon)){
+      const ext=g.icon.startsWith('a_')?'gif':'png';
+      iconUrl='https://cdn.discordapp.com/icons/'+gid+'/'+g.icon+'.'+ext+'?size=256';
+     }
+     if(g.banner&&/^[a-zA-Z0-9_]+$/.test(g.banner)){
+      const ext=g.banner.startsWith('a_')?'gif':'png';
+      bannerUrl='https://cdn.discordapp.com/banners/'+gid+'/'+g.banner+'.'+ext+'?size=1024';
+     }else if(g.splash&&/^[a-zA-Z0-9_]+$/.test(g.splash)){
+      bannerUrl='https://cdn.discordapp.com/splashes/'+gid+'/'+g.splash+'.png?size=1024';
+     }
+     // Discord não possui uma cor única obrigatória para servidores. Usa o cargo colorido mais alto.
+     const colored=(Array.isArray(g.roles)?g.roles:[]).filter(role=>Number.isInteger(role.color)&&role.color>0&&role.color<=0xffffff);
+     colored.sort((a,b)=>(Number(b.position)||0)-(Number(a.position)||0));
+     const color=Number.isInteger(g.accent_color)&&g.accent_color>0?g.accent_color:colored[0]?.color;
+     if(Number.isInteger(color)&&color>0&&color<=0xffffff)accentColor='#'+color.toString(16).padStart(6,'0');
+    }
    }catch{}
   }
   // Só exibir aberto se houver sessão ativa e todo o mecanismo de identidade estiver configurado.
@@ -61,6 +80,6 @@ module.exports=async(req,res)=>{
     }
    }catch(e){console.warn('Status Nero indisponível:',String(e.message||e).slice(0,80))}
   }
-  return res.status(200).json({guildId:gid,name,iconUrl,status,siteKey,durationMinutes});
+  return res.status(200).json({guildId:gid,name,iconUrl,bannerUrl,accentColor,status,siteKey,durationMinutes});
  }catch(err){console.error('Recrutamento - falha na consulta de status:',String(err.message||err).slice(0,90));return res.status(200).json(fallback);}
 };
