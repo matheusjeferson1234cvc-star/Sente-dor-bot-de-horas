@@ -427,7 +427,7 @@ module.exports=async(req,res)=>{
    const opensAt=new Date(),closesAt=new Date(opensAt.getTime()+windowMinutes*60000);
    let created;
    try{created=await db('nero_recruitment_rounds',{method:'POST',
-    body:{guild_id:gid,kind,state:'open',opens_at:opensAt.toISOString(),closes_at:closesAt.toISOString(),duration_minutes:cfg.durationMinutes,config_snapshot:cfg,opened_by:user.id}
+    body:{guild_id:gid,kind,state:'open',opens_at:opensAt.toISOString(),closes_at:closesAt.toISOString(),duration_minutes:cfg.durationMinutes,config_snapshot:cfg,opened_by:user.id,auto_enabled:true}
    })}catch(e){
     if(/409|23505|duplicate/i.test(String(e.message)))return json(res,409,{error:'Um recrutamento já está aberto neste servidor'});
     throw e;
