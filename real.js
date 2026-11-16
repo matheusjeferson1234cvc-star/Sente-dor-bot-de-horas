@@ -129,7 +129,7 @@ const tabInfo={
  bateponto:['Bate-ponto','Cartões, equipes, justificativas, relatórios, logs e configurações reunidos'],
  'horas-normais':['Horas normais','Novo sistema independente em preparação'],
  registro:['Registro de membros','Novo módulo em preparação'],
- recrutamento:['Recrutamento','Site separado por servidor · inscrições fechadas até a ativação segura'],
+ recrutamento:['Recrutamento','Inscrições, provas, correção e publicação em abas'],
  gestao:['Gestão de cargos','Novo módulo em preparação'],
  jornada:['Jornada e cartões','Acompanhe turnos, presença e horas registradas'],
  resultados:['Resultados e relatórios','Ranking, membros e consultas em telas separadas'],
@@ -164,7 +164,7 @@ const moduleDefs={
   ['bateponto','Bate-ponto · Sistema completo','Equipes, cartões, turnos, justificativas, logs, relatórios e todas as configurações.','ico-clock'],
   ['horas-normais','Novo sistema de horas','Modalidade futura, separada do Bate-ponto tradicional.','ico-clock'],
   ['registro','Registro de membros','Novo sistema de identificação e aprovação.','ico-file'],
-  ['recrutamento','Recrutamento','Novo sistema de avaliação de candidatos.','ico-users'],
+  ['recrutamento','Recrutamento','Provas, inscrições, correção e anúncios do Discord.','ico-users'],
   ['gestao','Gestão de cargos','Novo sistema de promoções e rebaixamentos.','ico-shield']]},
  bateponto:{title:'Bate-ponto · Sistema completo',intro:'Tudo do Bate-ponto em uma única função: equipe, turnos, horas normais e extras, cartões ativos e cancelados, justificativas, advertências, relatórios, logs, painéis e configurações.',icon:'ico-clock',items:[
   ['jornada','Jornada e equipes','Controle de presença, turnos, cartões e horas normais ou extras.','ico-clock'],
@@ -181,7 +181,7 @@ const moduleDefs={
   ['bot-geral','Regras e convites','Configure equipes, convites e regras do ponto.','ico-users']]},
  'horas-normais':{title:'Horas normais',intro:'Um novo módulo de horas, independente do bate-ponto por equipes e turnos que já está funcionando.',icon:'ico-clock',comingSoon:true,items:[]},
  registro:{title:'Registro de membros',intro:'Módulo reservado para registros e aprovações no Discord.',icon:'ico-file',comingSoon:true,items:[]},
- recrutamento:{title:'Recrutamento',intro:'Acesse o site separado do recrutamento vinculado ao servidor selecionado. Candidatos não precisam entrar no painel administrativo.',icon:'ico-users',items:[]},
+ recrutamento:{title:'Recrutamento',intro:'Provas, inscrições, correções e Discord em abas, com visual próprio para cada servidor.',icon:'ico-users',items:[]},
  gestao:{title:'Gestão de cargos',intro:'Módulo reservado para promoções, rebaixamentos e gestão de advertências. O histórico atual segue disponível em Administração.',icon:'ico-shield',comingSoon:true,items:[]},
  jornada:{title:'Central de Horas · Tradicional',intro:'Bate-ponto existente por equipe e turno, com horas normais, extras e cartões sincronizados. As regras e os dados atuais foram preservados.',icon:'ico-clock',items:[
   ['presenca','Controle de presença','Acompanhe a meta diária, os turnos e as ausências confirmadas.','ico-check'],
@@ -532,21 +532,39 @@ function renderNeroReview(rows,guild){
 // Configurador administrativo. A prova permanece fechada na página pública.
 function renderRecruitmentModule(rows){
  const guild=String(state.guild||''),validGuild=/^\d{15,25}$/.test(guild);
+ const sections={},nav=el('nav',undefined,'recruit-section-tabs');
+ nav.setAttribute('aria-label','Funções do recrutamento');
+ const tabs=[['resumo','🏠 Visão geral'],['abertura','🔓 Abrir / Encerrar'],['perguntas','📝 Perguntas'],['correcao','✅ Correção'],['discord','📢 Discord']];
+ if(!tabs.some(([id])=>id===state.recruitSection))state.recruitSection='resumo';
+ for(const [id,label] of tabs){
+  const button=el('button',label,'recruit-section-tab');button.type='button';
+  button.setAttribute('aria-current',String(id===state.recruitSection));
+  button.onclick=()=>{state.recruitSection=id;render()};nav.append(button);
+ }
+ rows.append(nav);
+ for(const [id] of tabs){
+  const panel=el('div',undefined,'recruit-section-panel');panel.hidden=id!==state.recruitSection;
+  panel.dataset.section=id;sections[id]=panel;rows.append(panel);
+ }
  const area=el('section',undefined,'planned-system');
- area.append(el('span','SITE SEPARADO · NERO','planned-system-tag'),el('h3','Recrutamento do servidor'),
-   el('p','Configure perguntas da Polícia ou Organização neste ambiente. O site de provas é independente e segue com inscrições fechadas até a verificação dos candidatos estar pronta.'));
+ area.append(el('span','ADMINISTRAÇÃO · NERO RECRUTAMENTO','planned-system-tag'),el('h3','Recrutamento do servidor'),
+   el('p','Use as abas para administrar a prova. O site público acompanha as imagens e as cores disponíveis no Discord da organização.'));
  if(validGuild){
   const url='https://nero-recrutamento.vercel.app/?guild='+encodeURIComponent(guild);
-  const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.className='button';link.textContent='Abrir link do servidor ↗';
+  const link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.className='button';link.textContent='🌐 Abrir site de provas ↗';
   area.append(link);
-  const resultsLink=document.createElement('a');resultsLink.href=url+'&tab=aprovados';resultsLink.target='_blank';resultsLink.rel='noopener noreferrer';resultsLink.className='button ghost';resultsLink.textContent='🏆 Ver aba de aprovados ↗';area.append(resultsLink);
+  const results=document.createElement('a');results.href=url+'&tab=aprovados';results.target='_blank';results.rel='noopener noreferrer';results.className='button ghost';results.textContent='🏆 Ver aprovados ↗';area.append(results);
   const caption=el('p',url);caption.style.overflowWrap='anywhere';area.append(caption);
- }else area.append(el('p','Selecione um servidor antes de configurar as provas.'));
- rows.append(area);
- if(validGuild)renderRecruitmentRelease(rows,guild);
- if(validGuild)renderNeroReview(rows,guild);
- if(!validGuild||!state.canEdit){rows.append(el('p','Somente donos e administradores com permissão real no Discord podem editar os gabaritos por enquanto.','warning-note'));return;}
- renderRecruitmentPublish(rows,guild);
+ }else area.append(el('p','Selecione um servidor para configurar as provas.'));
+ sections.resumo.append(area);
+ if(validGuild)renderRecruitmentRelease(sections.abertura,guild);
+ if(validGuild)renderNeroReview(sections.correcao,guild);
+ if(!validGuild||!state.canEdit){
+  const message='Somente pessoas autorizadas pelo Discord podem editar questões e publicar painéis.';
+  sections.perguntas.append(el('p',message,'warning-note'));sections.discord.append(el('p',message,'warning-note'));
+  return;
+ }
+ renderRecruitmentPublish(sections.discord,guild);
  const controls=el('section',undefined,'recruit-editor');
  const head=el('div',undefined,'recruit-heading');head.append(el('h3','Editor de provas · 20 questões'));
  const selectType=el('select');selectType.setAttribute('aria-label','Categoria da prova');
@@ -555,7 +573,7 @@ function renderRecruitmentModule(rows){
  }
  selectType.value=state.recruitKind;
  selectType.onchange=()=>{state.recruitKind=selectType.value;state.recruitData=null;state.recruitKey=null;state.recruitDirty=false;render()};
- head.append(selectType);controls.append(head);rows.append(controls);
+ head.append(selectType);controls.append(head);sections.perguntas.append(controls);
  const key=guild+':'+state.recruitKind;
  if(state.recruitKey!==key){state.recruitKey=key;state.recruitData=null;state.recruitError='';state.recruitLoading=false;state.recruitDirty=false;}
  if(!state.recruitData&&!state.recruitLoading&&!state.recruitError){
@@ -649,7 +667,7 @@ function renderRecruitmentModule(rows){
   }catch(e){await uiNotice(e.message||'Erro ao salvar','Não foi possível salvar a prova')}
   finally{state.recruitSaving=false;if(state.recruitKey===key)render()}
  };actions.append(save);controls.append(actions);
- controls.append(el('p','Abertura das inscrições, confirmação de identidade, correção e publicação de aprovados continuam indisponíveis até a integração com o bot ser testada.','warning-note'));
+ controls.append(el('p','Salve o gabarito antes de abrir inscrições. A correção e a publicação ficam nas abas próprias.','hint'));
 }
 
 function moduleHub(key){
@@ -688,16 +706,16 @@ function moduleHub(key){
   input.setAttribute('aria-label','Buscar ferramentas do Bate-ponto');
   searchPanel.append(svgIcon('ico-list'),input);rows.append(searchPanel);
   const sections=[
-   {name:'Operação e cartões',desc:'Acompanhe as equipes, a presença e cada cartão de ponto.',tabs:['jornada','ativos','turno','presenca','cancelados']},
-   {name:'Horas, ranking e relatórios',desc:'Consulte horas normais, extras e histórico validado.',tabs:['resultados','ranking','mensal','relatorios','membros']},
-   {name:'Justificativas e auditoria',desc:'Analise registros, ausências, advertências e folgas.',tabs:['administracao','justificativas','advertencias','folgas']},
-   {name:'Painéis e configurações',desc:'Personalize o Discord, cargos, regras, logs e avisos do ponto.',tabs:['configuracoes','bot-painel','bot-painel-just','bot-canais','bot-turnos','bot-geral','bot-alertas','permissoes']}
-  ];
-  const allSections=[];
+    {name:'Operação e cartões',desc:'Cartões ativos, presença e turnos.',tabs:['ativos','presenca','turno','mensal']},
+    {name:'Ranking e relatórios',desc:'Horas, histórico e membros.',tabs:['ranking','relatorios','membros']},
+    {name:'Justificativas e auditoria',desc:'Solicitações, advertências e cancelamentos.',tabs:['justificativas','advertencias','folgas','cancelados']},
+    {name:'Configurações do ponto',desc:'Painéis, turnos, regras e canais.',tabs:['configuracoes','bot-geral','bot-turnos','bot-canais','bot-painel','bot-painel-just','bot-alertas','permissoes']}
+   ];
+   const allSections=[];
   for(const item of sections){
    const options=item.tabs.map(tab=>def.items.find(x=>x[0]===tab)||Object.values(moduleDefs).flatMap(x=>x.items).find(x=>x[0]===tab)).filter(x=>x&&allowedFeature(x[0]));
    if(!options.length)continue;
-   const section=el('section',undefined,'point-tool-section'),heading=el('div',undefined,'point-tool-heading');
+   const section=el('details',undefined,'point-tool-section'),heading=el('summary',undefined,'point-tool-heading');section.open=item.name==='Operação e cartões';
    const headingCopy=el('div');headingCopy.append(el('h3',item.name),el('p',item.desc));
    const count=el('span',options.length+' ferramentas','point-tool-count');
    heading.append(headingCopy,count);
@@ -716,7 +734,7 @@ function moduleHub(key){
      const matches=normalize(card.textContent).includes(query);
      card.hidden=!matches;if(matches)count++;
     }
-    section.hidden=!count;shown+=count;
+    section.hidden=!count;section.open=!!query||section===allSections[0];shown+=count;
     section.querySelector('.point-tool-count').textContent=count+' '+(count===1?'ferramenta':'ferramentas');
    }
    noMatch.hidden=shown>0;
@@ -954,6 +972,29 @@ function openTab(tab){
  const body=$('rows');body.classList.remove('view-enter');void body.offsetWidth;body.classList.add('view-enter');
  if(window.innerWidth<=950)window.scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
 }
+function renderWorkspaceShortcuts(){
+ let nav=$('workspaceShortcuts');
+ if(!nav){nav=el('nav',undefined,'nero-workspace-shortcuts');nav.id='workspaceShortcuts';nav.setAttribute('aria-label','Navegação permanente dos sistemas');$('moduleBack').after(nav)}
+ nav.replaceChildren();
+ if(!state.guild||['inicio','sistemas'].includes(state.tab)){nav.hidden=true;return}
+ nav.hidden=false;
+ const point=pointPages.has(state.tab),switcher=el('div',undefined,'nero-workspace-switch');
+ for(const [tab,label] of [['bateponto','⏰ Bate-ponto'],['recrutamento','📝 Recrutamento']]){
+  const button=el('button',label,'nero-workspace-pill');button.type='button';
+  button.setAttribute('aria-current',String((tab==='bateponto'&&point)||(tab==='recrutamento'&&state.tab==='recrutamento')));
+  button.onclick=()=>openTab(tab);switcher.append(button);
+ }
+ nav.append(switcher);
+ if(point){
+  const quick=el('div',undefined,'nero-point-quick');
+  for(const [tab,label] of [['bateponto','Todas as funções'],['ativos','Cartões ativos'],['presenca','Presença'],['ranking','Ranking'],['justificativas','Justificativas'],['relatorios','Relatórios'],['configuracoes','Configurações']]){
+   if(!allowedFeature(tab))continue;
+   const button=el('button',label,'nero-quick-link');button.type='button';
+   button.setAttribute('aria-current',String(state.tab===tab));button.onclick=()=>openTab(tab);quick.append(button);
+  }
+  nav.append(quick);
+ }
+}
 function renderNav(){
  const [title,description]=tabInfo[state.tab]||tabInfo.inicio, parent=parentTab(state.tab);
  $('pageTitle').textContent=title;$('pageDescription').textContent=description;
@@ -977,7 +1018,7 @@ function renderNav(){
  }
  $('moduleBack').hidden=state.tab==='inicio';
  if(state.tab!=='inicio'){const destination=parent||(pointPages.has(state.tab)?'bateponto':'sistemas');$('backToModule').onclick=()=>openTab(destination);$('backToModule').textContent='← Voltar para '+(destination==='inicio'?'Início':tabInfo[destination][0]);}
- const group=state.tab==='inicio'?'inicio':state.tab==='comunicados'?'comunicados':(pointPages.has(state.tab)?'bateponto':'sistemas');
+ const group=state.tab==='inicio'?'inicio':state.tab==='comunicados'?'comunicados':state.tab==='recrutamento'?'recrutamento':(pointPages.has(state.tab)?'bateponto':'sistemas');
  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===group));
  document.querySelectorAll('[data-tab="comunicados"]').forEach(b=>b.hidden=!state.canEdit);
  $('mobileMore').classList.toggle('active',false);
@@ -1001,7 +1042,7 @@ function overview(){
   ['bateponto','Bate-ponto · Completo','Equipes, cartões, turnos, horas, justificativas, logs, relatórios, painéis e configurações.','ico-clock','Sistema disponível'],
   ['horas-normais','Novo sistema de horas','Modalidade futura independente do Bate-ponto atual.','ico-clock','Em preparação'],
   ['registro','Registro','Nova função de identificação e aprovação.','ico-file','Em preparação'],
-  ['recrutamento','Recrutamento','Nova função de seleção e avaliação.','ico-users','Em preparação'],
+  ['recrutamento','Recrutamento · Completo','Provas, inscrições, correção e anúncios.','ico-users','Sistema disponível'],
   ['gestao','Gestão de cargos','Nova função de promoções e rebaixamentos.','ico-shield','Em preparação']]){
   const b=el('button',undefined,'home-module');b.type='button';const avatar=el('span',undefined,'home-module-icon');avatar.append(svgIcon(ico));const copy=el('span',undefined,'home-module-copy');copy.append(el('strong',title),el('small',descr),el('em',foot));const arrow=el('span',undefined,'home-module-arrow');arrow.append(svgIcon('ico-arrow'));b.append(avatar,copy,arrow);b.onclick=()=>openTab(key);cardsGrid.append(b)}rows.append(cardsGrid);
  const fullCatalog=el('button','Abrir catálogo completo de sistemas','button hub-explore');fullCatalog.type='button';fullCatalog.onclick=()=>openTab('sistemas');rows.append(fullCatalog);
@@ -1192,7 +1233,7 @@ function botConfigPage(){
  }
 
 }
-function render(){if(!state.data)return;const data=state.data;if(data.viewScope==='shift'&&!visibleShifts().includes(state.shift))state.shift=visibleShifts()[0]||'Noite';const all=cards(),period=all.filter(inPeriod),map=members();$('period').value=state.period;$('month').value=state.month||today().slice(0,7);renderNav();
+function render(){if(!state.data)return;const data=state.data;if(data.viewScope==='shift'&&!visibleShifts().includes(state.shift))state.shift=visibleShifts()[0]||'Noite';const all=cards(),period=all.filter(inPeriod),map=members();$('period').value=state.period;$('month').value=state.month||today().slice(0,7);renderNav();renderWorkspaceShortcuts();
 const summaries=[['Normais validadas',fmt(totaled(period,'Normal'))],['Extras validadas',fmt(totaled(period,'Extra'))],['Total validado',fmt(totaled(period))],['Em andamento',String(period.filter(active).length)+(period.filter(active).length===1?' registro':' registros')]];$('stats').replaceChildren();for(const [label,val] of summaries){const box=el('div',undefined,'stat');box.append(el('span',label),el('strong',val));$('stats').append(box)}
 const isHub=!!moduleDefs[state.tab]||state.tab==='inicio'||state.tab==='comunicados', hasPeriod=['ranking','mensal','relatorios','membros','ativos','cancelados'].includes(state.tab), hasStats=['ranking','relatorios'].includes(state.tab);
  $('periodToolbar').hidden=!hasPeriod;$('stats').hidden=!hasStats;

@@ -292,3 +292,31 @@ footer a:hover{text-decoration:underline}
 .recruit-actions{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
 .recruit-actions button{min-height:42px}
 @media(max-width:700px){.recruit-editor{padding:14px}.recruit-actions{display:grid;grid-template-columns:1fr}.recruit-heading select{width:100%}}
+
+/* Nero V7 — navegação clara e constante por módulo */
+.nero-workspace-shortcuts{display:grid;gap:10px;padding:12px 14px;margin:0 0 20px;border:1px solid #71313f;border-radius:15px;background:linear-gradient(125deg,#26131a,#140d13);box-shadow:0 12px 25px #0003}
+.nero-workspace-shortcuts[hidden]{display:none!important}
+.nero-workspace-switch,.nero-point-quick,.recruit-section-tabs{display:flex;gap:9px;align-items:center;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#8e3445 transparent}
+.nero-workspace-pill,.nero-quick-link,.recruit-section-tab{cursor:pointer;white-space:nowrap;flex:none;font:inherit;border:1px solid #723141;border-radius:10px;color:#e9c1c9;background:#341821;padding:10px 13px}
+.nero-workspace-pill{font-weight:800;padding:12px 17px}
+.nero-workspace-pill[aria-current="true"],.recruit-section-tab[aria-current="true"]{background:#a72840;border-color:#fb6780;color:#fff;box-shadow:0 6px 18px #8e13283a}
+.nero-quick-link{font-size:12px;background:#1f121b;color:#ddb3be}
+.nero-quick-link[aria-current="true"]{border-color:#f45b75;color:#fff;background:#582132}
+.nero-workspace-pill:focus-visible,.nero-quick-link:focus-visible,.recruit-section-tab:focus-visible{outline:2px solid #ff96a5;outline-offset:3px}
+.recruit-section-tabs{margin:0 0 18px;padding:11px;background:#23131c;border:1px solid #783447;border-radius:14px}
+.recruit-section-tab{font-size:12px;font-weight:790;padding:11px 14px}
+.recruit-section-panel[hidden]{display:none!important}
+.recruit-section-panel>.recruit-editor,.recruit-section-panel>.planned-system{margin-bottom:18px}
+.point-tool-section{overflow:hidden}
+.point-tool-section>summary{cursor:pointer;list-style:none;user-select:none}
+.point-tool-section>summary::-webkit-details-marker{display:none}
+.point-tool-section>summary:after{content:"⌄";display:block;margin-left:auto;color:#ff91a0;font-size:20px;line-height:1}
+.point-tool-section[open]>summary:after{content:"⌃"}
+.point-tool-section:not([open]) .point-tool-grid{display:none}
+.point-tool-section>summary:focus-visible{outline:2px solid #ff96a5;outline-offset:-3px}
+@media(max-width:740px){
+ .nero-workspace-shortcuts{padding:10px;margin-bottom:14px;gap:8px}
+ .nero-workspace-pill{padding:10px 12px;font-size:12px}
+ .nero-point-quick,.recruit-section-tabs{margin-left:-2px;margin-right:-2px;padding-bottom:4px}
+ .nero-quick-link,.recruit-section-tab{font-size:11px;padding:10px}
+}
