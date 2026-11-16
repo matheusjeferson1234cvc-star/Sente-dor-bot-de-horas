@@ -386,7 +386,7 @@ module.exports=async(req,res)=>{
     return json(res,200,{ok:true,roleId:requested||null});
    }
    if(!admin&&!recruiter)return json(res,403,{error:'Somente o administrador ou o cargo de recrutador configurado pode controlar as provas'});
-   const list=await db('nero_recruitment_rounds',{query:'?guild_id=eq.'+gid+'&select=id,kind,state,opens_at,closes_at,duration_minutes,opened_by,closed_by,closed_at&order=created_at.desc&limit=12'});
+   const list=await db('nero_recruitment_rounds',{query:'?guild_id=eq.'+gid+'&select=id,kind,state,opens_at,closes_at,duration_minutes,opened_by,closed_by,closed_at,auto_enabled&order=created_at.desc&limit=12'});
    const now=Date.now(),live=list.find(r=>r.state==='open'&&Date.parse(r.opens_at)<=now&&Date.parse(r.closes_at)>now);
    const readiness=await checkRecruitmentPublicReady();
    if(req.method==='GET'){
