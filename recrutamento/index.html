@@ -52,13 +52,34 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
 .exam-choice input{accent-color:#ec3860;margin:3px}
 .exam-card textarea{display:block;width:100%;border-radius:10px;resize:vertical;min-height:88px;background:#110d14;color:#fff;border:1px solid #734357;padding:12px;font:inherit;font-size:14px}
 .exam-actions{display:flex;flex-wrap:wrap;gap:9px}.exam-actions button{flex:1}
+
+/* Aparência da organização carregada somente a partir do Discord oficial. */
+:root{--org-accent:#dc3657;--org-accent-deep:#85243c;--org-hero-image:url('/nero-banner.svg')}
+body{background:radial-gradient(ellipse at 70% -18%,color-mix(in srgb,var(--org-accent) 22%,transparent),transparent 52%),linear-gradient(145deg,#110d14,#0c0b0e 63%,#1c0d17)}
+.hero{border-color:var(--org-accent);background:linear-gradient(130deg,color-mix(in srgb,var(--org-accent-deep) 27%,#140d15),#140d15 72%)}
+.hero:before{background-image:var(--org-hero-image);background-position:center;background-size:cover;opacity:.37}
+.hero-gif[hidden]{display:none!important}
+.hero-inner{background:linear-gradient(90deg,#100b13df,transparent)}
+.hero h1 em,.eyebrow{color:color-mix(in srgb,var(--org-accent) 70%,white)}
+.panel{border-color:color-mix(in srgb,var(--org-accent) 32%,#393039)}
+.portal-nav button[aria-selected="true"],button:not(:disabled):not(.help-button){background:linear-gradient(110deg,var(--org-accent),var(--org-accent-deep));color:#fff}
+.portal-nav button[aria-selected="false"]{background:#281420;border-color:#6c4552}
+button:focus-visible,.top-link:focus-visible{outline:2px solid var(--org-accent);outline-offset:3px}
+.org-hero-identity{display:flex;align-items:center;gap:12px;max-width:460px;margin:15px 0 7px;padding:10px 12px;background:#0c0a0eb8;border:1px solid color-mix(in srgb,var(--org-accent) 60%,#3f303b);border-radius:13px}
+.org-hero-identity[hidden]{display:none}
+.org-hero-avatar{width:42px;height:42px;flex:none;display:grid;place-items:center;border:1px solid var(--org-accent);border-radius:12px;background:var(--org-accent-deep);font-weight:850;overflow:hidden}
+.org-hero-avatar img{width:100%;height:100%;object-fit:cover}
+.org-hero-copy{display:grid;gap:3px;min-width:0}
+.org-hero-copy small{font-size:9px;letter-spacing:.12em;font-weight:820;color:#f6b9c4}
+.org-hero-copy strong{font-size:14px;color:#fff;overflow-wrap:anywhere}
+@media(max-width:710px){.org-hero-identity{margin:13px 0 8px}.hero:before{opacity:.29}.hero-inner{max-width:100%}}
 </style>
 </head>
 <body>
 <div class="shell">
 <header class="top"><a class="brand" href="/" aria-label="Nero Recrutamento"><img src="/nero-mark.svg" alt=""><span><strong>NERO RECRUTAMENTO</strong><small>Conectado ao Nero Bot</small></span></a><a class="top-link" href="https://central-de-horas1.vercel.app/" rel="noopener noreferrer">Painel principal</a></header>
 <main>
-<section class="hero"><img class="hero-gif" src="/nero-loop.gif" alt="" onerror="this.hidden=true"><div class="hero-inner"><span class="eyebrow">Processo seletivo · Roleplay</span><h1>Seu próximo passo <em>começa aqui.</em></h1><p>Um link por servidor, avaliações separadas e gerenciamento integrado ao Nero Bot.</p></div></section>
+<section class="hero"><img id="heroDecoration" class="hero-gif" src="/nero-loop.gif" alt="" onerror="this.hidden=true"><div class="hero-inner"><span class="eyebrow">Processo seletivo · Roleplay</span><div class="org-hero-identity" id="heroOrgIdentity" hidden><span class="org-hero-avatar" id="heroOrgAvatar">N</span><span class="org-hero-copy"><small>IDENTIDADE DO SERVIDOR DISCORD</small><strong id="heroOrgName">Servidor</strong></span></div><h1>Seu próximo passo <em>começa aqui.</em></h1><p>Um link por servidor, avaliações separadas e gerenciamento integrado ao Nero Bot.</p></div></section>
 <nav class="portal-nav" aria-label="Páginas do recrutamento" role="tablist">
   <button type="button" id="tabProva" role="tab" aria-controls="viewProva" aria-selected="true">📝 Prova</button>
   <button type="button" id="tabAprovados" role="tab" aria-controls="viewAprovados" aria-selected="false">🏆 Aprovados</button>
@@ -311,11 +332,25 @@ button:disabled{background:#42323c;color:#c6aeb6;cursor:not-allowed}
   .then(r=>r.ok?r.json():null).then(data=>{
    if(!data||data.guildId!==guild){$('guildName').textContent='Servidor não disponível';return;}
    $('guildName').textContent=data.name||'Servidor Discord';
+   $('heroOrgName').textContent=data.name||'Servidor Discord';
+   $('heroOrgIdentity').hidden=false;
+   if(typeof data.accentColor==='string'&&/^#[0-9a-fA-F]{6}$/.test(data.accentColor)){
+    const accent=data.accentColor;
+    document.documentElement.style.setProperty('--org-accent',accent);
+    document.documentElement.style.setProperty('--org-accent-deep','color-mix(in srgb, '+accent+' 55%, #140d15)');
+   }
+   if(typeof data.bannerUrl==='string'&&/^https:\/\/cdn\.discordapp\.com\/(?:banners|splashes)\/\d{15,25}\/[a-zA-Z0-9_]+\.(?:png|gif|webp)\?size=1024$/.test(data.bannerUrl)){
+    document.documentElement.style.setProperty('--org-hero-image','url('+JSON.stringify(data.bannerUrl)+')');
+    $('heroDecoration').hidden=true;
+   }
    if(Number.isInteger(data.durationMinutes)&&data.durationMinutes>=5&&data.durationMinutes<=180)
     $('durationNote').textContent='⏱️ Duração prevista da prova: '+data.durationMinutes+' minutos.';
    if(data.status==='open'&&typeof data.siteKey==='string'&&data.siteKey){enableIdentity(data.siteKey);beginExam(true);}
-   if(typeof data.iconUrl==='string'&&/^https:\/\/cdn\.discordapp\.com\//.test(data.iconUrl)){
-    const img=document.createElement('img');img.src=data.iconUrl;img.alt='';$('guildIcon').replaceChildren(img);
+   if(typeof data.iconUrl==='string'&&/^https:\/\/cdn\.discordapp\.com\/icons\/\d{15,25}\/[a-zA-Z0-9_]+\.(?:png|gif)\?size=256$/.test(data.iconUrl)){
+    for(const id of ['guildIcon','heroOrgAvatar']){
+     const img=document.createElement('img');img.src=data.iconUrl;img.alt='';
+     img.onerror=()=>img.remove();$(id).replaceChildren(img);
+    }
    }
   }).catch(()=>{$('guildName').textContent='Servidor Discord';}).finally(()=>clearTimeout(timer));
 })();
