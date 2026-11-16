@@ -390,9 +390,22 @@ module.exports=async(req,res)=>{
    const now=Date.now(),live=list.find(r=>r.state==='open'&&Date.parse(r.opens_at)<=now&&Date.parse(r.closes_at)>now);
    const readiness=await checkRecruitmentPublicReady();
    if(req.method==='GET'){
+    const roundIds=new Set(list.map(r=>r.id));
+    const allAttempts=await db('nero_recruitment_attempts',{query:'?guild_id=eq.'+gid+
+     '&select=round_id,user_id,rp_name,rp_id,state,final_score,submitted_at&order=started_at.desc&limit=2000'});
+    const attempts=allAttempts.filter(a=>roundIds.has(a.round_id));
+    const summary={total:attempts.length,inProgress:0,approved:0,rejected:0,pending:0};
+    for(const a of attempts){
+     if(a.state==='approved')summary.approved++;
+     else if(a.state==='rejected')summary.rejected++;
+     else if(a.state==='in_progress')summary.inProgress++;
+     else summary.pending++;
+    }
     return json(res,200,{
      guildId:gid,admin,recruiter,enabled:readiness.ready,missing:readiness.missing,
-     liveRound:live||null,
+     liveRound:live||null,summary,
+     recent:attempts.slice(0,20).map(a=>({userId:a.user_id,rpName:a.rp_name,rpId:a.rp_id,
+      state:a.state,score:a.final_score,submittedAt:a.submitted_at})),
      rounds:list.map(r=>({...r,effectiveState:r.state==='open'&&Date.parse(r.closes_at)<=now?'review':r.state}))
     });
    }
