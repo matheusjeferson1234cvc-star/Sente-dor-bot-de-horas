@@ -2,6 +2,7 @@
 // Prova por candidato: ID validado por DM, prazo em servidor, respostas privadas.
 const {readSession,isOpen,isSnowflake}=require('../lib/identity-core');
 const {authUser}=require('../lib/oauth-core');
+const {assess}=require('../../recruitment-review');
 const output=(res,status,data)=>res.status(status).setHeader('Cache-Control','no-store').json(data);
 const db=async(path,{method='GET',body,prefer='return=representation'}={})=>{
  const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -105,7 +106,20 @@ module.exports=async(req,res)=>{
   if(!['save','submit'].includes(action))return output(res,400,{error:'Ação inválida'});
   let answers;try{answers=normalizeAnswers(raw.answers,config.questions)}catch(e){return output(res,400,{error:e.message})}
   const patch={answers};
-  if(action==='submit'){patch.submitted_at=new Date().toISOString();patch.state='submitted'}
+  if(action==='submit'){
+   patch.submitted_at=new Date().toISOString();
+   const assessment=assess(config,answers);
+   // Respostas escritas não são aprovadas só pela coincidência de palavras-chave.
+   // Provas objetivas usam o gabarito salvo na abertura e dispensam revisão.
+   if(assessment.questions.some(q=>q.needsHuman)){
+    patch.state='under_review';
+   }else{
+    patch.final_score=assessment.provisionalScore;
+    patch.state=assessment.provisionalScore>=assessment.passPercent?'approved':'rejected';
+    patch.reviewed_at=new Date().toISOString();
+    patch.reviewed_by=null;
+   }
+  }
   const updated=await db('nero_recruitment_attempts'+keyQuery+
    '&state=eq.in_progress&submitted_at=is.null&deadline_at=gt.'+encodeURIComponent(new Date().toISOString()),{
    method:'PATCH',body:patch
