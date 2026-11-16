@@ -320,3 +320,28 @@ footer a:hover{text-decoration:underline}
  .nero-point-quick,.recruit-section-tabs{margin-left:-2px;margin-right:-2px;padding-bottom:4px}
  .nero-quick-link,.recruit-section-tab{font-size:11px;padding:10px}
 }
+
+/* Nero V7.1 — atualizações do bot por servidor */
+.nero-updates-panel{background:linear-gradient(145deg,#2a121b,#170d14);border:1px solid #722b3e;border-radius:15px;padding:23px;margin:15px 0;display:grid;gap:15px}
+.nero-updates-panel h3{font-size:17px;margin:0;color:#fff}
+.nero-updates-panel>select,.nero-updates-field input,.nero-updates-field textarea{width:100%;min-width:0;border:1px solid #814153!important;background:#1b0f18!important;color:#fff!important;padding:12px;border-radius:10px;font:inherit}
+.nero-updates-actions{display:flex;gap:10px;flex-wrap:wrap}
+.nero-updates-actions button{flex:1;min-width:185px}
+.nero-updates-field{display:grid;gap:6px;font-size:13px;font-weight:700;color:#f2c5ce}
+.nero-updates-field textarea{resize:vertical;min-height:120px}
+.nero-updates-status{padding:12px 14px;border-radius:10px;background:#321b24;border:1px solid #713344;color:#eebfc9;overflow-wrap:anywhere}
+.nero-updates-history{display:grid;gap:12px}
+.nero-update-item{padding:15px;border-radius:12px;background:#21121b;border:1px solid #6b2c3b;display:grid;gap:9px}
+.nero-update-item strong{color:#fff;font-size:14px}.nero-update-item p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;color:#edc4cd;font-size:12px;max-height:200px;overflow:auto}
+.nero-update-item small{color:#c08c9d}.nero-update-item a{font-size:12px;color:#ff8ba0;text-decoration:underline}
+
+/* Nero V3 — dashboard de recrutamento */
+.nero-recruit-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:17px 0}
+.nero-recruit-stat{display:grid;gap:5px;padding:19px 17px;border-radius:13px;background:linear-gradient(150deg,#34131d,#1d1118);border:1px solid #7b2a42}
+.nero-recruit-stat small{color:#e4b6c2;font-size:12px}.nero-recruit-stat strong{color:#fff;font-size:26px;font-weight:850}
+.nero-recruit-summary{display:grid;gap:10px;padding:21px;border:1px solid #743045;border-radius:13px;background:#26131b;margin:17px 0}
+.nero-recruit-summary h3{margin:0;color:#fff;font-size:17px}
+.nero-recruit-member{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:12px 0;border-top:1px solid #672a3b}
+.nero-recruit-member div{display:grid;gap:4px;min-width:0}.nero-recruit-member strong{overflow-wrap:anywhere;color:#fff}
+.nero-recruit-member small{color:#d7a9b7;font-size:11px;overflow-wrap:anywhere}.nero-recruit-member-status{font-size:11px;color:#ffd5df;border:1px solid #a3445c;border-radius:30px;padding:6px 10px;white-space:nowrap}
+@media(max-width:620px){.nero-recruit-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nero-recruit-stat{padding:14px}.nero-recruit-member{align-items:flex-start;flex-direction:column}.nero-recruit-member-status{white-space:normal}}

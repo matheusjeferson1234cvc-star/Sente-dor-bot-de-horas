@@ -130,6 +130,7 @@ const tabInfo={
  'horas-normais':['Horas normais','Novo sistema independente em preparação'],
  registro:['Registro de membros','Novo módulo em preparação'],
  recrutamento:['Recrutamento','Inscrições, provas, correção e publicação em abas'],
+ atualizacoes:['Atualizações do Nero','Canal permanente, novas versões e histórico de comunicados'],
  gestao:['Gestão de cargos','Novo módulo em preparação'],
  jornada:['Jornada e cartões','Acompanhe turnos, presença e horas registradas'],
  resultados:['Resultados e relatórios','Ranking, membros e consultas em telas separadas'],
@@ -165,6 +166,7 @@ const moduleDefs={
   ['horas-normais','Novo sistema de horas','Modalidade futura, separada do Bate-ponto tradicional.','ico-clock'],
   ['registro','Registro de membros','Novo sistema de identificação e aprovação.','ico-file'],
   ['recrutamento','Recrutamento','Provas, inscrições, correção e anúncios do Discord.','ico-users'],
+  ['atualizacoes','Atualizações oficiais','Defina um canal e publique novidades permanentes do Nero no Discord.','ico-file'],
   ['gestao','Gestão de cargos','Novo sistema de promoções e rebaixamentos.','ico-shield']]},
  bateponto:{title:'Bate-ponto · Sistema completo',intro:'Tudo do Bate-ponto em uma única função: equipe, turnos, horas normais e extras, cartões ativos e cancelados, justificativas, advertências, relatórios, logs, painéis e configurações.',icon:'ico-clock',items:[
   ['jornada','Jornada e equipes','Controle de presença, turnos, cartões e horas normais ou extras.','ico-clock'],
@@ -219,7 +221,7 @@ const parentTab=tab=>{
  return (state.navOrigin&&moduleDefs[state.navOrigin]?.items.some(item=>item[0]===tab)?state.navOrigin:null)||Object.keys(moduleDefs).find(key=>key!=='sistemas'&&moduleDefs[key].items.some(item=>item[0]===tab))||null;
 };
 const pointPages=new Set(['bateponto','jornada','resultados','administracao','configuracoes','ativos','cancelados','justificativas','advertencias','folgas','ranking','presenca','turno','mensal','relatorios','membros','permissoes','laboratorio','bot-geral','bot-turnos','bot-canais','bot-painel','bot-painel-just','bot-alertas','site-preferencias']);
-const allowedFeature=tab=>(tab!=='comunicados'||state.canEdit)&&(!tab.startsWith('bot-')||state.canEdit)&&(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner)&&(state.data?.viewScope!=='shift'||(!tab.startsWith('bot-')&&!['folgas','permissoes','laboratorio'].includes(tab)));
+const allowedFeature=tab=>(!['comunicados','atualizacoes'].includes(tab)||state.canEdit)&&(!tab.startsWith('bot-')||state.canEdit)&&(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner)&&(state.data?.viewScope!=='shift'||(!tab.startsWith('bot-')&&!['folgas','permissoes','laboratorio'].includes(tab)));
 function svgIcon(symbol){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('ico');svg.setAttribute('aria-hidden','true');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#'+symbol);svg.append(use);return svg}
 function moduleCard({tab,title,description,icon,meta}){
  const b=el('button',undefined,'feature-card');b.type='button';b.setAttribute('aria-label',`Abrir ${title}`);
@@ -557,6 +559,40 @@ function renderRecruitmentModule(rows){
   const caption=el('p',url);caption.style.overflowWrap='anywhere';area.append(caption);
  }else area.append(el('p','Selecione um servidor para configurar as provas.'));
  sections.resumo.append(area);
+ const dashboardData=recruitmentReleaseUI.data?.guildId===guild?recruitmentReleaseUI.data:null;
+ if(dashboardData){
+  const summary=dashboardData.summary||{};
+  const stats=el('div',undefined,'nero-recruit-stat-grid');
+  for(const [label,value] of [['Inscritos',summary.total||0],['Em prova',summary.inProgress||0],
+   ['Aprovados',summary.approved||0],['Reprovados',summary.rejected||0],['Aguardando análise',summary.pending||0]]){
+   const tile=el('div',undefined,'nero-recruit-stat');
+   tile.append(el('small',label),el('strong',String(value)));stats.append(tile);
+  }
+  sections.resumo.append(stats);
+  const latest=dashboardData.rounds?.[0];
+  const summaryBox=el('div',undefined,'nero-recruit-summary');
+  summaryBox.append(el('h3','Situação da automação'));
+  summaryBox.append(el('p',latest?.auto_enabled?
+   '🤖 Automação ativada neste recrutamento. Provas objetivas são corrigidas pelo gabarito; respostas escritas aguardam revisão quando necessário.':
+   'Configure e abra um novo recrutamento para ativar o fluxo automático.','hint'));
+  if(!dashboardData.enabled)summaryBox.append(el('p','⚠️ Integração pendente: '+(dashboardData.missing||[]).join(', '),'warning-note'));
+  sections.resumo.append(summaryBox);
+  const recent=Array.isArray(dashboardData.recent)?dashboardData.recent:[];
+  if(recent.length){
+   const list=el('section',undefined,'nero-recruit-summary');
+   list.append(el('h3','Candidatos recentes'));
+   for(const item of recent.slice(0,12)){
+    const row=el('div',undefined,'nero-recruit-member');
+    const info=el('div');info.append(el('strong',item.rpName||'Candidato'),
+     el('small','RP: '+(item.rpId||'—')+' · Discord: '+item.userId));
+    const result=el('span',item.state==='approved'?'Aprovado · '+Number(item.score||0).toFixed(0)+'%':
+     item.state==='rejected'?'Reprovado · '+Number(item.score||0).toFixed(0)+'%':
+     item.state==='in_progress'?'Em prova':'Aguardando revisão','nero-recruit-member-status');
+    row.append(info,result);list.append(row);
+   }
+   sections.resumo.append(list);
+  }
+ }
  if(validGuild)renderRecruitmentRelease(sections.abertura,guild);
  if(validGuild)renderNeroReview(sections.correcao,guild);
  if(!validGuild||!state.canEdit){
@@ -906,6 +942,79 @@ const NERO_LANCAMENTO=[
 '💡 **SUGIRA NOVOS SISTEMAS!** Tem uma ideia para o bot? Compartilhe no Discord oficial!','',
 '❤️ Obrigado pelo apoio!','**NERO BOT — Uma plataforma. Vários sistemas.**','*Desenvolvido por Cetus.*'
 ].join('\n');
+function neroUpdatesPage(){
+ const guild=state.guild,rows=$('rows');
+ if(!state.canEdit){note(rows,'Somente a administração deste servidor pode configurar e publicar atualizações.','warning-note');return}
+ const draft=state.neroUpdatesDraft||{title:'Atualização do Nero Bot',message:''};
+ state.neroUpdatesDraft=draft;
+ const header=el('div',undefined,'nero-announcement-head');
+ header.append(el('span','NERO BOT · CANAL OFICIAL','module-kicker'),el('h2','Atualizações permanentes'),
+  el('p','Escolha um canal de Discord para receber lançamentos e novidades. As mensagens permanecem no canal e no histórico do site.'));
+ rows.append(header);
+ const panel=el('section',undefined,'nero-updates-panel'),heading=el('h3','Canal de atualizações');
+ const channel=el('select');channel.setAttribute('aria-label','Canal permanente de atualizações');
+ const channelRow=el('div',undefined,'nero-updates-actions'),save=el('button','Salvar canal padrão','button ghost');
+ const create=el('button','Criar #atualizacoes-nero','button ghost');
+ channelRow.append(save,create);
+ panel.append(heading,el('p','Você pode escolher um canal existente ou criar automaticamente o #atualizacoes-nero.','hint'),channel,channelRow);
+ const compose=el('section',undefined,'nero-updates-panel');
+ const title=el('input');title.type='text';title.maxLength=180;title.placeholder='Ex.: Nero V3.1 chegou';title.value=draft.title;
+ const message=el('textarea');message.rows=8;message.maxLength=3500;message.placeholder='Escreva as novidades e o que mudou nesta versão...';message.value=draft.message;
+ const label=(text,control)=>{const l=el('label',undefined,'nero-updates-field');l.append(el('span',text),control);return l};
+ const send=el('button','Publicar atualização permanente','button');
+ compose.append(el('h3','Nova atualização'),label('Título',title),label('Mensagem',message),send);
+ const status=el('p','Consultando canal de atualizações...','nero-updates-status');status.setAttribute('role','status');
+ const history=el('section',undefined,'nero-updates-panel');history.append(el('h3','Publicações anteriores'));
+ const historyRows=el('div',undefined,'nero-updates-history');history.append(historyRows);
+ rows.append(panel,compose,status,history);
+ let busy=false,currentChannel='';
+ const apiUrl='index?centralRoute=nero-updates&guildId='+encodeURIComponent(guild);
+ const inputs=[channel,title,message,save,create,send];
+ const toggle=()=>{for(const x of inputs)x.disabled=busy;send.disabled=busy||!currentChannel||!title.value.trim()||!message.value.trim()};
+ title.oninput=()=>{draft.title=title.value;toggle()};
+ message.oninput=()=>{draft.message=message.value;toggle()};
+ channel.onchange=()=>{currentChannel='';status.textContent='Toque em Salvar canal padrão para confirmar este canal.';toggle()};
+ async function load(){
+  const d=await api(apiUrl);
+  if(state.guild!==guild||state.tab!=='atualizacoes')return;
+  channel.replaceChildren(option('Selecione um canal...', ''));
+  for(const c of d.channels||[])channel.append(option('#'+c.name,c.id));
+  channel.value=d.channelId||'';currentChannel=d.channelId||'';
+  const posts=Array.isArray(d.posts)?d.posts:[];
+  historyRows.replaceChildren();
+  if(!posts.length)historyRows.append(el('p','Nenhuma atualização publicada ainda.','hint'));
+  for(const p of posts){
+   const item=el('article',undefined,'nero-update-item');
+   item.append(el('strong',p.title),el('p',p.body));
+   const a=el('a','Abrir publicação no Discord');a.href=p.url;a.target='_blank';a.rel='noopener noreferrer';
+   const date=new Date(p.publishedAt);item.append(el('small',Number.isFinite(date.getTime())?date.toLocaleString('pt-BR'):'Publicado'),a);
+   historyRows.append(item);
+  }
+  status.textContent=currentChannel?'Canal permanente configurado. Agora você pode publicar novidades.':'Escolha ou crie um canal para começar.';
+  toggle();
+ }
+ async function act(action,body={}){
+  busy=true;toggle();status.textContent='Salvando no Nero...';
+  try{
+   const r=await api(apiUrl,{method:'POST',body:JSON.stringify({action,...body})});
+   if(r.warning)status.textContent=r.warning;
+   else if(r.url){status.textContent='Atualização publicada com sucesso: '+r.url;draft.message='';message.value=''}
+   await load();return r;
+  }catch(e){status.textContent=e.message||'Falha ao atualizar o Discord';throw e}
+  finally{busy=false;toggle()}
+ }
+ save.onclick=()=>act('save-channel',{channelId:channel.value}).catch(()=>{});
+ create.onclick=async()=>{
+  if(!(await uiModal({title:'Criar canal de atualizações?',message:'O Nero criará o canal público #atualizacoes-nero neste servidor ou usará o canal com esse nome, se já existir.',confirmLabel:'Criar canal'})))return;
+  await act('create-channel').catch(()=>{});
+ };
+ send.onclick=async()=>{
+  if(!currentChannel||!title.value.trim()||!message.value.trim())return;
+  if(!(await uiModal({title:'Publicar no Discord?',message:'Esta atualização será enviada ao canal configurado e ficará no histórico permanente. Publicar agora?',confirmLabel:'Publicar atualização'})))return;
+  await act('publish',{title:title.value,message:message.value}).catch(()=>{});
+ };
+ toggle();load().catch(e=>{status.textContent=e.message||'Não foi possível carregar atualizações'});
+}
 function announcementPage(){
  const rows=$('rows'),guildName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Servidor selecionado';
  const intro=el('div',undefined,'nero-announcement-head');
@@ -1018,9 +1127,9 @@ function renderNav(){
  }
  $('moduleBack').hidden=state.tab==='inicio';
  if(state.tab!=='inicio'){const destination=parent||(pointPages.has(state.tab)?'bateponto':'sistemas');$('backToModule').onclick=()=>openTab(destination);$('backToModule').textContent='← Voltar para '+(destination==='inicio'?'Início':tabInfo[destination][0]);}
- const group=state.tab==='inicio'?'inicio':state.tab==='comunicados'?'comunicados':state.tab==='recrutamento'?'recrutamento':(pointPages.has(state.tab)?'bateponto':'sistemas');
+ const group=state.tab==='inicio'?'inicio':state.tab==='comunicados'?'comunicados':state.tab==='atualizacoes'?'atualizacoes':state.tab==='recrutamento'?'recrutamento':(pointPages.has(state.tab)?'bateponto':'sistemas');
  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===group));
- document.querySelectorAll('[data-tab="comunicados"]').forEach(b=>b.hidden=!state.canEdit);
+ document.querySelectorAll('[data-tab="comunicados"],[data-tab="atualizacoes"]').forEach(b=>b.hidden=!state.canEdit);
  $('mobileMore').classList.toggle('active',false);
 }
 function overview(){
@@ -1043,6 +1152,7 @@ function overview(){
   ['horas-normais','Novo sistema de horas','Modalidade futura independente do Bate-ponto atual.','ico-clock','Em preparação'],
   ['registro','Registro','Nova função de identificação e aprovação.','ico-file','Em preparação'],
   ['recrutamento','Recrutamento · Completo','Provas, inscrições, correção e anúncios.','ico-users','Sistema disponível'],
+   ['atualizacoes','Atualizações oficiais','Canal permanente de lançamentos e novidades.','ico-file','Publicar no Discord'],
   ['gestao','Gestão de cargos','Nova função de promoções e rebaixamentos.','ico-shield','Em preparação']]){
   const b=el('button',undefined,'home-module');b.type='button';const avatar=el('span',undefined,'home-module-icon');avatar.append(svgIcon(ico));const copy=el('span',undefined,'home-module-copy');copy.append(el('strong',title),el('small',descr),el('em',foot));const arrow=el('span',undefined,'home-module-arrow');arrow.append(svgIcon('ico-arrow'));b.append(avatar,copy,arrow);b.onclick=()=>openTab(key);cardsGrid.append(b)}rows.append(cardsGrid);
  const fullCatalog=el('button','Abrir catálogo completo de sistemas','button hub-explore');fullCatalog.type='button';fullCatalog.onclick=()=>openTab('sistemas');rows.append(fullCatalog);
@@ -1245,6 +1355,7 @@ if(state.tab==='inicio')overview();
 else if(moduleDefs[state.tab])moduleHub(state.tab);
 else if(state.tab==='servidores')serversPage();
 else if(state.tab==='comunicados')announcementPage();
+else if(state.tab==='atualizacoes')neroUpdatesPage();
 else if(state.tab==='laboratorio')ownerLab();
 else if(state.tab==='site-preferencias'){if(window.centralSitePrefs)window.centralSitePrefs.render(rows,load);else note(rows,'Não foi possível carregar as preferências do site. Atualize a página.','error')}
 else if(state.tab.startsWith('bot-'))botConfigPage();

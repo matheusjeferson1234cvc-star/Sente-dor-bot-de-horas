@@ -73,6 +73,19 @@ button:focus-visible,.top-link:focus-visible{outline:2px solid var(--org-accent)
 .org-hero-copy small{font-size:9px;letter-spacing:.12em;font-weight:820;color:#f6b9c4}
 .org-hero-copy strong{font-size:14px;color:#fff;overflow-wrap:anywhere}
 @media(max-width:710px){.org-hero-identity{margin:13px 0 8px}.hero:before{opacity:.29}.hero-inner{max-width:100%}}
+
+/* Autenticação Discord e cadastro RP obrigatórios */
+#idHelp,#idHelpText,#identityFlow{display:none!important}
+.oauth-flow{display:grid;gap:14px;margin-top:18px}
+.oauth-flow[hidden],.oauth-rp-form[hidden],.oauth-discord-card[hidden]{display:none!important}
+.oauth-discord-card{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid #885063;border-radius:13px;background:#22141e}
+.oauth-discord-card img{width:43px;height:43px;object-fit:cover;border-radius:50%}
+.oauth-user{display:grid;gap:2px;min-width:0}.oauth-user strong{overflow-wrap:anywhere}.oauth-user small{color:#d5abb9;font-size:11px}
+.oauth-login-btn{width:100%;background:linear-gradient(120deg,#5865f2,#414ec1)!important}
+.oauth-rp-form{display:grid;gap:14px;padding:18px;border:1px solid #763144;border-radius:14px;background:#1e131c}
+.oauth-rp-form h3{margin:0}.oauth-rp-form label{display:grid;gap:7px;font-size:13px;font-weight:750}
+.oauth-rp-form input{padding:13px;border-radius:10px;border:1px solid #91566b;background:#130e14;color:#fff;font:inherit;width:100%}
+.oauth-rp-form button{width:100%}.oauth-note{font-size:12px;color:#e7b9c7;margin:0}
 </style>
 </head>
 <body>
@@ -90,7 +103,7 @@ button:focus-visible,.top-link:focus-visible{outline:2px solid var(--org-accent)
 <span class="status"><span class="dot"></span><span id="statusText">Inscrições fechadas</span></span>
 <h2 id="recruit-title">Nenhum recrutamento aberto no momento</h2>
 <p id="statusDescription">Quando um recrutador autorizado abrir um processo seletivo, os candidatos poderão participar pelo link deste servidor.</p>
-<button type="button" disabled id="joinButton">Participar do recrutamento</button>
+<button type="button" disabled id="joinButton">Entrar com Discord para participar</button>
 <button type="button" class="help-button" id="idHelp">🪪 Pegar meu ID Discord</button>
 <p id="idHelpText" hidden>Na mensagem do painel Nero no Discord, toque em <strong>Pegar meu ID</strong>. O bot mostrará seu número em uma resposta privada para você copiar. Aqui no site, o ID não é detectado automaticamente sem login.</p>
 <form id="identityFlow" class="id-flow" hidden autocomplete="off">
@@ -103,7 +116,19 @@ button:focus-visible,.top-link:focus-visible{outline:2px solid var(--org-accent)
   </div>
   <div id="identityResult" class="id-result" role="status" aria-live="polite">Não é necessário fazer login pelo Discord. Você precisa confirmar que a conta informada é sua.</div>
 </form>
-<section id="examFlow" class="exam-panel" hidden aria-label="Prova do recrutamento">
+<section class="oauth-flow" id="oauthFlow" hidden aria-label="Inscrição via Discord">
+ <button type="button" id="oauthLogin" class="oauth-login-btn">Entrar com Discord</button>
+ <div id="oauthAccount" class="oauth-discord-card" hidden><img id="oauthAvatar" src="/nero-mark.svg" alt=""><span class="oauth-user"><strong id="oauthName">Discord conectado</strong><small id="oauthId"></small></span></div>
+ <form id="rpForm" class="oauth-rp-form" hidden>
+  <h3>Informações obrigatórias do RP</h3>
+  <label>Nome RP *<input id="rpName" minlength="2" maxlength="24" placeholder="Ex.: Lucas Silva" required autocomplete="off"></label>
+  <label>ID RP *<input id="rpId" minlength="1" maxlength="12" pattern="[A-Za-z0-9-]{1,12}" placeholder="Ex.: 105" required autocomplete="off"></label>
+  <button type="submit" id="rpSubmit">Iniciar prova</button>
+  <p class="oauth-note">O Discord confirma a sua conta. Nome RP e ID RP são cadastrados separadamente, sem prévia de apelido.</p>
+ </form>
+ <p id="oauthNotice" class="oauth-note" role="status"></p>
+ </section>
+ <section id="examFlow" class="exam-panel" hidden aria-label="Prova do recrutamento">
  <div class="exam-header"><h2>📝 Sua prova</h2><span id="examTimer" class="exam-timer" role="timer">--:--</span></div>
  <p id="examStatus" role="status">Preparando prova…</p>
  <div id="examQuestions"></div>
@@ -116,15 +141,15 @@ button:focus-visible,.top-link:focus-visible{outline:2px solid var(--org-accent)
 </section>
 <aside class="panel" aria-label="Como participar"><span class="eyebrow">Como vai funcionar</span><ol class="steps">
 <li><b>1</b><span>Abra o link enviado pelo seu servidor de RP.</span></li>
-<li><b>2</b><span>Quando a prova estiver aberta, informe seu ID do Discord e confira seu nome e foto.</span></li>
+<li><b>2</b><span>Entre com a conta do Discord e informe seu Nome RP e ID RP.</span></li>
 <li><b>3</b><span>Responda às perguntas de marcar e às escritas dentro do tempo configurado.</span></li>
-<li><b>4</b><span>Aguarde a correção, a revisão e a publicação dos aprovados.</span></li>
+<li><b>4</b><span>O sistema processa a prova automaticamente; casos incertos podem precisar de revisão.</span></li>
 </ol><p class="muted" id="durationNote">⏱️ Duração: definida pelo recrutador.</p></aside>
 </div>
 <section class="panel results-view portal-view" id="viewAprovados" role="tabpanel" aria-labelledby="tabAprovados" hidden>
   <span class="eyebrow">🏆 Resultado oficial</span>
   <h2>Aprovados do servidor</h2>
-  <p>Somente candidatos confirmados por um recrutador e publicados oficialmente aparecem nesta lista. Respostas e notas privadas não são divulgadas.</p>
+  <p>Resultados oficialmente publicados aparecem aqui. Respostas privadas não são divulgadas.</p>
   <p id="resultsMessage" role="status">Escolha a aba Aprovados para consultar os resultados.</p>
   <ol id="resultsList" class="results-list"></ol>
 </section>
@@ -137,7 +162,7 @@ button:focus-visible,.top-link:focus-visible{outline:2px solid var(--org-accent)
  const params=new URLSearchParams(location.search);
  const guild=String(params.get('guild')||'');
  const $=id=>document.getElementById(id);
- $('idHelp').onclick=()=>{$('idHelpText').hidden=!$('idHelpText').hidden};
+ // O ID manual foi substituído pelo Discord OAuth2.
  let loadedResults=false;
  function chooseTab(tab){
   const approved=tab==='aprovados';
@@ -244,16 +269,17 @@ button:focus-visible,.top-link:focus-visible{outline:2px solid var(--org-accent)
   try{
    const data=await examRequest('GET');
    $('examFlow').hidden=false;
-   if(data.state!=='in_progress'){stopExam('Sua prova foi encerrada ou enviada. Aguarde a avaliação da equipe.');return}
+   if(data.needsRp){$('examFlow').hidden=true;$('oauthFlow').hidden=false;$('rpForm').hidden=false;$('joinButton').hidden=true;return}
+   if(data.state!=='in_progress'){stopExam('Prova já enviada. Consulte a aba Aprovados para acompanhar a publicação.');return}
    examData=data;
    examAnswers=Array.isArray(data.answers)?data.answers:Array(data.questions.length).fill(null);
-   $('identityFlow').hidden=true;$('joinButton').hidden=true;
+   $('oauthFlow').hidden=true;$('joinButton').hidden=true;
    $('examSave').hidden=false;$('examSubmit').hidden=false;
    $('examStatus').textContent='Responda às questões e envie antes do prazo. O rascunho pode ser salvo.';
    drawQuestions();updateCountdown();
    clearInterval(examInterval);examInterval=setInterval(updateCountdown,1000);
   }catch(e){
-   if(resuming&&/Confirme seu ID/.test(e.message))return;
+   if(resuming&&/Entre com sua conta|Confirme seu ID/.test(e.message))return;
    $('examFlow').hidden=false;$('examStatus').textContent=e.message;
   }
  }
@@ -263,7 +289,7 @@ button:focus-visible,.top-link:focus-visible{outline:2px solid var(--org-accent)
   examSaving=true;$('examSave').disabled=true;$('examSubmit').disabled=true;
   try{
    const data=await examRequest('POST',{action:submit?'submit':'save',answers:formAnswers()});
-   if(data.submitted){examData.state='submitted';stopExam('Prova enviada! Aguarde a correção e a revisão do recrutador.')}
+   if(data.submitted){examData.state='submitted';stopExam('Prova enviada! O sistema processará o resultado após o encerramento.')}
    else $('examStatus').textContent='Rascunho salvo. Continue respondendo dentro do prazo.';
   }catch(e){$('examStatus').textContent=e.message;if(/prazo|tempo|encerrad/i.test(e.message))stopExam(e.message)}
   finally{examSaving=false;$('examSave').disabled=false;$('examSubmit').disabled=false}
@@ -271,60 +297,36 @@ button:focus-visible,.top-link:focus-visible{outline:2px solid var(--org-accent)
  $('examSave').onclick=()=>saveExam(false);
  $('examSubmit').onclick=()=>saveExam(true);
 
- function enableIdentity(siteKey){
-   $('statusText').textContent='Inscrições abertas';
-   $('recruit-title').textContent='Recrutamento aberto';
-   $('statusDescription').textContent='Confirme seu ID do Discord para participar do processo seletivo deste servidor.';
-   $('notice').textContent='Somente quem comprovar o controle da conta do Discord poderá enviar respostas.';
-   $('joinButton').disabled=false;
-   const result=$('identityResult'),button=$('joinButton');
-   let widgetId=null,loaded=false;
-   function say(message){result.textContent=message}
-   button.addEventListener('click',()=>{
-     $('identityFlow').hidden=false;button.hidden=true;
-     if(loaded)return;loaded=true;
-     const script=document.createElement('script');
-     script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-     script.async=true;
-     script.onload=()=>{
-       if(window.turnstile)widgetId=window.turnstile.render('#captchaWidget',{sitekey:siteKey});
-       else say('Verificação de segurança indisponível.');
-     };
-     script.onerror=()=>say('Não foi possível carregar a verificação de segurança.');
-     document.head.appendChild(script);
-   });
-   async function post(body){
-     const r=await fetch('/api/identidade',{method:'POST',credentials:'same-origin',
-       headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:guild,...body})});
-     const data=await r.json();
-     if(!r.ok)throw Error(data.error||'Serviço indisponível');
-     return data;
-   }
-   $('sendCode').addEventListener('click',async()=>{
-     const input=$('discordId');
-     if(!input.reportValidity())return;
-     const captcha=widgetId!==null&&window.turnstile?window.turnstile.getResponse(widgetId):'';
-     if(!captcha){say('Conclua a verificação de segurança antes de continuar.');return}
-     $('sendCode').disabled=true;say('Solicitação em andamento…');
-     try{
-       const d=await post({action:'start',userId:input.value,captchaToken:captcha});
-       say(d.message||'Confira suas mensagens privadas.');
-       $('codeStep').hidden=false;
-     }catch(e){say(e.message)}
-     finally{$('sendCode').disabled=false;if(widgetId!==null&&window.turnstile)window.turnstile.reset(widgetId)}
-   });
-   $('checkCode').addEventListener('click',async()=>{
-     const code=$('discordCode'),input=$('discordId');
-     if(!input.reportValidity()||!code.reportValidity())return;
-     $('checkCode').disabled=true;say('Conferindo código…');
-     try{
-       const d=await post({action:'confirm',userId:input.value,code:code.value});
-       say(d.message||'Conta confirmada.');$('codeStep').hidden=true;
-       $('sendCode').disabled=true;input.readOnly=true;
-       beginExam();
-     }catch(e){say(e.message)}
-     finally{$('checkCode').disabled=false}
-   });
+ let oauthUser=null;
+ async function refreshOAuth(){
+  const r=await fetch('/api/auth-me',{cache:'no-store',credentials:'same-origin'}),d=await r.json();
+  if(d.connected&&d.guildId===guild){
+   oauthUser=d.user;$('oauthLogin').hidden=true;$('oauthAccount').hidden=false;
+   $('oauthName').textContent=d.user.name;$('oauthId').textContent='Discord ID: '+d.user.id;
+   if(typeof d.user.avatarUrl==='string'&&d.user.avatarUrl.startsWith('https://cdn.discordapp.com/'))$('oauthAvatar').src=d.user.avatarUrl;
+  }else{oauthUser=null;$('oauthLogin').hidden=false;$('oauthAccount').hidden=true;$('rpForm').hidden=true;}
+  return !!oauthUser;
+ }
+ function enableIdentity(){
+  $('statusText').textContent='Inscrições abertas';
+  $('recruit-title').textContent='Recrutamento aberto';
+  $('statusDescription').textContent='Entre com Discord e informe Nome RP e ID RP para iniciar.';
+  $('notice').textContent='Sua conta Discord é verificada pelo login oficial. A inscrição exige os dados do personagem.';
+  $('joinButton').disabled=false;$('oauthFlow').hidden=false;
+  $('oauthLogin').onclick=()=>location.assign('/api/auth-login?guild='+encodeURIComponent(guild));
+  $('joinButton').onclick=()=>{if(!oauthUser)$('oauthLogin').click();else{$('rpForm').hidden=false;$('joinButton').hidden=true}};
+  refreshOAuth().then(connected=>{
+   if(connected){$('joinButton').textContent='Continuar inscrição';beginExam(true)}
+   if(params.get('auth')==='not-member')$('oauthNotice').textContent='Entre no servidor Discord para participar.';
+   else if(params.get('auth')==='error')$('oauthNotice').textContent='Não foi possível fazer login. Tente novamente.';
+  }).catch(e=>$('oauthNotice').textContent=e.message);
+  $('rpForm').onsubmit=async event=>{
+   event.preventDefault();if(!oauthUser)return $('oauthLogin').click();
+   const name=$('rpName'),id=$('rpId');if(!name.reportValidity()||!id.reportValidity())return;
+   $('rpSubmit').disabled=true;$('oauthNotice').textContent='Registrando dados RP…';
+   try{await examRequest('POST',{action:'register',rpName:name.value,rpId:id.value});$('rpForm').hidden=true;beginExam()}
+   catch(e){$('oauthNotice').textContent=e.message}finally{$('rpSubmit').disabled=false}
+  };
  }
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),7000);
@@ -345,7 +347,7 @@ button:focus-visible,.top-link:focus-visible{outline:2px solid var(--org-accent)
    }
    if(Number.isInteger(data.durationMinutes)&&data.durationMinutes>=5&&data.durationMinutes<=180)
     $('durationNote').textContent='⏱️ Duração prevista da prova: '+data.durationMinutes+' minutos.';
-   if(data.status==='open'&&typeof data.siteKey==='string'&&data.siteKey){enableIdentity(data.siteKey);beginExam(true);}
+   if(data.status==='open'){enableIdentity();}
    if(typeof data.iconUrl==='string'&&/^https:\/\/cdn\.discordapp\.com\/icons\/\d{15,25}\/[a-zA-Z0-9_]+\.(?:png|gif)\?size=256$/.test(data.iconUrl)){
     for(const id of ['guildIcon','heroOrgAvatar']){
      const img=document.createElement('img');img.src=data.iconUrl;img.alt='';

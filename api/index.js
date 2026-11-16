@@ -5,6 +5,7 @@ const recruitment=require('../recruitment-config');
 const recruitmentPanel=require('../recruitment-panel');
 const recruitmentReviewAdmin=require('../recruitment-review-admin');
 const recruitmentPublish=require('../recruitment-publish');
+const neroUpdates=require('../nero-updates');
 const crypto=require('node:crypto');
 const cookie=(req,key)=>Object.fromEntries((req.headers.cookie||'').split(';').map(x=>x.trim().split('=')))[key];
 const json=(res,status,data)=>{res.status(status).setHeader('Cache-Control','no-store');res.json(data)};
@@ -385,13 +386,26 @@ module.exports=async(req,res)=>{
     return json(res,200,{ok:true,roleId:requested||null});
    }
    if(!admin&&!recruiter)return json(res,403,{error:'Somente o administrador ou o cargo de recrutador configurado pode controlar as provas'});
-   const list=await db('nero_recruitment_rounds',{query:'?guild_id=eq.'+gid+'&select=id,kind,state,opens_at,closes_at,duration_minutes,opened_by,closed_by,closed_at&order=created_at.desc&limit=12'});
+   const list=await db('nero_recruitment_rounds',{query:'?guild_id=eq.'+gid+'&select=id,kind,state,opens_at,closes_at,duration_minutes,opened_by,closed_by,closed_at,auto_enabled&order=created_at.desc&limit=12'});
    const now=Date.now(),live=list.find(r=>r.state==='open'&&Date.parse(r.opens_at)<=now&&Date.parse(r.closes_at)>now);
    const readiness=await checkRecruitmentPublicReady();
    if(req.method==='GET'){
+    const roundIds=new Set(list.map(r=>r.id));
+    const allAttempts=await db('nero_recruitment_attempts',{query:'?guild_id=eq.'+gid+
+     '&select=round_id,user_id,rp_name,rp_id,state,final_score,submitted_at&order=started_at.desc&limit=2000'});
+    const attempts=allAttempts.filter(a=>roundIds.has(a.round_id));
+    const summary={total:attempts.length,inProgress:0,approved:0,rejected:0,pending:0};
+    for(const a of attempts){
+     if(a.state==='approved')summary.approved++;
+     else if(a.state==='rejected')summary.rejected++;
+     else if(a.state==='in_progress')summary.inProgress++;
+     else summary.pending++;
+    }
     return json(res,200,{
      guildId:gid,admin,recruiter,enabled:readiness.ready,missing:readiness.missing,
-     liveRound:live||null,
+     liveRound:live||null,summary,
+     recent:attempts.slice(0,20).map(a=>({userId:a.user_id,rpName:a.rp_name,rpId:a.rp_id,
+      state:a.state,score:a.final_score,submittedAt:a.submitted_at})),
      rounds:list.map(r=>({...r,effectiveState:r.state==='open'&&Date.parse(r.closes_at)<=now?'review':r.state}))
     });
    }
@@ -426,7 +440,7 @@ module.exports=async(req,res)=>{
    const opensAt=new Date(),closesAt=new Date(opensAt.getTime()+windowMinutes*60000);
    let created;
    try{created=await db('nero_recruitment_rounds',{method:'POST',
-    body:{guild_id:gid,kind,state:'open',opens_at:opensAt.toISOString(),closes_at:closesAt.toISOString(),duration_minutes:cfg.durationMinutes,config_snapshot:cfg,opened_by:user.id}
+    body:{guild_id:gid,kind,state:'open',opens_at:opensAt.toISOString(),closes_at:closesAt.toISOString(),duration_minutes:cfg.durationMinutes,config_snapshot:cfg,opened_by:user.id,auto_enabled:true}
    })}catch(e){
     if(/409|23505|duplicate/i.test(String(e.message)))return json(res,409,{error:'Um recrutamento já está aberto neste servidor'});
     throw e;
@@ -492,6 +506,11 @@ module.exports=async(req,res)=>{
    if(!/^\d{15,25}$/.test(String(sent?.id||'')))return json(res,502,{error:'Discord não confirmou a mensagem'});
    return json(res,200,{ok:true,channelId,messageId:String(sent.id),
     url:'https://discord.com/channels/'+gid+'/'+channelId+'/'+sent.id,applicationsOpen:false});
+  }
+  if(path==='nero-updates'){
+   if(!rights.edit)return json(res,403,{error:'Somente donos e Administradores podem gerenciar atualizações permanentes'});
+   try{return await neroUpdates({req,res,gid,user,db,json,discord})}
+   catch(e){console.error('Atualizações Nero:',String(e.message||e).slice(0,140));return json(res,503,{error:'Não foi possível carregar ou publicar atualizações. Confira o bot e o banco.'})}
   }
   if(path==='announce-channels'&&req.method==='GET'){
    if(!rights.edit)return json(res,403,{error:'Somente donos e Administradores podem publicar comunicados'});
