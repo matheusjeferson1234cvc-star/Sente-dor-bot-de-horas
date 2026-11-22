@@ -14,7 +14,7 @@ function settings(){
 }
 test('meta única de horas é compartilhada por todos os turnos',()=>{
  const normalized=schema.normalize(settings());assert.equal(normalized.requiredHours,3);
- assert.deepEqual(Object.keys(normalized.shifts).sort(),['manha','tarde','noite','madrugada']);
+ assert.deepEqual(Object.keys(normalized.shifts).sort(),['madrugada','manha','noite','tarde']);
 });
 test('configuração antiga mantém 2h de padrão sem perder os demais dados',()=>{
  const old=settings();delete old.requiredHours;
