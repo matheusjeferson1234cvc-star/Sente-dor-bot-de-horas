@@ -49,6 +49,8 @@ const weekdays=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const dayOf=date=>new Date(date+'T12:00:00Z').getUTCDay();
 const offFor=(date,shift)=>{const off=state.data?.settings?.time_off||{},weekly=off.weekly||{all:[0]},day=dayOf(date);
  return (weekly.all||[]).includes(day)||(weekly[shift]||[]).includes(day)||(off.dates||[]).some(x=>x.date===date&&(x.shift==='all'||x.shift===shift));};
+const requiredHours=()=>{const n=state.data?.settings?.bot_config?.requiredHours;return Number.isInteger(n)&&n>=1&&n<=24?n:2};
+const requiredMinutes=()=>requiredHours()*60;
 const official=(shift)=>{const roles=state.data?.settings?.shift_roles?.[shift]||[];
  return (state.data?.members||[]).filter(m=>(m.role_ids||[]).some(id=>roles.includes(id)));};
 const attendanceRecord=(date,shift,user)=>{const key=shortShift[shift];return (state.data?.attendance||[]).find(x=>x.day===date&&x.shift===key&&x.user_id===user)};
@@ -63,14 +65,14 @@ function presence(){const filters=$('filters'),rows=$('rows'),date=state.presenc
  const summary={cumpriu:0,agora:0,falta:0,pendente:0,folga:0};const lines=[];
  for(const m of list){const saved=attendanceRecord(date,shift,m.user_id),work=(state.data.cards||[]).filter(c=>c.user_id===m.user_id&&c.shift===shift&&c.kind==='Normal'&&ymd(c.started_at)===date),activeWork=work.some(c=>c.status==='Ativo');
  const minutes=work.filter(c=>c.status==='Validado').reduce((n,c)=>n+(Number(c.duration_minutes)||0),0);
- let status=saved?.status|| (offFor(date,shortShift[shift])?'folga':minutes>=120?'cumpriu':activeWork?'agora':minutes>0?'incompleta':'sem dados');
+ let status=saved?.status|| (offFor(date,shortShift[shift])?'folga':minutes>=requiredMinutes()?'cumpriu':activeWork?'agora':minutes>0?'incompleta':'sem dados');
  if(!saved&&date===today()&&!offFor(date,shortShift[shift])){if(activeWork)status='agora';else if(minutes>=120)status='cumpriu';else status='aguardando';}
  if(!summary[status])summary[status]=0;summary[status]++;
  lines.push({m,status,minutes:saved?.minutes??minutes,streak:consecutive(m.user_id,shift,date)});
  }
  const headline=el('div',undefined,'field-row');headline.append(el('div',`Turno ${shift} • ${date}`,'group-title'),el('div',`Cumpriram: ${summary.cumpriu||0} · Trabalhando: ${summary.agora||0} · Faltas confirmadas: ${summary.falta||0}`,'muted-small'));rows.append(headline);
  if(!list.length){note(rows,'Nenhum membro com o cargo deste turno está sincronizado.');return}
- const statusText={cumpriu:'Meta cumprida',agora:'Em serviço',falta:'Falta',incompleta:'Abaixo de 2 horas',pendente:'Justificativa em análise',justificada:'Justificada',folga:'Folga',aguardando:'Turno em andamento','sem dados':'Sem registro confirmado'};
+ const statusText={cumpriu:'Meta cumprida',agora:'Em serviço',falta:'Falta',incompleta:`Abaixo de ${requiredHours()} horas`,pendente:'Justificativa em análise',justificada:'Justificada',folga:'Folga',aguardando:'Turno em andamento','sem dados':'Sem registro confirmado'};
  for(const item of lines.sort((a,b)=>({falta:0,incompleta:1,pendente:2,cumpriu:4}[a.status]??3)-({falta:0,incompleta:1,pendente:2,cumpriu:4}[b.status]??3))){
  const tone=item.status==='falta'?'bad':['cumpriu','justificada','folga'].includes(item.status)?'good':'';
  rows.append(person(item.m,`${statusText[item.status]||item.status} · ${fmt(item.minutes)} normais · ${item.streak} falta(s) consecutiva(s)`,statusText[item.status]||item.status,tone));
@@ -94,7 +96,7 @@ function monthly(){const rows=$('rows'),filters=$('filters'),month=state.month||
  filters.append(el('p',`Mês selecionado: ${month}. Contadores recomeçam em zero a cada mês sem apagar os meses anteriores.`, 'hint'));
  filters.append(select('Turno',shifts.map(x=>[x,x]),state.shift,v=>{state.shift=v;render()}));
  const roster=official(state.shift);rows.append(el('h3',`Horas dos membros • ${state.shift}`,'month-title'));
- for(const m of roster){const mine=all.filter(c=>c.user_id===m.user_id);const normal=totaled(mine,'Normal'),extra=totaled(mine,'Extra');rows.append(person(m,`${fmt(normal)} normais · ${fmt(extra)} extras`,fmt(normal+extra),normal>=120?'good':''))}
+ for(const m of roster){const mine=all.filter(c=>c.user_id===m.user_id);const normal=totaled(mine,'Normal'),extra=totaled(mine,'Extra');rows.append(person(m,`${fmt(normal)} normais · ${fmt(extra)} extras`,fmt(normal+extra),normal>=requiredMinutes()?'good':''))}
  if(!roster.length)note(rows,'Nenhum membro deste turno possui cargo configurado atualmente.');
  rows.append(el('p','O histórico utiliza os cartões já sincronizados pelo bot. Cartões em andamento não são contabilizados como finalizados.','muted-small'));
 }
@@ -152,7 +154,7 @@ const tabInfo={
  permissoes:['Permissões','Autorize cargos a acessar o painel'],
  laboratorio:['Laboratório do dono','Teste configurações com segurança, sem mudar dados reais'],
  'site-preferencias':['Preferências do site','Navegação, visual e atualização do painel'],
- 'bot-geral':['Regras do ponto','Modo de ponto, fuso e tamanho da equipe'],
+ 'bot-geral':['Regras do ponto','Meta global de horas, modo de ponto, fuso e tamanho da equipe'],
  'bot-turnos':['Turnos e cargos','Horários, cargos e responsáveis por turno'],
  'bot-canais':['Canais e cargos gerais','Presença, auditoria, justificativas e advertências'],
  'bot-painel':['Painel de bate-ponto','Título, descrição e GIF do painel de ponto'],
@@ -180,7 +182,7 @@ const moduleDefs={
   ['bot-painel-just','Painel de justificativas','Personalize as mensagens e o painel de justificativas.','ico-file'],
   ['bot-canais','Logs e canais','Canal único de presença, cargos e auditorias de registros.','ico-shield'],
   ['bot-turnos','Turnos e cargos','Cargos, horários e responsáveis de cada turno.','ico-calendar'],
-  ['bot-geral','Regras e convites','Configure equipes, convites e regras do ponto.','ico-users']]},
+  ['bot-geral','Regras e convites','Configure a meta global, equipes, convites e regras do ponto.','ico-users']]},
  'horas-normais':{title:'Horas normais',intro:'Um novo módulo de horas, independente do bate-ponto por equipes e turnos que já está funcionando.',icon:'ico-clock',comingSoon:true,items:[]},
  registro:{title:'Registro de membros',intro:'Módulo reservado para registros e aprovações no Discord.',icon:'ico-file',comingSoon:true,items:[]},
  recrutamento:{title:'Recrutamento',intro:'Provas, inscrições, correções e Discord em abas, com visual próprio para cada servidor.',icon:'ico-users',items:[]},
@@ -200,7 +202,7 @@ const moduleDefs={
   ['folgas','Folgas','Configure folgas fixas e dias específicos, conforme suas permissões.','ico-calendar'],
   ['cancelados','Cancelamentos','Auditoria dos cartões de ponto cancelados.','ico-x']]},
  configuracoes:{title:'Central de configurações',intro:'Configurações do bot e do site reunidas e organizadas, com acesso por busca e categorias.',icon:'ico-settings',items:[
-  ['bot-geral','Ativar equipes e regras do ponto','Ligar ou desligar equipes, configurar convites e fuso.','ico-clock'],
+  ['bot-geral','Horas obrigatórias e regras do ponto','Configure a meta única, equipes, convites e fuso.','ico-clock'],
   ['bot-turnos','Turnos e cargos','Horários, cargos de turno, responsáveis e logs.','ico-calendar'],
   ['bot-canais','Canais e cargos','Configure auditoria, canais e cargos de advertência.','ico-shield'],
   ['bot-painel','Painel de bate-ponto','Personalize o painel principal do ponto.','ico-clock'],
@@ -1259,12 +1261,15 @@ function botConfigPage(){
   area.append(holder);wrap.append(area)};
  const heading=(text)=>grid.append(el('h4',text,'bot-subheading'));
  if(state.tab==='bot-geral'){
-  const c=section('Funcionamento do ponto','Defina a modalidade do registro de jornada e o fuso utilizado.');
+  const c=section('Funcionamento do ponto','Defina as horas obrigatórias para o servidor inteiro, a modalidade e o fuso.');
   const basics=el('div',undefined,'bot-two-cols');c.append(basics);
   const enabled=field(basics,'Ativar equipes no Discord',config.pointMode==='team',v=>config.pointMode=v?'team':'individual',{type:'checkbox'});
   enabled.setAttribute('aria-description','Ativado exige montar a equipe; desligado libera ponto individual. Salve e aguarde sincronização do bot.');
   basics.append(el('p','Ativado: iniciar em equipe, enviar convites e aguardar aceites. Desativado: ponto individual, sem convites. O bot atualiza o painel depois que receber a configuração.','hint'));
   field(basics,'Fuso horário',config.timezone,v=>config.timezone=v,{max:60});
+  const hours=section('⏱️ Horas obrigatórias para todos os turnos','Uma única meta diária vale para manhã, tarde, noite e madrugada. O padrão é 2 horas.');
+  field(hours,'Horas obrigatórias por dia (1 a 24)',config.requiredHours??2,v=>config.requiredHours=v,{type:'number',min:1,maxNum:24});
+  hours.append(el('p','O cartão encerra automaticamente ao atingir a meta de tempo trabalhado, sem contar pausas. Em equipe, o cartão fecha quando todos os integrantes válidos cumprem a meta. A nova meta vale para os cartões abertos depois de salvar.','hint'));
   const team=section('Convites e equipe','Controle o tempo dos convites e a quantidade de integrantes.');
   const teamFields=el('div',undefined,'bot-two-cols');team.append(teamFields);
   field(teamFields,'Duração do convite (minutos)',config.inviteMinutes,v=>config.inviteMinutes=v,{type:'number',min:5,maxNum:60});
@@ -1374,8 +1379,8 @@ else if(state.tab==='folgas')timeOff();
 else if(state.tab==='turno'){
  filters.append(select('Turno',visibleShifts().map(s=>[s,s]),state.shift,v=>{state.shift=v;render()}));const roleIds=data.settings?.shift_roles?.[state.shift]||[];
  const official=(data.members||[]).filter(m=>(m.role_ids||[]).some(r=>roleIds.includes(r)));const todayCards=all.filter(c=>ymd(c.started_at)===today()&&c.shift===state.shift);
- const hours=data.settings?.shift_hours?.[state.shift]||[];filters.append(el('p',`Horário: ${hours.length===2?hours.join(' até '):'não configurado'} · Meta: 2h normais validadas por dia.`, 'hint'));
- rows.append(el('h3','Membros do turno','section-title'));for(const m of official){const n=totaled(todayCards.filter(c=>c.user_id===m.user_id),'Normal');rows.append(person(m,`${fmt(n)} normais validadas hoje`,n>=120?'Meta cumprida':n>0?'Incompleta':'Sem horas',n>=120?'good':''))}if(!official.length)note(rows,'Nenhum membro com o cargo desse turno foi sincronizado.');
+ const hours=data.settings?.shift_hours?.[state.shift]||[];filters.append(el('p',`Horário: ${hours.length===2?hours.join(' até '):'não configurado'} · Meta: ${requiredHours()}h normais validadas por dia.`, 'hint'));
+ rows.append(el('h3','Membros do turno','section-title'));for(const m of official){const n=totaled(todayCards.filter(c=>c.user_id===m.user_id),'Normal');rows.append(person(m,`${fmt(n)} normais validadas hoje`,n>=requiredMinutes()?'Meta cumprida':n>0?'Incompleta':'Sem horas',n>=requiredMinutes()?'good':''))}if(!official.length)note(rows,'Nenhum membro com o cargo desse turno foi sincronizado.');
  rows.append(el('h3','Horas extras neste turno','section-title'));const extras=todayCards.filter(c=>c.kind==='Extra'&&c.status!=='Cancelado');for(const c of extras)rows.append(person(map.get(c.user_id)||{user_id:c.user_id},`Turno de origem: ${c.origin_shift||'não informado'} · ${c.status}`,fmt(c.duration_minutes)+' extras',c.status==='Validado'?'good':''));if(!extras.length)note(rows,'Nenhuma hora extra registrada hoje.');
 }else if(state.tab==='ativos'||state.tab==='cancelados'){
  const status=state.tab==='ativos'?'Ativo':'Cancelado';const subset=period.filter(c=>c.status===status);for(const c of subset)rows.append(person(map.get(c.user_id)||{user_id:c.user_id},`${c.shift} · ${c.kind}${c.cancellation_reason?' · Motivo: '+c.cancellation_reason:''} · ${ymd(c.started_at)}`,status==='Ativo'?fmt(c.duration_minutes):'Cancelado',status==='Ativo'?'good':'bad'));if(!subset.length)note(rows,status==='Ativo'?'Nenhum cartão em andamento nesse período.':'Nenhum cancelamento nesse período.');
