@@ -14,6 +14,7 @@ function normalize(input){
  const c={};
  c.pointMode=['team','individual'].includes(input.pointMode)?input.pointMode:(()=>{throw Error('Modo de ponto inválido')})();
  c.timezone=str(input.timezone,60,'Fuso horário');try{new Intl.DateTimeFormat('en',{timeZone:c.timezone})}catch{throw Error('Fuso horário desconhecido')}
+ c.requiredHours=num(input.requiredHours===undefined?2:input.requiredHours,1,24,'Horas obrigatórias');
  c.minMembers=num(input.minMembers,2,4,'Mínimo da equipe');c.maxMembers=num(input.maxMembers,2,4,'Máximo da equipe');
  if(c.maxMembers<c.minMembers)throw Error('O máximo de integrantes não pode ser menor que o mínimo');
  c.inviteMinutes=num(input.inviteMinutes,5,60,'Validade do convite');
