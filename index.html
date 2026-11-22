@@ -3,16 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#10090d">
+  <meta name="theme-color" content="#080d13">
   <meta name="description" content="Nero Bot — plataforma de sistemas para Discord. Central de Horas e novos módulos independentes em um só lugar.">
-  <title>Nero Bot | Plataforma de Sistemas</title>
+  <title>Nero Bot V4 | Central de Sistemas</title>
   <link rel="icon" type="image/svg+xml" href="/nero-mark.svg?v=660">
   <link rel="preload" href="/nero-banner.svg?v=660" as="image" type="image/svg+xml">
   <link rel="stylesheet" href="/dashboard.css?v=591">
   <link rel="stylesheet" href="/central-premium-v6.css?v=631">
   <link rel="stylesheet" href="/site-preferences-v6.css?v=610">
   <link rel="stylesheet" href="/nero-theme.css?v=712">
-  <script defer src="/real.js?v=712"></script>
+  <link rel="stylesheet" href="/nero-v4.css?v=800">
+  <script defer src="/real.js?v=800"></script>
+  <script defer src="/nero-v4.js?v=800"></script>
   <script defer src="/site-preferences-v6.js?v=670"></script>
   <script defer src="/quick-navigation-v6.js?v=670"></script>
 </head>
@@ -44,21 +46,28 @@
     <aside id="sidebar" class="sidebar" hidden aria-label="Menu principal">
       <div class="sidebar-brand">
         <span class="brand-mark"><svg class="ico"><use href="#ico-clock"/></svg></span>
-        <div class="brand-wordmark"><strong>NERO BOT</strong><small>Plataforma de sistemas</small></div>
+        <div class="brand-wordmark"><strong>NERO <span class="v4-brand-badge">V4</span></strong><small>WORKSPACE • DISCORD</small></div>
         <button class="sidebar-close icon-btn" type="button" id="closeSidebar" aria-label="Fechar menu"><svg class="ico"><use href="#ico-x"/></svg></button>
       </div>
       <div class="sidebar-scroll">
-        <nav class="tabs" aria-label="Sistemas da NERO">
-          <span class="nav-group">PAINEL</span>
-          <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg> Início</button>
-          <button type="button" data-tab="sistemas"><svg class="ico"><use href="#ico-spark"/></svg> Central de Sistemas</button>
-          <span class="nav-group">SISTEMAS ATIVOS</span>
-          <button type="button" data-tab="bateponto"><svg class="ico"><use href="#ico-clock"/></svg> Bate-ponto</button>
-          <button type="button" data-tab="recrutamento"><svg class="ico"><use href="#ico-users"/></svg> Recrutamento</button>
-          <span class="nav-group">AMBIENTE</span>
-          <button type="button" data-tab="servidores"><svg class="ico"><use href="#ico-users"/></svg> Trocar servidor</button>
-          <button type="button" data-tab="atualizacoes" hidden><svg class="ico"><use href="#ico-file"/></svg> Atualizações do Nero</button>
-          <button type="button" data-tab="comunicados" hidden><svg class="ico"><use href="#ico-file"/></svg> Publicar comunicado</button>
+        <nav class="tabs v4-nav" aria-label="Navegação principal do Nero">
+          <span class="nav-group">VISÃO GERAL</span>
+          <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg><span>Início</span></button>
+          <button type="button" data-tab="sistemas"><svg class="ico"><use href="#ico-spark"/></svg><span>Meus sistemas</span></button>
+          <span class="nav-group">OPERAÇÃO</span>
+          <button type="button" data-tab="bateponto"><svg class="ico"><use href="#ico-clock"/></svg><span>Bate-ponto</span></button>
+          <button type="button" data-tab="ativos"><svg class="ico"><use href="#ico-activity"/></svg><span>Cartões ativos</span></button>
+          <button type="button" data-tab="presenca"><svg class="ico"><use href="#ico-check"/></svg><span>Presença</span></button>
+          <button type="button" data-tab="recrutamento"><svg class="ico"><use href="#ico-users"/></svg><span>Recrutamento</span></button>
+          <span class="nav-group">INTELIGÊNCIA</span>
+          <button type="button" data-tab="ranking"><svg class="ico"><use href="#ico-bar"/></svg><span>Ranking</span></button>
+          <button type="button" data-tab="relatorios"><svg class="ico"><use href="#ico-file"/></svg><span>Relatórios</span></button>
+          <button type="button" data-tab="administracao"><svg class="ico"><use href="#ico-shield"/></svg><span>Administração</span></button>
+          <span class="nav-group">ADMINISTRAR</span>
+          <button type="button" data-tab="configuracoes"><svg class="ico"><use href="#ico-settings"/></svg><span>Configurações</span></button>
+          <button type="button" data-tab="servidores"><svg class="ico"><use href="#ico-users"/></svg><span>Trocar servidor</span></button>
+          <button type="button" data-tab="atualizacoes" hidden><svg class="ico"><use href="#ico-file"/></svg><span>Atualizações do Nero</span></button>
+          <button type="button" data-tab="comunicados" hidden><svg class="ico"><use href="#ico-plus"/></svg><span>Publicar comunicado</span></button>
         </nav>
       </div>
       <div class="sidebar-footer"><div class="sidebar-server"><small>AMBIENTE ATUAL</small><strong id="sidebarGuildName">Servidor vinculado</strong><button type="button" data-tab="servidores" id="sidebarSwitchServer">Gerenciar acesso <svg class="ico"><use href="#ico-arrow"/></svg></button></div><span class="footer-status"><span class="connected-dot"></span> Plataforma integrada</span><small>Discord · Discloud · Supabase</small><a class="sidebar-add-bot" href="/api/invite" target="_blank" rel="noopener noreferrer"><svg class="ico"><use href="#ico-plus"/></svg> Adicionar Nero Bot</a><a class="sidebar-support" href="https://discord.gg/SWTnKfXJ8R" target="_blank" rel="noopener noreferrer"><svg class="ico"><use href="#ico-users"/></svg> Servidor oficial e suporte <svg class="ico ico-external"><use href="#ico-external"/></svg></a><button type="button" id="sidebarLogout" class="button ghost sidebar-logout" hidden>Sair da conta</button></div>
@@ -124,7 +133,7 @@
           <nav id="breadcrumbs" class="breadcrumbs" aria-label="Caminho de navegação"></nav>
           <div class="module-back" id="moduleBack" hidden><button type="button" id="backToModule"><svg class="ico"><use href="#ico-arrow"/></svg> Voltar aos módulos</button></div>
           <div class="workspace-header">
-            <div><span id="pageEyebrow" class="eyebrow">PAINEL / VISÃO GERAL</span><h1 id="pageTitle">Visão geral</h1><p id="pageDescription">O que está acontecendo no seu servidor agora</p></div>
+            <div><span id="pageEyebrow" class="eyebrow">NERO / WORKSPACE</span><h1 id="pageTitle">Visão geral</h1><p id="pageDescription">O que está acontecendo no seu servidor agora</p></div>
             <span id="ownerBadge" class="owner-badge" hidden><svg class="ico"><use href="#ico-shield"/></svg> Dono do bot</span>
           </div>
           <div class="toolbar panel period-toolbar" id="periodToolbar" hidden>
@@ -136,7 +145,7 @@
           <p class="foot" id="footerNote">Dados sincronizados com o bot e o Supabase. Horas extras não substituem a meta normal. Faltas só são confirmadas após encerramento do turno e validação dos registros. Por padrão, o painel consulta os dados a cada 30 segundos; ajuste nas preferências do site.</p>
         </section>
       </main>
-      <footer><span>NERO BOT <strong>v7.1.0</strong></span><span>Desenvolvido por Cetus · Gestão conectada ao Discord</span><a href="https://discord.gg/SWTnKfXJ8R" target="_blank" rel="noopener noreferrer">Servidor oficial · Suporte</a></footer>
+      <footer><span>NERO BOT <strong>Interface V4</strong></span><span>Desenvolvido por Cetus · Gestão conectada ao Discord</span><a href="https://discord.gg/SWTnKfXJ8R" target="_blank" rel="noopener noreferrer">Servidor oficial · Suporte</a></footer>
     </div>
 
     <nav class="mobile-bottom" id="mobileBottom" aria-label="Navegação dos módulos" hidden>

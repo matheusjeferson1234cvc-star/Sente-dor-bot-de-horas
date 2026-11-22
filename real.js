@@ -66,7 +66,7 @@ function presence(){const filters=$('filters'),rows=$('rows'),date=state.presenc
  for(const m of list){const saved=attendanceRecord(date,shift,m.user_id),work=(state.data.cards||[]).filter(c=>c.user_id===m.user_id&&c.shift===shift&&c.kind==='Normal'&&ymd(c.started_at)===date),activeWork=work.some(c=>c.status==='Ativo');
  const minutes=work.filter(c=>c.status==='Validado').reduce((n,c)=>n+(Number(c.duration_minutes)||0),0);
  let status=saved?.status|| (offFor(date,shortShift[shift])?'folga':minutes>=requiredMinutes()?'cumpriu':activeWork?'agora':minutes>0?'incompleta':'sem dados');
- if(!saved&&date===today()&&!offFor(date,shortShift[shift])){if(activeWork)status='agora';else if(minutes>=120)status='cumpriu';else status='aguardando';}
+ if(!saved&&date===today()&&!offFor(date,shortShift[shift])){if(activeWork)status='agora';else if(minutes>=requiredMinutes())status='cumpriu';else status='aguardando';}
  if(!summary[status])summary[status]=0;summary[status]++;
  lines.push({m,status,minutes:saved?.minutes??minutes,streak:consecutive(m.user_id,shift,date)});
  }
@@ -709,6 +709,7 @@ function renderRecruitmentModule(rows){
 }
 
 function moduleHub(key){
+ if(window.NeroV4?.renderHub?.(key,{state,openTab,requiredHours,allowedFeature}))return;
  const def=moduleDefs[key],rows=$('rows');
  const hero=el('div',undefined,'module-hero'),lead=el('div');
  lead.append(el('span','SISTEMAS DISPONÍVEIS','module-kicker'),el('h2',def.title),el('p',def.intro));
@@ -1132,9 +1133,11 @@ function renderNav(){
  const group=state.tab==='inicio'?'inicio':state.tab==='comunicados'?'comunicados':state.tab==='atualizacoes'?'atualizacoes':state.tab==='recrutamento'?'recrutamento':(pointPages.has(state.tab)?'bateponto':'sistemas');
  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===group));
  document.querySelectorAll('[data-tab="comunicados"],[data-tab="atualizacoes"]').forEach(b=>b.hidden=!state.canEdit);
+ window.NeroV4?.onRenderNav?.(state);
  $('mobileMore').classList.toggle('active',false);
 }
 function overview(){
+ if(window.NeroV4?.renderOverview?.({state,openTab,fmt,totaled,cards,inPeriod,requiredHours,allowedFeature}))return;
  const rows=$('rows'),data=state.data,all=cards();
  const pending=(data.justifications||[]).filter(x=>x.status==='pending').length;
  const currentName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Seu servidor';
