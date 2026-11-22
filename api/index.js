@@ -188,16 +188,23 @@ module.exports=async(req,res)=>{
    }
    if(d.type==='bot-settings'){
     const old=await db('guild_settings',{query:`?guild_id=eq.${gid}&select=*`});
-    // O site é a fonte das configurações após a primeira inicialização.
-    // O bot NÃO substitui uma revisão configurada pela administração no site.
-    const syncPatch={shift_roles:d.shiftRoles||{},shift_hours:d.shiftHours||{},point_mode:d.pointMode==='individual'?'individual':'team',updated_at:new Date().toISOString()};
+    // Mudanças do site prevalecem até a confirmação; depois, o bot pode
+    // atualizar a tela do site com configurações editadas diretamente no Discord.
+    const syncPatch={shift_roles:d.shiftRoles||{},shift_hours:d.shiftHours||{},updated_at:new Date().toISOString()};
+    const incomingMode=d.pointMode==='individual'?'individual':'team';
     if(old.length){
-     if(!old[0].bot_config&&d.fullConfig){
-      try{syncPatch.bot_config=botSchema.normalize(d.fullConfig)}catch(e){console.warn('Configuração inicial ignorada:',e.message)}
+     const current=old[0];
+     const pending=(Number(current.bot_config_revision)||0)>(Number(current.bot_config_applied_revision)||0);
+     if(!pending){
+      syncPatch.point_mode=incomingMode;
+      if(d.fullConfig){
+       try{syncPatch.bot_config=botSchema.normalize({...current.bot_config,...d.fullConfig})}
+       catch(e){console.warn('Configuração do bot ignorada:',e.message)}
+      }
      }
      await db('guild_settings',{method:'PATCH',query:`?guild_id=eq.${gid}`,body:syncPatch});
     }else{
-     const first={guild_id:gid,name:'',...syncPatch};
+     const first={guild_id:gid,name:'',...syncPatch,point_mode:incomingMode};
      if(d.fullConfig)try{first.bot_config=botSchema.normalize(d.fullConfig)}catch(e){console.warn('Configuração inicial ignorada:',e.message)}
      await db('guild_settings',{method:'POST',body:first});
     }
