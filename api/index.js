@@ -282,6 +282,17 @@ module.exports=async(req,res)=>{
    return res.end();
   }
   if(path==='login'){
+   // Prévias da Vercel não têm os segredos OAuth do ambiente de produção.
+   // Encaminhar para o endereço oficial ANTES de validar variáveis locais,
+   // para que o cookie de estado e o retorno do Discord usem o mesmo domínio.
+   const loginHost=String(req.headers.host||'').toLowerCase();
+   const officialHost='central-de-horas1.vercel.app';
+   if(loginHost&&loginHost!==officialHost&&/\\.vercel\\.app$/.test(loginHost)){
+    res.statusCode=302;
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('Location','https://'+officialHost+'/api/login');
+    return res.end();
+   }
    if(!process.env.DISCORD_CLIENT_ID||!process.env.DISCORD_CLIENT_SECRET||!process.env.DISCORD_REDIRECT_URI||!process.env.SESSION_SECRET)return json(res,503,{error:'OAuth não configurado'});
    // OAuth exige mesmo domínio na ida e na volta: se a pessoa usar um link
    // de prévia da Vercel, inicie o fluxo no domínio oficial para conservar o cookie de estado.
