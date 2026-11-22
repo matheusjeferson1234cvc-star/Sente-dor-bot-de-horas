@@ -317,8 +317,27 @@ module.exports=async(req,res)=>{
    if(!nonce||nonce!==state||!same(sign(nonce),sig))return json(res,403,{error:'Estado OAuth inválido'});
    if(typeof req.query?.code!=='string'||!req.query.code)return json(res,400,{error:'Código OAuth ausente'});
    const r=await fetch('https://discord.com/api/v10/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:process.env.DISCORD_CLIENT_ID,client_secret:process.env.DISCORD_CLIENT_SECRET,grant_type:'authorization_code',code:req.query.code,redirect_uri:process.env.DISCORD_REDIRECT_URI})});
-   if(!r.ok)return json(res,401,{error:'Login Discord falhou'});
-   const token=await r.json();if(!token.access_token)return json(res,401,{error:'Token OAuth inválido'});const profile=await fetch('https://discord.com/api/v10/users/@me',{headers:{Authorization:`Bearer ${token.access_token}`}});if(!profile.ok)return json(res,401,{error:'Não foi possível verificar o usuário Discord'});const u=await profile.json();if(!/^\d{15,25}$/.test(String(u.id||'')))return json(res,401,{error:'Identidade Discord inválida'});
+   if(!r.ok){
+    // O Discord devolve um código OAuth seguro (não o token nem a chave).
+    // Nunca registrar a resposta bruta: ela pode incluir informações privadas.
+    let discordCode='unknown';
+    try{
+     const failure=await r.json();
+     const code=String(failure?.error||'');
+     if(['invalid_client','invalid_grant','invalid_request','unauthorized_client','unsupported_grant_type','invalid_scope','server_error','temporarily_unavailable'].includes(code))discordCode=code;
+    }catch{}
+    console.warn('Nero Discord OAuth token exchange failed',{status:r.status,errorCode:discordCode});
+    const issue=r.status===429?'rate_limited':discordCode;
+    res.statusCode=302;
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('Location','/?oauth_error='+encodeURIComponent(issue));
+    return res.end();
+   }
+   const token=await r.json();
+   if(!token.access_token){
+    console.warn('Nero Discord OAuth token missing');
+    res.statusCode=302;res.setHeader('Cache-Control','no-store');res.setHeader('Location','/?oauth_error=missing_token');return res.end();
+   }const profile=await fetch('https://discord.com/api/v10/users/@me',{headers:{Authorization:`Bearer ${token.access_token}`}});if(!profile.ok)return json(res,401,{error:'Não foi possível verificar o usuário Discord'});const u=await profile.json();if(!/^\d{15,25}$/.test(String(u.id||'')))return json(res,401,{error:'Identidade Discord inválida'});
    const payload=Buffer.from(JSON.stringify({id:u.id,name:u.global_name||u.username,exp:Date.now()+86400000})).toString('base64url');
    const oauthLifetime=Math.max(60,Math.min(86400,Math.floor(Number(token.expires_in)||3600)));
    const oauthCookie=sealOAuth({id:u.id,accessToken:token.access_token,exp:Date.now()+oauthLifetime*1000});
