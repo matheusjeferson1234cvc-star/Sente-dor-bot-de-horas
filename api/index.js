@@ -283,6 +283,20 @@ module.exports=async(req,res)=>{
   }
   if(path==='login'){
    if(!process.env.DISCORD_CLIENT_ID||!process.env.DISCORD_CLIENT_SECRET||!process.env.DISCORD_REDIRECT_URI||!process.env.SESSION_SECRET)return json(res,503,{error:'OAuth não configurado'});
+   // OAuth exige mesmo domínio na ida e na volta: se a pessoa usar um link
+   // de prévia da Vercel, inicie o fluxo no domínio oficial para conservar o cookie de estado.
+   let callbackUrl;
+   try{
+    callbackUrl=new URL(process.env.DISCORD_REDIRECT_URI);
+    if(callbackUrl.protocol!=='https:'||callbackUrl.username||callbackUrl.password||callbackUrl.pathname!=='/api/callback'||callbackUrl.search||callbackUrl.hash)throw Error('callback');
+   }catch{return json(res,503,{error:'DISCORD_REDIRECT_URI inválida. Configure a URL HTTPS oficial terminada em /api/callback na Vercel e no Discord Developer Portal.'})}
+   const requestHost=String(req.headers.host||'').toLowerCase();
+   if(requestHost&&requestHost!==callbackUrl.host.toLowerCase()){
+    res.statusCode=302;
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('Location',callbackUrl.origin+'/api/login');
+    return res.end();
+   }
    const nonce=crypto.randomBytes(20).toString('hex');
    res.setHeader('Set-Cookie',`ch_state=${nonce}.${sign(nonce)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600`);
    return res.redirect(`https://discord.com/oauth2/authorize?${new URLSearchParams({client_id:process.env.DISCORD_CLIENT_ID,redirect_uri:process.env.DISCORD_REDIRECT_URI,response_type:'code',scope:'identify guilds',state:nonce})}`);
