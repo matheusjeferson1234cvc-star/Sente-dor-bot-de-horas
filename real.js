@@ -154,7 +154,7 @@ const tabInfo={
  'site-preferencias':['Preferências do site','Navegação, visual e atualização do painel'],
  'bot-geral':['Regras do ponto','Modo de ponto, fuso e tamanho da equipe'],
  'bot-turnos':['Turnos e cargos','Horários, cargos e responsáveis por turno'],
- 'bot-canais':['Canais e cargos gerais','Auditoria, justificativas e advertências'],
+ 'bot-canais':['Canais e cargos gerais','Presença, auditoria, justificativas e advertências'],
  'bot-painel':['Painel de bate-ponto','Título, descrição e GIF do painel de ponto'],
  'bot-painel-just':['Painel de justificativas','Título, descrição e GIF do painel de justificativas'],
  'bot-alertas':['Advertências e notificações','Controle de avisos automáticos e mensagens']
@@ -178,7 +178,7 @@ const moduleDefs={
   ['configuracoes','Configurar Bate-ponto','Todos os ajustes e painéis do sistema em um só lugar.','ico-settings'],
   ['bot-painel','Painel de ponto no Discord','Título, descrição e GIF do bate-ponto.','ico-clock'],
   ['bot-painel-just','Painel de justificativas','Personalize as mensagens e o painel de justificativas.','ico-file'],
-  ['bot-canais','Logs e canais','Canais, cargos e auditorias de registros.','ico-shield'],
+  ['bot-canais','Logs e canais','Canal único de presença, cargos e auditorias de registros.','ico-shield'],
   ['bot-turnos','Turnos e cargos','Cargos, horários e responsáveis de cada turno.','ico-calendar'],
   ['bot-geral','Regras e convites','Configure equipes, convites e regras do ponto.','ico-users']]},
  'horas-normais':{title:'Horas normais',intro:'Um novo módulo de horas, independente do bate-ponto por equipes e turnos que já está funcionando.',icon:'ico-clock',comingSoon:true,items:[]},
@@ -1288,6 +1288,9 @@ function botConfigPage(){
   const coreFields=el('div',undefined,'bot-two-cols');core.append(coreFields);
   drop(coreFields,'Cargo temporário: Em serviço',roleOptions,config.serviceRoleId,v=>config.serviceRoleId=v||null);
   drop(coreFields,'Canal de auditoria',channelOptions,config.auditChannelId,v=>config.auditChannelId=v||null);
+  const presence=section('📋 Logs de Presença','Escolha um único canal para os relatórios automáticos de manhã, tarde, noite e madrugada.');
+  drop(presence,'Canal dos relatórios de presença',channelOptions,config.presenceChannelId,v=>config.presenceChannelId=v||null);
+  presence.append(el('p','Cada turno envia seu relatório depois do encerramento no canal escolhido. Requer a versão corrigida do Nero Bot na Discloud.','hint'));
   const just=section('Canais de justificativas','Defina onde os pedidos serão analisados e registrados.');
   const justFields=el('div',undefined,'bot-two-cols');just.append(justFields);
   drop(justFields,'Canal de análise',channelOptions,config.justifications.reviewChannelId,v=>config.justifications.reviewChannelId=v||null);
