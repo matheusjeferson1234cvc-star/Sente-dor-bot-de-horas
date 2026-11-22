@@ -287,7 +287,7 @@ module.exports=async(req,res)=>{
    // para que o cookie de estado e o retorno do Discord usem o mesmo domínio.
    const loginHost=String(req.headers.host||'').toLowerCase();
    const officialHost='central-de-horas1.vercel.app';
-   if(loginHost&&loginHost!==officialHost&&/\\.vercel\\.app$/.test(loginHost)){
+   if(loginHost&&loginHost!==officialHost&&loginHost.endsWith('.vercel.app')){
     res.statusCode=302;
     res.setHeader('Cache-Control','no-store');
     res.setHeader('Location','https://'+officialHost+'/api/login');
