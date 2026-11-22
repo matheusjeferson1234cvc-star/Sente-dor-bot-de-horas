@@ -17,7 +17,7 @@ test('V4 é camada visual: HTML preserva endpoints e integração do login',()=>
 });
 test('dashboard V4 usa somente dados reais e preserva telas do legado',()=>{
  const js=fs.readFileSync('nero-v4.js','utf8'),old=fs.readFileSync('real.js','utf8');
- assert.match(js,/data\.cards/);
+ assert.match(js,/state\.data\?\.cards/);
  assert.match(js,/data\.justifications/);
  assert.match(js,/state\.guilds/);
  assert.match(js,/allowedFeature/);
