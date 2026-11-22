@@ -42,3 +42,15 @@ test('callback OAuth incorreto é bloqueado antes de redirecionar',async()=>{
   assert.match(res.body.error,/DISCORD_REDIRECT_URI/);
  }finally{restore()}
 });
+
+test('prévia sem segredos OAuth ainda redireciona para login oficial',async()=>{
+ setup();
+ try{
+  for(const key of ['DISCORD_CLIENT_ID','DISCORD_CLIENT_SECRET','DISCORD_REDIRECT_URI','SESSION_SECRET'])delete process.env[key];
+  const res=response();
+  await handler({centralRoute:'login',headers:{host:'central-de-horas1-preview.vercel.app'},query:{}},res);
+  assert.equal(res.statusCode,302);
+  assert.equal(res.headers.location,'https://central-de-horas1.vercel.app/api/login');
+  assert.equal(res.body,undefined);
+ }finally{restore()}
+});
