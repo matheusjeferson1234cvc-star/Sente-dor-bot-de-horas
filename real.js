@@ -1409,7 +1409,22 @@ async function load(){if(!state.guild)return;const status=$('syncStatus');status
 async function start(){
  const inviteHelp=$('inviteHelp');
  if(inviteHelp)inviteHelp.onclick=()=>uiNotice('Clique em “Adicionar bot ao meu servidor”, escolha no Discord um servidor que você administra e autorize as permissões solicitadas. Depois, mantenha o bot online na Discloud para sincronizar os dados com a Central.','Como adicionar o bot');
- try{const me=await api('me');if(!me.user){$('auth').replaceChildren(el('p','Faça login pelo Discord para verificar seus servidores autorizados.'),(()=>{const a=el('a','Entrar com Discord','button login-main-btn');a.href='/api/login';a.append(svgIcon('ico-arrow'));return a})());$('syncStatus').textContent='Login necessário';return}
+ const oauthError=new URLSearchParams(window.location.search).get('oauth_error');
+ const oauthMessages={
+  invalid_client:'O Discord recusou as credenciais da aplicação. O administrador precisa conferir DISCORD_CLIENT_ID e DISCORD_CLIENT_SECRET na Vercel e no Discord Developer Portal.',
+  invalid_grant:'O Discord recusou o código de autorização. Ele pode ter expirado, ter sido usado ou o endereço de retorno pode estar diferente. Tente novamente pelo endereço oficial do Nero.',
+  invalid_request:'O Discord recusou a solicitação de autenticação. Confira a configuração OAuth2 do aplicativo.',
+  unauthorized_client:'O Discord não autorizou o aplicativo. Confira a configuração OAuth2 no Discord Developer Portal.',
+  unsupported_grant_type:'O Discord não aceitou a configuração do tipo de login. É preciso revisar o OAuth2 da aplicação.',
+  invalid_scope:'O Discord recusou as permissões solicitadas. Confira as permissões OAuth2 do aplicativo.',
+  temporarily_unavailable:'O Discord está temporariamente indisponível. Aguarde um pouco e tente novamente.',
+  server_error:'O Discord apresentou uma falha temporária. Tente novamente em alguns minutos.',
+  rate_limited:'O Discord limitou temporariamente as tentativas de login. Aguarde e tente novamente.',
+  missing_token:'O Discord respondeu sem um token de acesso. Tente novamente; se persistir, revise o OAuth2 do Nero.'
+ };
+ const oauthMessage=oauthError?(oauthMessages[oauthError]||'O Discord não concluiu a autenticação. Tente novamente ou peça à administração para conferir as credenciais OAuth2.'):null;
+ const discordLoginLink=()=>{const a=el('a','Entrar com Discord','button login-main-btn');a.href='/api/login';a.append(svgIcon('ico-arrow'));return a};
+ try{const me=await api('me');if(!me.user){$('auth').replaceChildren(el('p',oauthMessage||'Faça login pelo Discord para verificar seus servidores autorizados.',oauthMessage?'error':''),discordLoginLink());$('syncStatus').textContent=oauthMessage?'Falha na autorização do Discord':'Login necessário';return}
  $('auth').replaceChildren(el('p',`Conectado como ${me.user.name}`,'muted'));$('logout').hidden=false;$('sidebarLogout').hidden=false;$('sidebarLogout').onclick=()=>$('logout').click();$('logout').onclick=async()=>{try{await api('logout',{method:'POST'});location.reload()}catch(e){$('syncStatus').textContent=e.message}};
  $('userBadge').hidden=false;$('userBadge').textContent='◉ '+me.user.name;
  const result=await api('guilds');
@@ -1430,5 +1445,5 @@ async function start(){
  document.addEventListener('keydown',e=>{if(e.key==='Escape')setSidebarOpen(false)});
  showServerPicker();
  setInterval(()=>{if(!document.hidden&&state.guild&&window.centralSitePrefs?.read?.().autoRefresh!==false)load().catch(()=>{})},30000);
- }catch(e){$('auth').replaceChildren(el('p',e.message,'error'));$('syncStatus').textContent='Falha na configuração';$('syncStatus').className='status err'}}
+ }catch(e){$('auth').replaceChildren(el('p',e.message,'error'),discordLoginLink());$('syncStatus').textContent='Falha na configuração';$('syncStatus').className='status err'}}
 start();
