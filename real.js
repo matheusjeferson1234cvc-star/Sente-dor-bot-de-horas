@@ -160,7 +160,6 @@ const tabInfo={
  'bot-painel':['Painel de bate-ponto','Título, descrição e GIF do painel de ponto'],
  'bot-painel-just':['Painel de justificativas','Título, descrição e GIF do painel de justificativas'],
  'bot-reunioes':['Reuniões V2','Presença, faltas e justificativas independentes'],
- 'bot-cursos':['Nero Academy','Alunos, notas e resultados dos cursos'],
  'bot-atendimento':['Atendimento','Histórico e situação dos tickets'],
  'bot-boasvindas':['Boas-vindas e saída','Mensagens automáticas de entrada e saída'],
  'bot-alertas':['Advertências e notificações','Controle de avisos automáticos e mensagens']
@@ -170,7 +169,6 @@ const moduleDefs={
  sistemas:{title:'Central de Sistemas',intro:'Selecione uma função para este servidor. Cada sistema tem sua própria área, sem misturar seus dados.',icon:'ico-spark',items:[
   ['bateponto','Bate-ponto · Sistema completo','Equipes, cartões, turnos, justificativas, logs, relatórios e todas as configurações.','ico-clock'],
   ['bot-reunioes','Reuniões V2','Presenças, faltas e justificativas de reuniões.','ico-calendar'],
-  ['bot-cursos','Nero Academy','Cursos, alunos e avaliações.','ico-file'],
   ['bot-atendimento','Atendimento','Tickets e situação dos atendimentos.','ico-users'],
   ['bot-boasvindas','Boas-vindas e saída','Personalize as mensagens do Discord.','ico-users'],
   ['horas-normais','Novo sistema de horas','Modalidade futura, separada do Bate-ponto tradicional.','ico-clock'],
@@ -227,12 +225,12 @@ const moduleDefs={
   ['laboratorio','Laboratório do dono','Simule regras sem alterar registros reais.','ico-spark']]}
 };
 const parentTab=tab=>{
- if(['bateponto','bot-reunioes','bot-cursos','bot-atendimento','bot-boasvindas'].includes(tab))return 'sistemas';
+ if(['bateponto','bot-reunioes','bot-atendimento','bot-boasvindas'].includes(tab))return 'sistemas';
  if(['jornada','resultados','administracao','configuracoes'].includes(tab))return 'bateponto';
  return (state.navOrigin&&moduleDefs[state.navOrigin]?.items.some(item=>item[0]===tab)?state.navOrigin:null)||Object.keys(moduleDefs).find(key=>key!=='sistemas'&&moduleDefs[key].items.some(item=>item[0]===tab))||null;
 };
 const pointPages=new Set(['bateponto','jornada','resultados','administracao','configuracoes','ativos','cancelados','justificativas','advertencias','folgas','ranking','presenca','turno','mensal','relatorios','membros','permissoes','laboratorio','bot-geral','bot-turnos','bot-canais','bot-painel','bot-painel-just','bot-alertas','site-preferencias']);
-const allowedFeature=tab=>(!['comunicados','atualizacoes'].includes(tab)||state.canEdit)&&(!tab.startsWith('bot-')||state.canEdit)&&(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner)&&(state.data?.viewScope!=='shift'||(!tab.startsWith('bot-')&&!['folgas','permissoes','laboratorio'].includes(tab)));
+const allowedFeature=tab=>tab!=='bot-cursos'&&(!['comunicados','atualizacoes'].includes(tab)||state.canEdit)&&(!tab.startsWith('bot-')||state.canEdit)&&(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner)&&(state.data?.viewScope!=='shift'||(!tab.startsWith('bot-')&&!['folgas','permissoes','laboratorio'].includes(tab)));
 function svgIcon(symbol){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('ico');svg.setAttribute('aria-hidden','true');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#'+symbol);svg.append(use);return svg}
 function moduleCard({tab,title,description,icon,meta}){
  const b=el('button',undefined,'feature-card');b.type='button';b.setAttribute('aria-label',`Abrir ${title}`);
@@ -1100,7 +1098,7 @@ function renderWorkspaceShortcuts(){
  if(!state.guild||['inicio','sistemas'].includes(state.tab)){nav.hidden=true;return}
  nav.hidden=false;
  const point=pointPages.has(state.tab),switcher=el('div',undefined,'nero-workspace-switch');
- for(const [tab,label] of [['bateponto','⏰ Bate-ponto'],['recrutamento','📝 Recrutamento'],['bot-reunioes','📅 Reuniões'],['bot-cursos','🎓 Cursos'],['bot-atendimento','🎫 Atendimento'],['bot-boasvindas','👋 Boas-vindas']]){
+ for(const [tab,label] of [['bateponto','⏰ Bate-ponto'],['recrutamento','📝 Recrutamento'],['bot-reunioes','📅 Reuniões'],['bot-atendimento','🎫 Atendimento'],['bot-boasvindas','👋 Boas-vindas']]){
   if(!allowedFeature(tab))continue;
   const button=el('button',label,'nero-workspace-pill');button.type='button';
   button.setAttribute('aria-current',String((tab==='bateponto'&&point)||(tab==='recrutamento'&&state.tab==='recrutamento')));
@@ -1252,7 +1250,7 @@ function moduleReportPage(){
  if(!cache||cache.guild!==guild){
   if(state.moduleFetchGuild===guild){note(root,'Carregando relatório do bot…');return;}
   state.moduleFetchGuild=guild;note(root,'Carregando relatório do bot…');
-  api(botUrl()+'&modules=1').then(result=>{if(state.guild===guild)state.moduleReports={guild,...result};}).catch(e=>{if(state.guild===guild)state.moduleReports={guild,error:e.message};}).finally(()=>{if(state.moduleFetchGuild===guild)state.moduleFetchGuild=null;if(state.guild===guild&&['bot-reunioes','bot-cursos','bot-atendimento'].includes(state.tab))render()});
+  api(botUrl()+'&modules=1').then(result=>{if(state.guild===guild)state.moduleReports={guild,...result};}).catch(e=>{if(state.guild===guild)state.moduleReports={guild,error:e.message};}).finally(()=>{if(state.moduleFetchGuild===guild)state.moduleFetchGuild=null;if(state.guild===guild&&['bot-reunioes','bot-atendimento'].includes(state.tab))render()});
   return;
  }
  if(cache.error){note(root,cache.error,'error');return}
@@ -1431,7 +1429,7 @@ else if(state.tab==='comunicados')announcementPage();
 else if(state.tab==='atualizacoes')neroUpdatesPage();
 else if(state.tab==='laboratorio')ownerLab();
 else if(state.tab==='site-preferencias'){if(window.centralSitePrefs)window.centralSitePrefs.render(rows,load);else note(rows,'Não foi possível carregar as preferências do site. Atualize a página.','error')}
-else if(['bot-reunioes','bot-cursos','bot-atendimento'].includes(state.tab))moduleReportPage();
+else if(['bot-reunioes','bot-atendimento'].includes(state.tab))moduleReportPage();
 else if(state.tab.startsWith('bot-'))botConfigPage();
 else if(state.tab==='ranking'){
  filters.append(el('p','Top 10 do período, considerando somente horas validadas. Horas extras não entram na meta diária.','hint'));
