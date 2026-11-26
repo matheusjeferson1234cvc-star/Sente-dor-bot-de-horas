@@ -1342,7 +1342,13 @@ function botConfigPage(){
    field(c,'Ativar sistema',item.enabled,v=>item.enabled=v,{type:'checkbox'});
    drop(c,'Canal de publicação',channelOptions,item.channelId,v=>item.channelId=v||null);
    const lab=el('label',undefined,'bot-field');lab.append(el('span','Mensagem'));const ta=el('textarea');ta.rows=4;ta.maxLength=1000;ta.value=item.message;lab.append(ta);c.append(lab);
-   const preview=el('div',undefined,'discord-preview-embed'),pt=el('strong',kind==='join'?'👋 Bem-vindo(a)!':'👋 Até logo!'),pd=el('p');preview.append(pt,pd);c.append(preview);
+   const preview=el('div',undefined,'discord-preview-embed'),pt=el('strong',item.title??(kind==='join'?'👋 Bem-vindo(a)!':'👋 Até logo!')),pd=el('p');preview.append(pt,pd);c.append(preview);
+   const ti=field(c,'Título da mensagem',item.title??pt.textContent,v=>{item.title=v;pt.textContent=v},{max:100});ti.oninput=()=>{item.title=ti.value;pt.textContent=ti.value;update()};
+   const color=item.color??(kind==='join'?'#16a34a':'#dc2626');preview.style.borderLeft='4px solid '+color;
+   field(c,'Cor do painel',color,v=>{item.color=v;preview.style.borderLeftColor=v},{type:'color'});
+   field(c,'Mostrar avatar do membro',item.showAvatar??true,v=>item.showAvatar=v,{type:'checkbox'});
+   field(c,'Link HTTPS do banner ou GIF',item.imageUrl??'',v=>item.imageUrl=v||null,{max:500});
+
    const sample=()=>{pd.textContent=ta.value.replace(/\{(membro|nome|servidor|total)\}/g,(_,k)=>({membro:'@Membro',nome:'Membro',servidor:'Seu servidor',total:'150'}[k]));};sample();
    ta.oninput=()=>{item.message=ta.value;sample();update()};
    c.append(el('p','Variáveis: {membro}, {nome}, {servidor}, {total}. Use /boasvindas no Discord para testar.','hint'));

@@ -14,7 +14,10 @@ function normalizeWelcome(input){
   const enabled=item.enabled??false,channelId=item.channelId||null;
   const message=item.message??(k==='join'?'Bem-vindo(a), {membro}, ao {servidor}! Somos {total} membros.':'{nome} saiu do {servidor}. Até logo!');
   if(typeof enabled!=='boolean'||(channelId!==null&&!/^\d{15,25}$/.test(channelId))||typeof message!=='string'||!message.trim()||message.length>1000||enabled&&!channelId)throw Error('Configure canal e mensagem válidos para entrada e saída');
-  out[k]={enabled,channelId,message:message.trim()};
+  const title=item.title??(k==='join'?'👋 Bem-vindo(a)!':'👋 Até logo!'),color=item.color??(k==='join'?'#16a34a':'#dc2626'),showAvatar=item.showAvatar??true,imageUrl=item.imageUrl||null;
+  if(typeof title!=='string'||!title.trim()||title.length>100||typeof color!=='string'||!/^#[0-9a-fA-F]{6}$/.test(color)||typeof showAvatar!=='boolean')throw Error('Visual de boas-vindas inválido');
+  if(imageUrl!==null){if(typeof imageUrl!=='string'||imageUrl.length>500)throw Error('URL de imagem inválida');try{const u=new URL(imageUrl);if(u.protocol!=='https:'||u.username||u.password)throw Error('URL');}catch{throw Error('Use um link HTTPS de imagem');}}
+  out[k]={enabled,channelId,message:message.trim(),title:title.trim(),color,showAvatar,imageUrl};
  }
  return out;
 }
