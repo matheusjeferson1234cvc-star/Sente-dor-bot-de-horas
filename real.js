@@ -159,6 +159,7 @@ const tabInfo={
  'bot-canais':['Canais e cargos gerais','Presença, auditoria, justificativas e advertências'],
  'bot-painel':['Painel de bate-ponto','Título, descrição e GIF do painel de ponto'],
  'bot-painel-just':['Painel de justificativas','Título, descrição e GIF do painel de justificativas'],
+ 'bot-boasvindas':['Boas-vindas e saída','Mensagens automáticas de entrada e saída'],
  'bot-alertas':['Advertências e notificações','Controle de avisos automáticos e mensagens']
 };
 // Os sistemas são agrupados por função. Cada ferramenta mantém sua tela independente.
@@ -207,6 +208,7 @@ const moduleDefs={
   ['bot-canais','Canais e cargos','Configure auditoria, canais e cargos de advertência.','ico-shield'],
   ['bot-painel','Painel de bate-ponto','Personalize o painel principal do ponto.','ico-clock'],
   ['bot-painel-just','Painel de justificativas','Personalize o painel de solicitações e justificativas.','ico-file'],
+  ['bot-boasvindas','Boas-vindas e saída','Personalize os canais e mensagens de entrada e saída.','ico-users'],
   ['bot-alertas','Avisos e notificações','Mensagens privadas, comprovantes e regras automáticas.','ico-alert'],
   ['folgas','Folgas por turno','Defina dias de folga por turno ou para todo o servidor.','ico-calendar'],
   ['justificativas','Histórico de justificativas','Consulte solicitações recebidas e analisadas pelo Discord.','ico-list'],
@@ -222,7 +224,7 @@ const parentTab=tab=>{
  if(['jornada','resultados','administracao','configuracoes'].includes(tab))return 'bateponto';
  return (state.navOrigin&&moduleDefs[state.navOrigin]?.items.some(item=>item[0]===tab)?state.navOrigin:null)||Object.keys(moduleDefs).find(key=>key!=='sistemas'&&moduleDefs[key].items.some(item=>item[0]===tab))||null;
 };
-const pointPages=new Set(['bateponto','jornada','resultados','administracao','configuracoes','ativos','cancelados','justificativas','advertencias','folgas','ranking','presenca','turno','mensal','relatorios','membros','permissoes','laboratorio','bot-geral','bot-turnos','bot-canais','bot-painel','bot-painel-just','bot-alertas','site-preferencias']);
+const pointPages=new Set(['bateponto','jornada','resultados','administracao','configuracoes','ativos','cancelados','justificativas','advertencias','folgas','ranking','presenca','turno','mensal','relatorios','membros','permissoes','laboratorio','bot-geral','bot-turnos','bot-canais','bot-painel','bot-painel-just','bot-boasvindas','bot-alertas','site-preferencias']);
 const allowedFeature=tab=>(!['comunicados','atualizacoes'].includes(tab)||state.canEdit)&&(!tab.startsWith('bot-')||state.canEdit)&&(tab!=='permissoes'||state.canEdit)&&(tab!=='laboratorio'||!!state.data?.isBotOwner)&&(state.data?.viewScope!=='shift'||(!tab.startsWith('bot-')&&!['folgas','permissoes','laboratorio'].includes(tab)));
 function svgIcon(symbol){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('ico');svg.setAttribute('aria-hidden','true');const use=document.createElementNS('http://www.w3.org/2000/svg','use');use.setAttribute('href','#'+symbol);svg.append(use);return svg}
 function moduleCard({tab,title,description,icon,meta}){
@@ -748,7 +750,7 @@ function moduleHub(key){
     {name:'Operação e cartões',desc:'Cartões ativos, presença e turnos.',tabs:['ativos','presenca','turno','mensal']},
     {name:'Ranking e relatórios',desc:'Horas, histórico e membros.',tabs:['ranking','relatorios','membros']},
     {name:'Justificativas e auditoria',desc:'Solicitações, advertências e cancelamentos.',tabs:['justificativas','advertencias','folgas','cancelados']},
-    {name:'Configurações do ponto',desc:'Painéis, turnos, regras e canais.',tabs:['configuracoes','bot-geral','bot-turnos','bot-canais','bot-painel','bot-painel-just','bot-alertas','permissoes']}
+    {name:'Configurações do ponto',desc:'Painéis, turnos, regras e canais.',tabs:['configuracoes','bot-geral','bot-turnos','bot-canais','bot-painel','bot-painel-just','bot-boasvindas','bot-alertas','permissoes']}
    ];
    const allSections=[];
   for(const item of sections){
@@ -1331,6 +1333,20 @@ function botConfigPage(){
   c.append(el('p','As ações de justificar e acessar configurações permanecem funcionando. O painel já publicado será atualizado pelo bot após sincronização.','hint'));
   const preview=makeDiscordPreview('justificativa',()=>jp),layout=el('div',undefined,'discord-editor-layout');
   grid.append(layout);layout.append(c,preview.root);livePreview=preview.refresh;livePreview();
+ }
+ if(state.tab==='bot-boasvindas'){
+  const defaults={join:{enabled:false,channelId:null,message:'Bem-vindo(a), {membro}, ao {servidor}! Somos {total} membros.'},leave:{enabled:false,channelId:null,message:'{nome} saiu do {servidor}. Até logo!'}};
+  config.welcome??=defaults;
+  for(const [kind,title] of [['join','👋 Boas-vindas'],['leave','🚪 Saída de membros']]){
+   const item=config.welcome[kind]??=defaults[kind];const c=section(title,'Escolha o canal e personalize a mensagem automática.');
+   field(c,'Ativar sistema',item.enabled,v=>item.enabled=v,{type:'checkbox'});
+   drop(c,'Canal de publicação',channelOptions,item.channelId,v=>item.channelId=v||null);
+   const lab=el('label',undefined,'bot-field');lab.append(el('span','Mensagem'));const ta=el('textarea');ta.rows=4;ta.maxLength=1000;ta.value=item.message;lab.append(ta);c.append(lab);
+   const preview=el('div',undefined,'discord-preview-embed'),pt=el('strong',kind==='join'?'👋 Bem-vindo(a)!':'👋 Até logo!'),pd=el('p');preview.append(pt,pd);c.append(preview);
+   const sample=()=>{pd.textContent=ta.value.replace(/\{(membro|nome|servidor|total)\}/g,(_,k)=>({membro:'@Membro',nome:'Membro',servidor:'Seu servidor',total:'150'}[k]));};sample();
+   ta.oninput=()=>{item.message=ta.value;sample();update()};
+   c.append(el('p','Variáveis: {membro}, {nome}, {servidor}, {total}. Use /boasvindas no Discord para testar.','hint'));
+  }
  }
  if(state.tab==='bot-alertas'){
   const c=section('Avisos e notificações','Defina o que o bot envia. Para advertências automáticas, primeiro configure os cargos e o canal necessários.');
