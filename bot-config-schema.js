@@ -14,7 +14,13 @@ function normalizeWelcome(input){
   const enabled=item.enabled??false,channelId=item.channelId||null;
   const message=item.message??(k==='join'?'Bem-vindo(a), {membro}, ao {servidor}! Somos {total} membros.':'{nome} saiu do {servidor}. Até logo!');
   if(typeof enabled!=='boolean'||(channelId!==null&&!/^\d{15,25}$/.test(channelId))||typeof message!=='string'||!message.trim()||message.length>1000||enabled&&!channelId)throw Error('Configure canal e mensagem válidos para entrada e saída');
-  out[k]={enabled,channelId,message:message.trim()};
+  const title=item.title??(k==='join'?'👋 Bem-vindo(a)!':'👋 Até logo!');
+  const color=item.color??(k==='join'?'#16a34a':'#dc2626');
+  const avatar=item.avatar??true, banner=item.banner??true;
+  const gif=item.gif||null;
+  if(typeof title!=='string'||!title.trim()||title.length>100||typeof color!=='string'||!/^#[0-9a-f]{6}$/i.test(color)||typeof avatar!=='boolean'||typeof banner!=='boolean')throw Error('Visual de entrada e saída inválido');
+  if(gif!==null){try{if(typeof gif!=='string'||gif.length>500)throw Error('url');const u=new URL(gif);if(u.protocol!=='https:'||!u.pathname.toLowerCase().endsWith('.gif')||u.username||u.password)throw Error('url');}catch{throw Error('Informe um link HTTPS direto para o GIF.');}}
+  out[k]={enabled,channelId,message:message.trim(),title:title.trim(),color,avatar,banner,gif};
  }
  return out;
 }
