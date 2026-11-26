@@ -1338,12 +1338,17 @@ function botConfigPage(){
   const defaults={join:{enabled:false,channelId:null,message:'Bem-vindo(a), {membro}, ao {servidor}! Somos {total} membros.'},leave:{enabled:false,channelId:null,message:'{nome} saiu do {servidor}. Até logo!'}};
   config.welcome??=defaults;
   for(const [kind,title] of [['join','👋 Boas-vindas'],['leave','🚪 Saída de membros']]){
-   const item=config.welcome[kind]??=defaults[kind];const c=section(title,'Escolha o canal e personalize a mensagem automática.');
+   const item=config.welcome[kind]??=defaults[kind];const c=section(title,'Escolha o canal e personalize a mensagem automática.');item.title??=kind==='join'?'👋 Bem-vindo(a)!':'👋 Até logo!';item.color??=kind==='join'?'#16a34a':'#dc2626';item.avatar??=true;item.banner??=true;
    field(c,'Ativar sistema',item.enabled,v=>item.enabled=v,{type:'checkbox'});
    drop(c,'Canal de publicação',channelOptions,item.channelId,v=>item.channelId=v||null);
+   const titleField=field(c,'Título da mensagem',item.title,v=>{item.title=v;sample()},{max:100});
+   field(c,'Cor do destaque',item.color,v=>{item.color=v;sample()},{type:'color'});
+   field(c,'Exibir avatar',item.avatar,v=>item.avatar=v,{type:'checkbox'});
+   field(c,'Exibir banner animado',item.banner,v=>item.banner=v,{type:'checkbox'});
+   field(c,'Link HTTPS de GIF personalizado (opcional)',item.gif||'',v=>item.gif=v||null,{max:500});
    const lab=el('label',undefined,'bot-field');lab.append(el('span','Mensagem'));const ta=el('textarea');ta.rows=4;ta.maxLength=1000;ta.value=item.message;lab.append(ta);c.append(lab);
    const preview=el('div',undefined,'discord-preview-embed'),pt=el('strong',kind==='join'?'👋 Bem-vindo(a)!':'👋 Até logo!'),pd=el('p');preview.append(pt,pd);c.append(preview);
-   const sample=()=>{pd.textContent=ta.value.replace(/\{(membro|nome|servidor|total)\}/g,(_,k)=>({membro:'@Membro',nome:'Membro',servidor:'Seu servidor',total:'150'}[k]));};sample();
+   const sample=()=>{pt.textContent=item.title;preview.style.borderLeftColor=item.color;pd.textContent=ta.value.replace(/\{(membro|nome|servidor|total)\}/g,(_,k)=>({membro:'@Membro',nome:'Membro',servidor:'Seu servidor',total:'150'}[k]));};sample();
    ta.oninput=()=>{item.message=ta.value;sample();update()};
    c.append(el('p','Variáveis: {membro}, {nome}, {servidor}, {total}. Use /boasvindas no Discord para testar.','hint'));
   }
