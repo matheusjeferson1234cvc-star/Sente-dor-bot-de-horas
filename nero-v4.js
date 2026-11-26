@@ -143,6 +143,10 @@
         ['Sistemas disponíveis','Selecione uma ferramenta para começar.',[
          ['bateponto','Bate-ponto','Jornada, equipes, cartões e presença.','clock','SISTEMA ATIVO',true],
          ['recrutamento','Recrutamento','Provas, candidatos e resultados no Discord.','users','SISTEMA ATIVO'],
+         ['bot-reunioes','Reuniões V2','Presenças, faltas e justificativas em um relatório.','calendar','NOVO'],
+         ['bot-cursos','Nero Academy','Cursos, alunos e notas.','file','NOVO'],
+         ['bot-atendimento','Atendimento','Histórico de tickets.','users','NOVO'],
+         ['bot-boasvindas','Boas-vindas e saída','Personalize título, canais, cores e animações.','users','V2'],
          ['atualizacoes','Atualizações oficiais','Publicações permanentes no seu servidor.','file'],
          ['gestao','Gestão de cargos','Área reservada para novas funções.','shield','EM PREPARAÇÃO']
         ]],
@@ -185,6 +189,7 @@
         ['Painéis e integrações','Personalize sem sair do workspace.',[
          ['bot-painel','Painel do bate-ponto','Título, descrição e GIF do painel.','clock'],
          ['bot-painel-just','Painel de justificativas','Aparência da solicitação de ausência.','file'],
+         ['bot-boasvindas','Boas-vindas e saída','Mensagens, avatar, banner e cores.','users'],
          ['bot-canais','Canais e logs','Presença, auditoria e canais do Discord.','list']
         ]],
         ['Acesso e preferências','Controle de permissões do servidor.',[

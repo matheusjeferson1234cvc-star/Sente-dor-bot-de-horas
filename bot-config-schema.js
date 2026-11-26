@@ -4,6 +4,26 @@
 const SHIFTS=['manha','tarde','noite','madrugada'];
 const time=t=>typeof t==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(t);
 const snowflake=s=>typeof s==='string'&&/^\d{15,25}$/.test(s);
+function normalizeWelcome(input){
+ const source=input??{};
+ if(typeof source!=='object'||Array.isArray(source))throw Error('Configuração de entrada e saída inválida');
+ const out={};
+ for(const k of ['join','leave']){
+  const item=source[k]??{};
+  if(typeof item!=='object'||Array.isArray(item))throw Error('Configuração inválida');
+  const enabled=item.enabled??false,channelId=item.channelId||null;
+  const message=item.message??(k==='join'?'Bem-vindo(a), {membro}, ao {servidor}! Somos {total} membros.':'{nome} saiu do {servidor}. Até logo!');
+  if(typeof enabled!=='boolean'||(channelId!==null&&!/^\d{15,25}$/.test(channelId))||typeof message!=='string'||!message.trim()||message.length>1000||enabled&&!channelId)throw Error('Configure canal e mensagem válidos para entrada e saída');
+  const title=item.title??(k==='join'?'👋 Bem-vindo(a)!':'👋 Até logo!');
+  const color=item.color??(k==='join'?'#16a34a':'#dc2626');
+  const avatar=item.avatar??true, banner=item.banner??true;
+  const gif=item.gif||null;
+  if(typeof title!=='string'||!title.trim()||title.length>100||typeof color!=='string'||!/^#[0-9a-f]{6}$/i.test(color)||typeof avatar!=='boolean'||typeof banner!=='boolean')throw Error('Visual de entrada e saída inválido');
+  if(gif!==null){try{if(typeof gif!=='string'||gif.length>500)throw Error('url');const u=new URL(gif);if(u.protocol!=='https:'||!u.pathname.toLowerCase().endsWith('.gif')||u.username||u.password)throw Error('url');}catch{throw Error('Informe um link HTTPS direto para o GIF.');}}
+  out[k]={enabled,channelId,message:message.trim(),title:title.trim(),color,avatar,banner,gif};
+ }
+ return out;
+}
 function normalize(input){
  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Configuração do bot inválida');
  const str=(value,max,name)=>{if(typeof value!=='string'||value.length>max)throw Error(`${name} inválido`);return value};
@@ -39,14 +59,15 @@ function normalize(input){
  const p=input.panel||{};c.panel={title:str(p.title,100,'Título do painel').trim(),description:str(p.description,1600,'Descrição do painel'),customGif:p.customGif==null||p.customGif===''?null:str(p.customGif,500,'GIF do painel')};
  if(!c.panel.title||!c.panel.description.trim())throw Error('O título e a descrição do painel são obrigatórios');
  if(c.panel.customGif){try{const u=new URL(c.panel.customGif);if(u.protocol!=='https:'||!u.pathname.toLowerCase().endsWith('.gif'))throw Error('formato')}catch{throw Error('O GIF precisa ser HTTPS e terminar em .gif')}}
+ c.welcome=normalizeWelcome(input.welcome);
  return c;
 }
 function assertResources(config,roles,channels,guildId){
  const availableRoles=new Set(roles.filter(r=>r.id!==guildId&&!r.managed).map(r=>r.id));
  const availableChannels=new Set(channels.filter(c=>[0,5].includes(c.type)).map(c=>c.id));
  const roleIds=[config.serviceRoleId,...config.justifications.warningRoles,...Object.values(config.shifts).flatMap(s=>[...s.roleIds,...s.supervisorRoles])].filter(Boolean);
- const channelIds=[config.auditChannelId,config.presenceChannelId,config.justifications.reviewChannelId,config.justifications.logChannelId,config.justifications.warningChannelId,...Object.values(config.shifts).map(s=>s.logChannelId)].filter(Boolean);
+ const channelIds=[...Object.values(config.welcome||{}).map(x=>x.channelId),config.auditChannelId,config.presenceChannelId,config.justifications.reviewChannelId,config.justifications.logChannelId,config.justifications.warningChannelId,...Object.values(config.shifts).map(s=>s.logChannelId)].filter(Boolean);
  if(roleIds.some(id=>!availableRoles.has(id)))throw Error('Há um cargo inválido, gerenciado ou de outro servidor');
  if(channelIds.some(id=>!availableChannels.has(id)))throw Error('Há um canal inválido ou de outro servidor');
 }
-module.exports={normalize,assertResources,SHIFTS};
+module.exports={normalize,assertResources,SHIFTS,normalizeWelcome};

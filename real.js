@@ -159,12 +159,20 @@ const tabInfo={
  'bot-canais':['Canais e cargos gerais','Presença, auditoria, justificativas e advertências'],
  'bot-painel':['Painel de bate-ponto','Título, descrição e GIF do painel de ponto'],
  'bot-painel-just':['Painel de justificativas','Título, descrição e GIF do painel de justificativas'],
+ 'bot-reunioes':['Reuniões V2','Presença, faltas e justificativas independentes'],
+ 'bot-cursos':['Nero Academy','Alunos, notas e resultados dos cursos'],
+ 'bot-atendimento':['Atendimento','Histórico e situação dos tickets'],
+ 'bot-boasvindas':['Boas-vindas e saída','Mensagens automáticas de entrada e saída'],
  'bot-alertas':['Advertências e notificações','Controle de avisos automáticos e mensagens']
 };
 // Os sistemas são agrupados por função. Cada ferramenta mantém sua tela independente.
 const moduleDefs={
  sistemas:{title:'Central de Sistemas',intro:'Selecione uma função para este servidor. Cada sistema tem sua própria área, sem misturar seus dados.',icon:'ico-spark',items:[
   ['bateponto','Bate-ponto · Sistema completo','Equipes, cartões, turnos, justificativas, logs, relatórios e todas as configurações.','ico-clock'],
+  ['bot-reunioes','Reuniões V2','Presenças, faltas e justificativas de reuniões.','ico-calendar'],
+  ['bot-cursos','Nero Academy','Cursos, alunos e avaliações.','ico-file'],
+  ['bot-atendimento','Atendimento','Tickets e situação dos atendimentos.','ico-users'],
+  ['bot-boasvindas','Boas-vindas e saída','Personalize as mensagens do Discord.','ico-users'],
   ['horas-normais','Novo sistema de horas','Modalidade futura, separada do Bate-ponto tradicional.','ico-clock'],
   ['registro','Registro de membros','Novo sistema de identificação e aprovação.','ico-file'],
   ['recrutamento','Recrutamento','Provas, inscrições, correção e anúncios do Discord.','ico-users'],
@@ -207,6 +215,7 @@ const moduleDefs={
   ['bot-canais','Canais e cargos','Configure auditoria, canais e cargos de advertência.','ico-shield'],
   ['bot-painel','Painel de bate-ponto','Personalize o painel principal do ponto.','ico-clock'],
   ['bot-painel-just','Painel de justificativas','Personalize o painel de solicitações e justificativas.','ico-file'],
+  ['bot-boasvindas','Boas-vindas e saída','Personalize os canais e mensagens de entrada e saída.','ico-users'],
   ['bot-alertas','Avisos e notificações','Mensagens privadas, comprovantes e regras automáticas.','ico-alert'],
   ['folgas','Folgas por turno','Defina dias de folga por turno ou para todo o servidor.','ico-calendar'],
   ['justificativas','Histórico de justificativas','Consulte solicitações recebidas e analisadas pelo Discord.','ico-list'],
@@ -218,7 +227,7 @@ const moduleDefs={
   ['laboratorio','Laboratório do dono','Simule regras sem alterar registros reais.','ico-spark']]}
 };
 const parentTab=tab=>{
- if(tab==='bateponto')return 'sistemas';
+ if(['bateponto','bot-reunioes','bot-cursos','bot-atendimento','bot-boasvindas'].includes(tab))return 'sistemas';
  if(['jornada','resultados','administracao','configuracoes'].includes(tab))return 'bateponto';
  return (state.navOrigin&&moduleDefs[state.navOrigin]?.items.some(item=>item[0]===tab)?state.navOrigin:null)||Object.keys(moduleDefs).find(key=>key!=='sistemas'&&moduleDefs[key].items.some(item=>item[0]===tab))||null;
 };
@@ -748,7 +757,7 @@ function moduleHub(key){
     {name:'Operação e cartões',desc:'Cartões ativos, presença e turnos.',tabs:['ativos','presenca','turno','mensal']},
     {name:'Ranking e relatórios',desc:'Horas, histórico e membros.',tabs:['ranking','relatorios','membros']},
     {name:'Justificativas e auditoria',desc:'Solicitações, advertências e cancelamentos.',tabs:['justificativas','advertencias','folgas','cancelados']},
-    {name:'Configurações do ponto',desc:'Painéis, turnos, regras e canais.',tabs:['configuracoes','bot-geral','bot-turnos','bot-canais','bot-painel','bot-painel-just','bot-alertas','permissoes']}
+    {name:'Configurações do ponto',desc:'Painéis, turnos, regras e canais.',tabs:['configuracoes','bot-geral','bot-turnos','bot-canais','bot-painel','bot-painel-just','bot-boasvindas','bot-alertas','permissoes']}
    ];
    const allSections=[];
   for(const item of sections){
@@ -911,7 +920,7 @@ function showServerPicker(){
 }
 async function chooseServer(id){
  if(!state.guilds.some(g=>String(g.guild_id)===String(id)))return;
- state.guild=String(id);state.data=null;state.canEdit=false;state.roles=null;state.botEditor=null;state.botDraft=null;
+ state.guild=String(id);state.moduleReports=null;state.data=null;state.canEdit=false;state.roles=null;state.botEditor=null;state.botDraft=null;
  state.botDirty=false;state.botError='';state.navOrigin='sistemas';state.tab='sistemas';state.search='';
  $('guild').value=state.guild;
  $('serverPicker').hidden=true;$('content').hidden=false;
@@ -1091,7 +1100,8 @@ function renderWorkspaceShortcuts(){
  if(!state.guild||['inicio','sistemas'].includes(state.tab)){nav.hidden=true;return}
  nav.hidden=false;
  const point=pointPages.has(state.tab),switcher=el('div',undefined,'nero-workspace-switch');
- for(const [tab,label] of [['bateponto','⏰ Bate-ponto'],['recrutamento','📝 Recrutamento']]){
+ for(const [tab,label] of [['bateponto','⏰ Bate-ponto'],['recrutamento','📝 Recrutamento'],['bot-reunioes','📅 Reuniões'],['bot-cursos','🎓 Cursos'],['bot-atendimento','🎫 Atendimento'],['bot-boasvindas','👋 Boas-vindas']]){
+  if(!allowedFeature(tab))continue;
   const button=el('button',label,'nero-workspace-pill');button.type='button';
   button.setAttribute('aria-current',String((tab==='bateponto'&&point)||(tab==='recrutamento'&&state.tab==='recrutamento')));
   button.onclick=()=>openTab(tab);switcher.append(button);
@@ -1234,6 +1244,39 @@ async function fetchBotEditor(){
  }catch(e){if(forGuild===state.guild)state.botError=e.message}
  finally{state.botLoading=false;render()}
 }
+function moduleReportPage(){
+ const root=$('rows'),guild=state.guild,tab=state.tab;
+ const cache=state.moduleReports;
+ const toolbar=el('div',undefined,'bot-actions'),reload=el('button','Atualizar relatório','button');
+ reload.onclick=()=>{state.moduleReports=null;render()};toolbar.append(reload);root.append(toolbar);
+ if(!cache||cache.guild!==guild){
+  if(state.moduleFetchGuild===guild){note(root,'Carregando relatório do bot…');return;}
+  state.moduleFetchGuild=guild;note(root,'Carregando relatório do bot…');
+  api(botUrl()+'&modules=1').then(result=>{if(state.guild===guild)state.moduleReports={guild,...result};}).catch(e=>{if(state.guild===guild)state.moduleReports={guild,error:e.message};}).finally(()=>{if(state.moduleFetchGuild===guild)state.moduleFetchGuild=null;if(state.guild===guild&&['bot-reunioes','bot-cursos','bot-atendimento'].includes(state.tab))render()});
+  return;
+ }
+ if(cache.error){note(root,cache.error,'error');return}
+ if(!cache.snapshot){note(root,'Nenhum relatório recebido. Atualize o Nero na Discloud com o pacote de sincronização V4.3 e aguarde o próximo ciclo.','warning-note');return;}
+ const date=v=>v?new Date(v).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Não informada';
+ const names=new Map((state.data?.members||[]).map(x=>[String(x.user_id),x.display_name||x.username||x.user_id]));
+ const label=id=>names.get(String(id))||String(id);
+ const snapshot=cache.snapshot,wrap=el('div',undefined,'bot-config-form');root.append(el('p','Última sincronização: '+date(cache.updatedAt)+' · Até 100 registros recentes por módulo. Gerencie pelo Discord.','hint'),wrap);
+ const list=tab==='bot-reunioes'?snapshot.meetings:tab==='bot-cursos'?snapshot.courses:snapshot.tickets;
+ const statuses={scheduled:'Agendada',started:'Em andamento',closed:'Encerrada',inscrito:'Inscrito',aprovado:'Aprovado',reprovado:'Reprovado'};
+ if(!list?.length){note(wrap,'Nenhum registro neste módulo.');return}
+ const group=(box,title,values)=>{const h=el('details');h.append(el('summary',title+' ('+values.length+')'));const ul=el('ul');for(const v of values)ul.append(el('li',v));if(!values.length)ul.append(el('li','Nenhum'));h.append(ul);box.append(h)};
+ for(const x of list){
+  const box=el('section',undefined,'bot-section');wrap.append(box);
+  if(tab==='bot-reunioes'){
+   box.append(el('h3',x.title),el('p',date(x.when)+' · '+(statuses[x.status]||x.status)+' · Convocados: '+(x.convoked??'a definir'),'hint'));
+   group(box,'🟢 Presentes',(x.present||[]).map(label));group(box,'🔴 Faltaram',(x.absent||[]).map(label));group(box,'🟡 Justificadas',(x.justified||[]).map(label));group(box,'⏳ Em análise',(x.pending||[]).map(label));
+  }else if(tab==='bot-cursos'){
+   const students=x.students||[];
+   box.append(el('h3',x.title),el('p',date(x.when)+' · '+(x.closed?'Encerrado':'Aberto')+' · Vagas '+students.length+'/'+x.capacity+' · Nota mínima '+x.minScore,'hint'));
+   group(box,'Alunos e resultados',students.map(v=>label(v.id)+' · '+(statuses[v.status]||v.status)+(v.score!=null?' · '+v.score+'/100':'')));
+  }else{box.append(el('h3','Ticket '+x.id),el('p','Aberto: '+date(x.createdAt)+' · '+(x.closed?'Encerrado em '+date(x.closedAt):x.assigned?'Em atendimento':'Aguardando atendente'),'hint'));}
+ }
+}
 function botConfigPage(){
  const rows=$('rows'),filters=$('filters');filters.hidden=false;
  if(!state.canEdit){
@@ -1332,6 +1375,25 @@ function botConfigPage(){
   const preview=makeDiscordPreview('justificativa',()=>jp),layout=el('div',undefined,'discord-editor-layout');
   grid.append(layout);layout.append(c,preview.root);livePreview=preview.refresh;livePreview();
  }
+ if(state.tab==='bot-boasvindas'){
+  const defaults={join:{enabled:false,channelId:null,message:'Bem-vindo(a), {membro}, ao {servidor}! Somos {total} membros.'},leave:{enabled:false,channelId:null,message:'{nome} saiu do {servidor}. Até logo!'}};
+  config.welcome??=defaults;
+  for(const [kind,title] of [['join','👋 Boas-vindas'],['leave','🚪 Saída de membros']]){
+   const item=config.welcome[kind]??=defaults[kind];const c=section(title,'Escolha o canal e personalize a mensagem automática.');item.title??=kind==='join'?'👋 Bem-vindo(a)!':'👋 Até logo!';item.color??=kind==='join'?'#16a34a':'#dc2626';item.avatar??=true;item.banner??=true;
+   field(c,'Ativar sistema',item.enabled,v=>item.enabled=v,{type:'checkbox'});
+   drop(c,'Canal de publicação',channelOptions,item.channelId,v=>item.channelId=v||null);
+   const titleField=field(c,'Título da mensagem',item.title,v=>{item.title=v;sample()},{max:100});
+   field(c,'Cor do destaque',item.color,v=>{item.color=v;sample()},{type:'color'});
+   field(c,'Exibir avatar',item.avatar,v=>item.avatar=v,{type:'checkbox'});
+   field(c,'Exibir banner animado',item.banner,v=>item.banner=v,{type:'checkbox'});
+   field(c,'Link HTTPS de GIF personalizado (opcional)',item.gif||'',v=>item.gif=v||null,{max:500});
+   const lab=el('label',undefined,'bot-field');lab.append(el('span','Mensagem'));const ta=el('textarea');ta.rows=4;ta.maxLength=1000;ta.value=item.message;lab.append(ta);c.append(lab);
+   const preview=el('div',undefined,'discord-preview-embed'),pt=el('strong',kind==='join'?'👋 Bem-vindo(a)!':'👋 Até logo!'),pd=el('p');preview.append(pt,pd);c.append(preview);
+   const sample=()=>{pt.textContent=item.title;preview.style.borderLeftColor=item.color;pd.textContent=ta.value.replace(/\{(membro|nome|servidor|total)\}/g,(_,k)=>({membro:'@Membro',nome:'Membro',servidor:'Seu servidor',total:'150'}[k]));};sample();
+   ta.oninput=()=>{item.message=ta.value;sample();update()};
+   c.append(el('p','Variáveis: {membro}, {nome}, {servidor}, {total}. Use /boasvindas no Discord para testar.','hint'));
+  }
+ }
  if(state.tab==='bot-alertas'){
   const c=section('Avisos e notificações','Defina o que o bot envia. Para advertências automáticas, primeiro configure os cargos e o canal necessários.');
   field(c,'Enviar mensagens privadas de ponto',config.notifications.pointDm,v=>config.notifications.pointDm=v,{type:'checkbox'});
@@ -1369,6 +1431,7 @@ else if(state.tab==='comunicados')announcementPage();
 else if(state.tab==='atualizacoes')neroUpdatesPage();
 else if(state.tab==='laboratorio')ownerLab();
 else if(state.tab==='site-preferencias'){if(window.centralSitePrefs)window.centralSitePrefs.render(rows,load);else note(rows,'Não foi possível carregar as preferências do site. Atualize a página.','error')}
+else if(['bot-reunioes','bot-cursos','bot-atendimento'].includes(state.tab))moduleReportPage();
 else if(state.tab.startsWith('bot-'))botConfigPage();
 else if(state.tab==='ranking'){
  filters.append(el('p','Top 10 do período, considerando somente horas validadas. Horas extras não entram na meta diária.','hint'));

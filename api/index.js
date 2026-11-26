@@ -174,6 +174,12 @@ module.exports=async(req,res)=>{
    const d=req.body||{};
    if(!/^\d{15,25}$/.test(String(d.guildId||'')))return json(res,400,{error:'guildId inválido'});
    const gid=d.guildId;
+   if(d.type==='modules-v43'){
+    const snapshot=d.snapshot;
+    if(!snapshot||!Array.isArray(snapshot.meetings)||!Array.isArray(snapshot.courses)||!Array.isArray(snapshot.tickets)||JSON.stringify(snapshot).length>700000)return json(res,400,{error:'Relatório inválido'});
+    await db('nero_module_snapshots',{method:'POST',body:{guild_id:gid,snapshot,updated_at:new Date().toISOString()}});
+    return json(res,200,{ok:true});
+   }
    if(d.type==='config-ack'){
     const revision=Number(d.revision);
     if(!Number.isInteger(revision)||revision<0)return json(res,400,{error:'Revisão inválida'});
@@ -642,6 +648,10 @@ module.exports=async(req,res)=>{
    catch(e){return editorDbError(res,e)}
    if(!stored.length)return json(res,404,{code:'GUILD_NOT_SYNCED',error:'Servidor ainda não sincronizado pelo bot. Confira BOT_SYNC_SECRET no bot e na Vercel.'});
    const config=stored[0];
+   if(req.method==='GET'&&req.query?.modules==='1'){
+    const result=await db('nero_module_snapshots',{query:`?guild_id=eq.${gid}&select=snapshot,updated_at`});
+    return json(res,200,{snapshot:result[0]?.snapshot||null,updatedAt:result[0]?.updated_at||null});
+   }
    if(!process.env.DISCORD_BOT_TOKEN)return json(res,503,{code:'DISCORD_BOT_TOKEN_MISSING',error:'Falta DISCORD_BOT_TOKEN nas variáveis da Vercel. Configure o token do bot, faça Redeploy e tente novamente.'});
    if(req.method==='GET'){
     let roles,channels;
