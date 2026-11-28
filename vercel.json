@@ -16,6 +16,10 @@
     {
       "source": "/api/announce-channels",
       "destination": "/api/index?centralRoute=announce-channels"
+    },
+    {
+      "source": "/api/invite",
+      "destination": "/api/index?centralRoute=invite"
     }
   ]
 }
