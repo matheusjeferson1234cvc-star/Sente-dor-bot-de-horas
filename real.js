@@ -923,7 +923,8 @@ async function chooseServer(id){
  $('guild').value=state.guild;
  $('serverPicker').hidden=true;$('content').hidden=false;
  $('sidebar').hidden=false;$('mobileBottom').hidden=false;$('openSidebar').hidden=false;
- await load();
+ $('rows').replaceChildren(el('p','Carregando dados do servidor selecionado…','hint'));
+ $('filters').replaceChildren();$('stats').hidden=true;await load();
 }
 async function refreshServers(){
  const button=$('serverPickerRefresh');button.disabled=true;button.textContent='Consultando servidores...';
@@ -1123,7 +1124,7 @@ function renderNav(){
  $('headerContext').textContent='Servidor · '+title;
  $('ownerBadge').hidden=true;window.NeroManager?.owner(!!state.data?.isBotOwner);
  const guildName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Servidor atual';
- $('sidebarGuildName').textContent=guildName;window.NeroManager?.guild(guildName,state.guilds,state.guild,chooseServer,showServerPicker);
+ $('sidebarGuildName').textContent=guildName;window.NeroManager?.guild(guildName,state.guilds,state.guild,chooseServer,showServerPicker,state.managedGuilds||[]);
  const crumbs=$('breadcrumbs');
  if(crumbs){
   crumbs.replaceChildren();crumbs.hidden=state.tab==='inicio';
@@ -1147,6 +1148,7 @@ function renderNav(){
  $('mobileMore').classList.toggle('active',false);
 }
 function overview(){
+ refreshManagerReports();
  if(window.NeroV4?.renderOverview?.({state,openTab,fmt,totaled,cards,inPeriod,requiredHours,allowedFeature}))return;
  const rows=$('rows'),data=state.data,all=cards();
  const pending=(data.justifications||[]).filter(x=>x.status==='pending').length;
@@ -1243,6 +1245,13 @@ async function fetchBotEditor(){
   state.botDirty=false;state.botError='';
  }catch(e){if(forGuild===state.guild)state.botError=e.message}
  finally{state.botLoading=false;render()}
+}
+function refreshManagerReports(){
+ if(!state.canEdit||!state.guild||state.moduleFetchGuild===state.guild)return;
+ const guild=state.guild,cache=state.moduleReports;
+ if(cache?.guild===guild&&(!cache.fetchedAt||Date.now()-cache.fetchedAt<60000))return;
+ state.moduleFetchGuild=guild;
+ api(botUrl()+'&modules=1').then(result=>{if(state.guild===guild&&state.canEdit)state.moduleReports={guild,...result,fetchedAt:Date.now()};}).catch(e=>{if(state.guild===guild&&state.canEdit)state.moduleReports={guild,error:e.message,fetchedAt:Date.now()};}).finally(()=>{if(state.moduleFetchGuild===guild)state.moduleFetchGuild=null;if(state.guild===guild&&['inicio','bot-reunioes','bot-atendimento'].includes(state.tab))render()});
 }
 function moduleReportPage(){
  const root=$('rows'),guild=state.guild,tab=state.tab;
@@ -1468,7 +1477,8 @@ async function renderPermissions(filters,rows,data){filters.append(el('p','O don
  const save=el('button','Salvar permissões','button');save.type='button';save.onclick=async()=>{save.disabled=true;try{const allowedRoles=[...field.querySelectorAll('input:checked')].map(e=>e.value);await api('settings?guildId='+encodeURIComponent(state.guild),{method:'POST',body:JSON.stringify({allowedRoles})});await load();$('syncStatus').textContent='Permissões salvas';$('syncStatus').className='status ok'}catch(e){$('syncStatus').textContent=e.message;$('syncStatus').className='status err'}finally{save.disabled=false}};
  box.append(field,save)
 }
-async function load(){if(!state.guild)return;const status=$('syncStatus');status.textContent='Sincronizando dados...';status.className='status';try{state.data=await api('data?guildId='+encodeURIComponent(state.guild));state.canEdit=!!state.data.canEdit;if(state.data.viewScope==='shift'){state.botEditor=null;state.botDraft=null;state.botDirty=false;if(!allowedFeature(state.tab))state.tab='inicio'}render();status.textContent=state.data?.missingSchema?.length?'Banco desatualizado · veja o aviso no painel':'Sincronizado · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});status.className=state.data?.missingSchema?.length?'status err':'status ok'}catch(e){$('rows').replaceChildren(el('p',e.message,'error'));status.textContent='Falha ao carregar';status.className='status err'}}
+let managerLoadSequence=0;
+async function load(){if(!state.guild)return;const request=++managerLoadSequence,guild=state.guild;const status=$('syncStatus');status.textContent='Sincronizando dados...';status.className='status';try{const result=await api('data?guildId='+encodeURIComponent(guild));if(request!==managerLoadSequence||state.guild!==guild)return;state.data=result;state.canEdit=!!state.data.canEdit;if(state.data.viewScope==='shift'){state.botEditor=null;state.botDraft=null;state.botDirty=false;if(!allowedFeature(state.tab))state.tab='inicio'}render();status.textContent=state.data?.missingSchema?.length?'Banco desatualizado · veja o aviso no painel':'Sincronizado · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});status.className=state.data?.missingSchema?.length?'status err':'status ok'}catch(e){if(request!==managerLoadSequence||state.guild!==guild)return;$('rows').replaceChildren(el('p',e.message,'error'));status.textContent='Falha ao carregar';status.className='status err'}}
 async function start(){
  const inviteHelp=$('inviteHelp');
  if(inviteHelp)inviteHelp.onclick=()=>uiNotice('Clique em “Adicionar bot ao meu servidor”, escolha no Discord um servidor que você administra e autorize as permissões solicitadas. Depois, mantenha o bot online na Discloud para sincronizar os dados com a Central.','Como adicionar o bot');

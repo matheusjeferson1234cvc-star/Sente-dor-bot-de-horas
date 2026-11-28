@@ -371,7 +371,7 @@ module.exports=async(req,res)=>{
      const guilds=await ownDiscordGuilds(oauth);
      managedGuilds=guilds.filter(canManageGuild).map(g=>({
       guild_id:g.id,name:String(g.name||'Servidor').slice(0,100),
-      owner:g.owner===true,installed:connected.has(g.id)
+      owner:g.owner===true,installed:connected.has(g.id),icon:typeof g.icon==='string'&&/^(a_)?[a-f0-9]{32}$/i.test(g.icon)?g.icon:null
      })).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
     }catch{reauthRequired=true}
    }

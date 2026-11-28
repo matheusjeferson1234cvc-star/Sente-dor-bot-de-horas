@@ -29,7 +29,7 @@
    return wrap;
  }
  function metric(label,value,small,icon){
-   const x=node('article','v4-metric');x.dataset.metricIcon=icon;const top=node('div','v4-metric-top');
+   const x=node('article','v4-metric');x.dataset.metricIcon=icon;x.title=small;const top=node('div','v4-metric-top');
    top.append(node('span','v4-metric-label',label));
    const i=node('span','v4-metric-icon');i.append(svg(icon));top.append(i);
    x.append(top,node('strong','v4-metric-value',value),node('span','v4-metric-note',small));
@@ -93,14 +93,27 @@
    const dash=node('div','v4-dashboard');
    const section=node('section','manager-metrics-section');
    const metrics=node('div','v4-metrics');
+   const snapshot=state.canEdit&&state.moduleReports?.guild===state.guild?state.moduleReports.snapshot:null;
+   const meetings=Array.isArray(snapshot?.meetings)?snapshot.meetings:null,tickets=Array.isArray(snapshot?.tickets)?snapshot.tickets:null;
    metrics.append(metric('Servidores',state.guilds.length,'Ambientes disponíveis','users'));
    metrics.append(metric('Registros de ponto',all.length,'Registros disponíveis','clock'));
-   metrics.append(metric('Em serviço',live.length,'Cartões atualmente ativos','activity'));
-   metrics.append(metric('Pontos validados',complete.length,'No período selecionado','check'));
-   metrics.append(metric('Horas normais',fmt(totaled(normal)),'Horas validadas no período','clock'));
-   metrics.append(metric('Justificativas',pending,'Solicitações aguardando análise','file'));
+   metrics.append(metric('Membros do ponto',(data.members||[]).length,'Membros sincronizados','users'));
+   metrics.append(metric('Reuniões recentes',meetings?.length??'—','Até 100 registros sincronizados','calendar'));
+   metrics.append(metric('Tickets recentes',tickets?.length??'—','Até 100 registros sincronizados','file'));
+   metrics.append(metric('Justificativas',pending,'Pendentes de análise','file'));
    section.append(metrics);dash.append(section);
-   const modules=group(ctx,[['bateponto','Sistema de Bate-ponto','Jornada, equipes, cartões, turnos e relatórios.','clock'],['recrutamento','Recrutamento','Provas, candidatos e resultados.','users'],['bot-reunioes','Reuniões','Presenças, faltas e justificativas.','calendar'],['bot-atendimento','Atendimento','Tickets e histórico.','users'],['justificativas','Justificativas','Solicitações e decisões.','file'],['bot-boasvindas','Boas-vindas e saída','Mensagens e painéis personalizáveis.','users'],['configuracoes','Configurações','Regras do ponto, canais, cargos e permissões.','settings']],'','');if(modules){modules.classList.add('manager-modules');dash.append(modules);}
+   const modules=group(ctx,[['bateponto','Sistema de Bate-ponto','Controle de horas, equipes, turnos e registros dos membros.','clock'],['recrutamento','Sistema de Recrutamento','Processo seletivo, provas, aprovação e revisão de candidatos.','users'],['bot-reunioes','Sistema de Reuniões','Organize reuniões, presença, faltas e justificativas.','calendar'],['bot-atendimento','Sistema de Tickets','Atendimentos, responsáveis e histórico de solicitações.','users'],['justificativas','Sistema de Justificativas','Solicitações de ausência, análise e histórico.','file'],['bot-boasvindas','Boas-vindas e saída','Personalize mensagens automáticas de entrada e saída.','users'],['administracao','Central do líder','Consulte advertências, folgas e registros administrativos.','shield'],['configuracoes','Configurações','Personalize os painéis, canais, cargos e regras.','settings']],'','');
+   if(modules){
+    modules.classList.add('manager-modules');
+    const stats={bateponto:[[all.length,'Total'],[live.length,'Em aberto']],justificativas:[[(data.justifications||[]).length,'Total'],[pending,'Pendentes']], 'bot-reunioes':meetings?[[meetings.length,'Recentes']]:null,'bot-atendimento':tickets?[[tickets.length,'Recentes'],[tickets.filter(t=>!t.closed).length,'Abertos']]:null};
+    for(const card of modules.querySelectorAll('.v4-tool')){
+     const values=stats[card.dataset.module],footer=node('span','manager-card-summary');
+     if(values){for(const [value,label] of values){const item=node('span','manager-card-stat');item.append(node('strong','',value),node('small','',label));footer.append(item);}}
+     else{footer.append(node('span','manager-card-link',(['bot-reunioes','bot-atendimento'].includes(card.dataset.module))?'Consultar registros':'Abrir sistema'),node('span','manager-card-arrow','›'));}
+     card.append(footer);
+    }
+    dash.append(modules);
+   }
    const details=node('details','manager-dashboard-details');details.open=!!state.managerDetailsOpen;details.addEventListener('toggle',()=>{state.managerDetailsOpen=details.open;});
    details.append(node('summary','','Acompanhamento do bate-ponto'));
    const cols=node('div','v4-columns');

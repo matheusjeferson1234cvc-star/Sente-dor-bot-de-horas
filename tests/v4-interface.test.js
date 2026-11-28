@@ -40,5 +40,10 @@ test('Manager compacto mantém perfil e acesso ao bate-ponto',()=>{
 
 test('Manager usa emojis e seletor restrito aos servidores autorizados',()=>{
  const html=fs.readFileSync('index.html','utf8'),manager=fs.readFileSync('nero-manager.js','utf8'),real=fs.readFileSync('real.js','utf8');
- assert.match(html,/manager-nav-emoji/);assert.match(html,/id="managerGuildList"/);assert.match(manager,/guildSelection\.entries/);assert.match(real,/guild\(guildName,state\.guilds,state\.guild,chooseServer,showServerPicker\)/);assert.match(real,/state\.guilds\.some/);assert.doesNotThrow(()=>new vm.Script(manager));
+ assert.match(html,/manager-nav-emoji/);assert.match(html,/id="managerGuildList"/);assert.match(manager,/guildSelection\.entries/);assert.match(real,/guild\(guildName,state\.guilds,state\.guild,chooseServer,showServerPicker,state\.managedGuilds/);assert.match(real,/state\.guilds\.some/);assert.doesNotThrow(()=>new vm.Script(manager));
+});
+
+test('Manager usa avatar de servidor e contagens reais, sem expor dados de outro servidor',()=>{
+ const ui=fs.readFileSync('nero-v4.js','utf8'),manager=fs.readFileSync('nero-manager.js','utf8'),real=fs.readFileSync('real.js','utf8');
+ assert.match(manager,/cdn\.discordapp\.com\/icons\//);assert.match(manager,/entries\.map/);assert.match(ui,/moduleReports\?\.guild===state\.guild/);assert.match(ui,/manager-card-summary/);assert.match(real,/request!==managerLoadSequence\|\|state\.guild!==guild/);
 });
