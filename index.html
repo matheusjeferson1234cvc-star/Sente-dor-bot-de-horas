@@ -13,8 +13,10 @@
   <link rel="stylesheet" href="/site-preferences-v6.css?v=610">
   <link rel="stylesheet" href="/nero-theme.css?v=712">
   <link rel="stylesheet" href="/nero-v4.css?v=800">
-  <script defer src="/real.js?v=843"></script>
-  <script defer src="/nero-v4.js?v=843"></script>
+  <link rel="stylesheet" href="/nero-manager.css?v=1">
+  <script defer src="/nero-manager.js?v=1"></script>
+  <script defer src="/real.js?v=844"></script>
+  <script defer src="/nero-v4.js?v=844"></script>
   <script defer src="/site-preferences-v6.js?v=670"></script>
   <script defer src="/quick-navigation-v6.js?v=670"></script>
 </head>
@@ -46,20 +48,24 @@
     <aside id="sidebar" class="sidebar" hidden aria-label="Menu principal">
       <div class="sidebar-brand">
         <span class="brand-mark"><svg class="ico"><use href="#ico-clock"/></svg></span>
-        <div class="brand-wordmark"><strong>NERO <span class="v4-brand-badge">V4</span></strong><small>WORKSPACE • DISCORD</small></div>
+        <div class="brand-wordmark"><strong>Nero Manager <span class="v4-brand-badge">V4</span></strong><small>GESTÃO DE SERVIDORES</small></div>
         <button class="sidebar-close icon-btn" type="button" id="closeSidebar" aria-label="Fechar menu"><svg class="ico"><use href="#ico-x"/></svg></button>
       </div>
       <div class="sidebar-scroll">
         <nav class="tabs v4-nav" aria-label="Navegação principal do Nero">
           <span class="nav-group">VISÃO GERAL</span>
-          <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg><span>Início</span></button>
+          <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg><span>Dashboard</span></button>
           <button type="button" data-tab="sistemas"><svg class="ico"><use href="#ico-spark"/></svg><span>Meus sistemas</span></button>
           <span class="nav-group">OPERAÇÃO</span>
           <button type="button" data-tab="bateponto"><svg class="ico"><use href="#ico-clock"/></svg><span>Bate-ponto</span></button>
           <button type="button" data-tab="ativos"><svg class="ico"><use href="#ico-activity"/></svg><span>Cartões ativos</span></button>
           <button type="button" data-tab="presenca"><svg class="ico"><use href="#ico-check"/></svg><span>Presença</span></button>
           <button type="button" data-tab="recrutamento"><svg class="ico"><use href="#ico-users"/></svg><span>Recrutamento</span></button>
-          <span class="nav-group">INTELIGÊNCIA</span>
+          <button type="button" data-tab="bot-reunioes"><svg class="ico"><use href="#ico-calendar"/></svg><span>Reuniões</span></button>
+          <button type="button" data-tab="bot-atendimento"><svg class="ico"><use href="#ico-users"/></svg><span>Atendimento</span></button>
+          <button type="button" data-tab="justificativas"><svg class="ico"><use href="#ico-file"/></svg><span>Justificativas</span></button>
+          <button type="button" data-tab="bot-boasvindas"><svg class="ico"><use href="#ico-users"/></svg><span>Boas-vindas e saída</span></button>
+          <span class="nav-group">BATE-PONTO · RESULTADOS</span>
           <button type="button" data-tab="ranking"><svg class="ico"><use href="#ico-bar"/></svg><span>Ranking</span></button>
           <button type="button" data-tab="relatorios"><svg class="ico"><use href="#ico-file"/></svg><span>Relatórios</span></button>
           <button type="button" data-tab="administracao"><svg class="ico"><use href="#ico-shield"/></svg><span>Administração</span></button>
@@ -79,7 +85,7 @@
           <button id="openSidebar" class="menu-button icon-btn" type="button" aria-label="Abrir menu" aria-expanded="false" hidden><svg class="ico"><use href="#ico-menu"/></svg></button>
           <div class="brand"><span class="brand-ico"><svg class="ico"><use href="#ico-clock"/></svg></span><div><strong>NERO BOT</strong><small id="headerContext">Plataforma de sistemas</small></div></div>
         </div>
-        <div class="top-right"><span id="syncStatus" class="status">Verificando conexão</span><span id="userBadge" class="user-badge" hidden>Discord conectado</span><button type="button" id="logout" class="button ghost logout-btn" hidden>Sair</button></div>
+        <div class="top-right"><button type="button" id="managerGuild" class="manager-guild" data-tab="servidores" hidden><svg class="ico"><use href="#ico-users"/></svg><span><small>Servidor atual</small><strong id="managerGuildName">Selecionar servidor</strong></span><span aria-hidden="true">⌄</span></button><button type="button" id="managerTheme" class="manager-theme" aria-label="Alternar tema">☾ Tema escuro</button><span id="syncStatus" class="status">Verificando conexão</span><span id="userBadge" class="user-badge" hidden>Discord conectado</span><span id="managerOwner" class="manager-owner" hidden>DONO</span><button type="button" id="logout" class="button ghost logout-btn" hidden>Sair</button></div>
       </header>
 
       <main class="page-content">

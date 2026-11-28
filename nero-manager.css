@@ -1,0 +1,75 @@
+/* Nero Manager — camada visual, sem mudança nas regras dos módulos. */
+:root[data-manager-theme=light]{color-scheme:light;--bg:#f2f5fa;--panel:#fff;--panel2:#f7f8fc;--panel3:#edf1f8;--border:#e0e6ef;--border-strong:#cbd5e1;--ink:#202b3e;--muted:#58677d;--muted2:#65768a;--accent:#6552bd;--purple:#6552bd;--green:#16856c;--radius:12px}
+:root[data-manager-theme=dark]{color-scheme:dark}
+.manager-theme,.manager-guild{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--ink);padding:7px 11px;font-size:12px;cursor:pointer;white-space:nowrap}
+.manager-guild span:nth-child(2){display:grid;text-align:left;gap:2px;max-width:190px;overflow:hidden}
+.manager-guild strong{overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.manager-guild small{font-size:10px;color:var(--muted)}
+.manager-owner{font-size:10px;font-weight:850;color:#714b04;background:#ffe4a0;border:1px solid #eac46b;border-radius:5px;padding:4px 7px;letter-spacing:.04em}
+.manager-avatar{position:relative;display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:50%;background:#7560c9;color:#fff;overflow:hidden}
+.manager-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.top .user-badge{display:inline-flex!important;align-items:center;gap:7px;max-width:160px;min-width:0;padding:4px 8px!important;white-space:nowrap}
+.top .user-badge>span:last-child{overflow:hidden;text-overflow:ellipsis}
+[hidden],.manager-guild[hidden],.manager-owner[hidden],.top .user-badge[hidden]{display:none!important}
+.sidebar-brand{min-height:66px!important;padding:14px!important}
+.sidebar .v4-nav button{min-height:38px!important;padding:8px 10px!important;border-radius:7px!important}
+.sidebar .v4-nav .nav-group{padding:15px 10px 6px!important;letter-spacing:.08em!important}
+.sidebar-scroll{padding:10px!important}
+.top{min-height:64px!important;backdrop-filter:none}
+.workspace-header{margin:4px 0 14px!important}
+.workspace-header h1{font-size:clamp(25px,2.3vw,31px)!important;letter-spacing:-.035em!important}
+.page-content{padding:24px clamp(15px,2.5vw,36px) 60px!important}
+.v4-dashboard{gap:18px}
+.manager-dashboard-description{font-size:13px;color:var(--muted);margin:0}
+.v4-metrics{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.v4-metric{min-height:112px!important;padding:14px!important;border-radius:10px!important;gap:8px!important}
+.v4-metric-value{font-size:clamp(23px,2.3vw,30px)}
+.v4-metric-icon,.v4-tool-icon{width:34px;height:34px;border-radius:8px}
+.v4-surface{padding:18px;border-radius:12px}
+.manager-modules{background:transparent!important;border:0!important;padding:0!important;box-shadow:none!important}
+.manager-modules .v4-tool-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.v4-tool{border-radius:10px;min-height:115px;padding:16px;flex-direction:column;gap:10px}
+.v4-tool-content{gap:6px}
+.v4-module-intro{padding:20px 24px;border-radius:12px}
+.v4-module-intro h2{font-size:27px}
+.v4-module-intro .v4-module-icon{width:54px;height:54px;border-radius:12px}
+.v4-module{gap:16px}
+.v4-columns{gap:14px}
+@media(min-width:1081px){.sidebar{width:224px!important;flex:0 0 224px!important}}
+@media(max-width:1250px){.v4-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.manager-modules .v4-tool-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:850px){.manager-modules .v4-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.manager-guild{display:none!important}}
+@media(max-width:650px){.page-content{padding:17px 12px 110px!important}.v4-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.v4-metric{min-height:100px!important}.top .status{display:none!important}.top-right{gap:5px!important}.top .brand strong{font-size:12px}.top .user-badge{max-width:100px}.manager-theme{padding:6px;font-size:10px}.manager-owner{padding:3px;font-size:9px}.top .logout-btn{display:none!important}.v4-tool{min-height:105px;padding:13px}.v4-module-intro{padding:16px}.v4-surface{padding:14px}}
+html[data-manager-theme=light] body{background:#f2f5fa!important;color:#202b3e!important}
+html[data-manager-theme=light] body::before,html[data-manager-theme=light] body .main-column::before{background:none!important}
+html[data-manager-theme=light] :is(.sidebar,.sidebar-footer,.top,.mobile-bottom){background:#fff!important;border-color:#e0e6ef!important;box-shadow:none!important}
+html[data-manager-theme=light] :is(.sidebar-brand,.sidebar-footer){border-color:#e0e6ef!important}
+html[data-manager-theme=light] :is(.brand-wordmark strong,.top .brand strong,.workspace-header h1,.v4-module-intro h2,.v4-section-title h3,.v4-tool-content strong,.v4-metric-value,.v4-live-main strong,.stat strong,.list-row strong){color:#202b3e!important}
+html[data-manager-theme=light] :is(.brand-wordmark small,.top .brand small,.sidebar .nav-group,.workspace-header p,.v4-section-title p,.v4-metric-label,.v4-metric-note,.v4-tool-content small,.v4-live-main small,.v4-module-intro p,.breadcrumbs,.foot){color:#65758b!important}
+html[data-manager-theme=light] .sidebar .v4-nav button{color:#44546a!important}
+html[data-manager-theme=light] .sidebar .v4-nav button .ico{color:#7583a0!important}
+html[data-manager-theme=light] .sidebar .v4-nav button:is(.active,:hover,:focus-visible){background:#eae7fb!important;border-color:#dfd8fa!important;color:#5141a2!important;box-shadow:none!important}
+html[data-manager-theme=light] .sidebar .v4-nav button.active .ico{color:#6552bd!important}
+html[data-manager-theme=light] :is(.sidebar-server,.sidebar-support,.sidebar-add-bot,.top .quick-search-trigger,.user-badge,.module-back button,.nero-workspace-shortcuts,.nero-workspace-pill,.nero-quick-link,.v4-nav-line button){background:#f7f8fc!important;border-color:#dfe5ee!important;color:#34435a!important}
+html[data-manager-theme=light] :is(.sidebar-server strong,.sidebar-footer .footer-status,.sidebar-footer>small){color:#526176!important}
+html[data-manager-theme=light] :is(.panel,.content-panel,.config-category,.bot-section,.bot-access-panel,.recruit-editor,.nero-updates-panel,.stat,.snapshot-card,.overview-tile,.home-module,.feature-card,.point-tool-section,.point-tool-grid>.feature-card,.v4-surface,.v4-tool,.v4-metric,.v4-live-item,.list-row,.site-settings-panel,.site-dialog,.quick-nav-dialog,.server-picker,.server-card,.server-picker-group){background:#fff!important;border-color:#e0e6ef!important;color:#202b3e!important;box-shadow:0 2px 7px #25334c08!important}
+html[data-manager-theme=light] :is(.v4-tool-primary,.v4-tool:hover,.v4-shortcut:hover,.home-module:hover,.feature-card:hover){background:#f7f5ff!important;border-color:#d8cef6!important}
+html[data-manager-theme=light] :is(.home-hero,.module-hero,.v4-hero,.v4-module-intro,.point-tool-heading,.point-workspace-bar,.point-mini-stat,.config-search,.point-search-panel,.v4-shortcut,.v4-empty,.bot-check){background:#f8f9fd!important;border-color:#e0e6ef!important;color:#26354a!important;box-shadow:none!important}
+html[data-manager-theme=light] :is(.home-hero h2,.module-hero h2,.home-hero p,.module-hero p,.v4-empty,.v4-shortcut span,.filters label,.bot-field>span,.list-row small,.list-row .muted-small){color:#526176!important}
+html[data-manager-theme=light] :is(.v4-tool-icon,.v4-metric-icon,.v4-module-icon,.home-module-icon,.feature-symbol,.module-hero-icon){background:#eee9ff!important;color:#6652bf!important;border-color:#e0d7fa!important}
+html[data-manager-theme=light] :is(.v4-kicker,.module-kicker,.workspace-header .eyebrow,.v4-tool-tag,.v4-shortcut .ico,.v4-section-title button){color:#6552bd!important}
+html[data-manager-theme=light] :is(.v4-bottom-note,.v4-help){background:#eaf7f2!important;color:#246653!important;border-color:#cce9dc!important}
+html[data-manager-theme=light] .button:not(.ghost){background:#6552bd!important;color:#fff!important;border-color:#6552bd!important;box-shadow:none!important}
+html[data-manager-theme=light] :is(.button.ghost,button.button.ghost){background:#fff!important;color:#44546a!important;border-color:#d9e1eb!important;box-shadow:none!important}
+html[data-manager-theme=light] :is(input:not([type=checkbox]):not([type=radio]),select,textarea){background:#fff!important;color:#243248!important;border-color:#cfd8e5!important}
+html[data-manager-theme=light] :is(.bot-check:has(input:checked),.recruit-section-tab[aria-current=true],.nero-workspace-pill[aria-current=true],.nero-quick-link[aria-current=true]){background:#eae7fb!important;color:#5141a2!important;border-color:#d8cef6!important}
+html[data-manager-theme=light] .top .status{background:#edf8f3!important;border-color:#cce9dc!important;color:#28735e!important}
+html[data-manager-theme=light] .top .status.err{background:#fff0f1!important;border-color:#f4c5cb!important;color:#a42c40!important}
+html[data-manager-theme=light] .content-panel.hub-content,html[data-manager-theme=light] .manager-modules{background:transparent!important;border:0!important;box-shadow:none!important}
+html[data-manager-theme=light] :is(.content-panel,.site-dialog) :is(h1,h2,h3,h4,legend,th){color:#26354a!important}
+html[data-manager-theme=light] :is(.content-panel,.site-dialog) :is(.muted,.hint,.muted-small){color:#65758b!important}
+html[data-manager-theme=light] .content-panel table{color:#26354a!important}
+html[data-manager-theme=light] .content-panel :is(td,th){border-color:#e0e6ef!important}
+html[data-manager-theme=light] .discord-preview-window{color-scheme:dark}
+html[data-manager-theme=light] .discord-preview-window :is(h1,h2,h3,h4,legend,th){color:#f1f5f9!important}
+html[data-manager-theme=light] :where(a){color:#5744b1}
+html[data-manager-theme=light] .mobile-bottom button.active{background:#eae7fb!important;color:#5141a2!important}

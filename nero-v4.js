@@ -90,23 +90,19 @@
    const pending=(data.justifications||[]).filter(x=>x.status==='pending').length;
    const guild=state.guilds.find(g=>String(g.guild_id)===String(state.guild));
    const dash=node('div','v4-dashboard');
-   const hero=node('section','v4-hero'),copy=node('div');
-   copy.append(node('span','v4-kicker','SEU WORKSPACE • NERO V4'));
-   copy.append(node('h2','',guild?.name?'Seu servidor, sob controle.':'Bem-vindo ao seu painel.'));
-   copy.append(node('p','',guild?.name?'Ambiente: '+guild.name+' · Acompanhe a operação, a equipe e os relatórios sem sair do mesmo lugar.':'Selecione um servidor para acompanhar a operação.'));
-   const actions=node('div','v4-hero-actions');
-   actions.append(button('Abrir bate-ponto','bateponto',ctx));
-   actions.append(button('Ver relatórios','relatorios',ctx));
-   copy.append(actions);hero.append(copy);
-   const seal=node('div','v4-hero-seal');seal.append(svg('shield'));hero.append(seal);dash.append(hero);
+   const welcome=node('p','manager-dashboard-description',guild?.name?'Visão geral de '+guild.name+' · Selecione um sistema para começar.':'Visão geral dos sistemas disponíveis.');
+   dash.append(welcome);
    const section=node('section');
-   section.append(head('Visão geral da operação','Dados recebidos do bot e do Supabase.'));
+   section.append(head('Resumo do servidor','Dados sincronizados com o Nero.'));
    const metrics=node('div','v4-metrics');
+   metrics.append(metric('Servidores',state.guilds.length,'Ambientes disponíveis','users'));
+   metrics.append(metric('Registros de ponto',all.length,'Registros disponíveis','clock'));
    metrics.append(metric('Em serviço',live.length,'Cartões atualmente ativos','activity'));
    metrics.append(metric('Pontos validados',complete.length,'No período selecionado','check'));
    metrics.append(metric('Horas normais',fmt(totaled(normal)),'Horas validadas no período','clock'));
    metrics.append(metric('Justificativas',pending,'Solicitações aguardando análise','file'));
    section.append(metrics);dash.append(section);
+   const modules=group(ctx,[['bateponto','Sistema de Bate-ponto','Jornada, equipes, cartões, turnos e relatórios.','clock'],['recrutamento','Recrutamento','Provas, candidatos e resultados.','users'],['bot-reunioes','Reuniões','Presenças, faltas e justificativas.','calendar'],['bot-atendimento','Atendimento','Tickets e histórico.','users'],['justificativas','Justificativas','Solicitações e decisões.','file'],['bot-boasvindas','Boas-vindas e saída','Mensagens e painéis personalizáveis.','users'],['configuracoes','Configurações','Regras do ponto, canais, cargos e permissões.','settings']],'Seus sistemas','Abra um módulo para acessar suas ferramentas.');if(modules){modules.classList.add('manager-modules');dash.append(modules);}
    const cols=node('div','v4-columns');
    const first=node('section','v4-surface');
    first.append(head('Cartões em andamento','Acompanhe os registros ativos',button('Ver todos','ativos',ctx)));
@@ -144,11 +140,9 @@
          ['bateponto','Bate-ponto','Jornada, equipes, cartões e presença.','clock','SISTEMA ATIVO',true],
          ['recrutamento','Recrutamento','Provas, candidatos e resultados no Discord.','users','SISTEMA ATIVO'],
          ['bot-reunioes','Reuniões V2','Presenças, faltas e justificativas em um relatório.','calendar','NOVO'],
-         ['bot-cursos','Nero Academy','Cursos, alunos e notas.','file','NOVO'],
          ['bot-atendimento','Atendimento','Histórico de tickets.','users','NOVO'],
          ['bot-boasvindas','Boas-vindas e saída','Personalize título, canais, cores e animações.','users','V2'],
          ['atualizacoes','Atualizações oficiais','Publicações permanentes no seu servidor.','file'],
-         ['gestao','Gestão de cargos','Área reservada para novas funções.','shield','EM PREPARAÇÃO']
         ]],
         ['Organização e acesso','Outras ferramentas da plataforma.',[
          ['servidores','Meus servidores','Gerencie os ambientes autorizados.','users'],

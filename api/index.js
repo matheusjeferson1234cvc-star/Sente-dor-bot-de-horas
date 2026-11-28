@@ -344,7 +344,7 @@ module.exports=async(req,res)=>{
     console.warn('Nero Discord OAuth token missing');
     res.statusCode=302;res.setHeader('Cache-Control','no-store');res.setHeader('Location','/?oauth_error=missing_token');return res.end();
    }const profile=await fetch('https://discord.com/api/v10/users/@me',{headers:{Authorization:`Bearer ${token.access_token}`}});if(!profile.ok)return json(res,401,{error:'Não foi possível verificar o usuário Discord'});const u=await profile.json();if(!/^\d{15,25}$/.test(String(u.id||'')))return json(res,401,{error:'Identidade Discord inválida'});
-   const payload=Buffer.from(JSON.stringify({id:u.id,name:u.global_name||u.username,exp:Date.now()+86400000})).toString('base64url');
+   const payload=Buffer.from(JSON.stringify({id:u.id,name:u.global_name||u.username,avatar:typeof u.avatar==='string'&&/^(a_)?[a-f0-9]{32}$/i.test(u.avatar)?u.avatar:null,exp:Date.now()+86400000})).toString('base64url');
    const oauthLifetime=Math.max(60,Math.min(86400,Math.floor(Number(token.expires_in)||3600)));
    const oauthCookie=sealOAuth({id:u.id,accessToken:token.access_token,exp:Date.now()+oauthLifetime*1000});
    res.setHeader('Set-Cookie',[
@@ -354,7 +354,7 @@ module.exports=async(req,res)=>{
    ]);
    return res.redirect('/');
   }
-  if(path==='me')return json(res,200,{user:session(req)});
+  if(path==='me'){const user=session(req);return json(res,200,{user,isBotOwner:!!user&&!!process.env.BOT_OWNER_DISCORD_ID&&user.id===process.env.BOT_OWNER_DISCORD_ID});}
   if(path==='logout'){if(req.method!=='POST')return json(res,405,{error:'Método não permitido'});res.setHeader('Set-Cookie',['ch_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0','ch_oauth=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0']);return json(res,200,{ok:true})}
   const user=session(req);if(!user)return json(res,401,{error:'Faça login pelo Discord'});
   if(path==='guilds'){

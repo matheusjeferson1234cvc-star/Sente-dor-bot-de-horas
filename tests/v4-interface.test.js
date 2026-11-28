@@ -25,3 +25,10 @@ test('dashboard V4 usa somente dados reais e preserva telas do legado',()=>{
  assert.match(old,/NeroV4\?\.renderHub/);
  assert.match(old,/NeroV4\?\.onRenderNav/);
 });
+
+test('Manager mantém módulos reais e selo do proprietário validado pela API',()=>{
+ const html=fs.readFileSync('index.html','utf8'),manager=fs.readFileSync('nero-manager.js','utf8'),real=fs.readFileSync('real.js','utf8');
+ assert.doesNotThrow(()=>new vm.Script(manager));
+ assert.match(html,/nero-manager\.css/);assert.match(html,/id="managerOwner"/);assert.match(manager,/me\.isBotOwner===true/);assert.match(real,/data\?\.isBotOwner/);
+ for(const tab of ['bateponto','bot-reunioes','bot-atendimento','justificativas','bot-boasvindas'])assert.ok(html.includes('data-tab="'+tab+'"'));
+});

@@ -912,14 +912,14 @@ function showServerPicker(){
  setSidebarOpen(false);
  $('content').hidden=true;$('serverPicker').hidden=false;
  $('sidebar').hidden=true;$('mobileBottom').hidden=true;$('openSidebar').hidden=true;
- $('syncStatus').textContent='Escolha um servidor';$('syncStatus').className='status';
+ $('syncStatus').textContent='Escolha um servidor';$('syncStatus').className='status';window.NeroManager?.guild(null);
  renderServerPicker();
  window.scrollTo({top:0,behavior:'auto'});
 }
 async function chooseServer(id){
  if(!state.guilds.some(g=>String(g.guild_id)===String(id)))return;
  state.guild=String(id);state.moduleReports=null;state.data=null;state.canEdit=false;state.roles=null;state.botEditor=null;state.botDraft=null;
- state.botDirty=false;state.botError='';state.navOrigin='sistemas';state.tab='sistemas';state.search='';
+ state.botDirty=false;state.botError='';state.navOrigin=null;state.tab='inicio';state.search='';
  $('guild').value=state.guild;
  $('serverPicker').hidden=true;$('content').hidden=false;
  $('sidebar').hidden=false;$('mobileBottom').hidden=false;$('openSidebar').hidden=false;
@@ -1120,9 +1120,9 @@ function renderNav(){
  $('pageTitle').textContent=title;$('pageDescription').textContent=description;
  $('pageEyebrow').textContent=pointPages.has(state.tab)?'NERO BOT / BATE-PONTO':'NERO BOT / SISTEMAS';
  $('headerContext').textContent='Servidor · '+title;
- $('ownerBadge').hidden=!state.data?.isBotOwner;
+ $('ownerBadge').hidden=true;window.NeroManager?.owner(!!state.data?.isBotOwner);
  const guildName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Servidor atual';
- $('sidebarGuildName').textContent=guildName;
+ $('sidebarGuildName').textContent=guildName;window.NeroManager?.guild(guildName);
  const crumbs=$('breadcrumbs');
  if(crumbs){
   crumbs.replaceChildren();crumbs.hidden=state.tab==='inicio';
@@ -1142,6 +1142,7 @@ function renderNav(){
  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===group));
  document.querySelectorAll('[data-tab="comunicados"],[data-tab="atualizacoes"]').forEach(b=>b.hidden=!state.canEdit);
  window.NeroV4?.onRenderNav?.(state);
+ document.querySelectorAll('.v4-nav [data-tab]').forEach(b=>{b.hidden=!allowedFeature(b.dataset.tab);});
  $('mobileMore').classList.toggle('active',false);
 }
 function overview(){
@@ -1487,7 +1488,7 @@ async function start(){
  const discordLoginLink=()=>{const a=el('a','Entrar com Discord','button login-main-btn');a.href='/api/login';a.append(svgIcon('ico-arrow'));return a};
  try{const me=await api('me');if(!me.user){$('auth').replaceChildren(el('p',oauthMessage||'Faça login pelo Discord para verificar seus servidores autorizados.',oauthMessage?'error':''),discordLoginLink());$('syncStatus').textContent=oauthMessage?'Falha na autorização do Discord':'Login necessário';return}
  $('auth').replaceChildren(el('p',`Conectado como ${me.user.name}`,'muted'));$('logout').hidden=false;$('sidebarLogout').hidden=false;$('sidebarLogout').onclick=()=>$('logout').click();$('logout').onclick=async()=>{try{await api('logout',{method:'POST'});location.reload()}catch(e){$('syncStatus').textContent=e.message}};
- $('userBadge').hidden=false;$('userBadge').textContent='◉ '+me.user.name;
+ $('userBadge').hidden=false;$('userBadge').textContent='◉ '+me.user.name;window.NeroManager?.profile(me);
  const result=await api('guilds');
  state.guilds=result.guilds||[];state.managedGuilds=result.managedGuilds||[];state.reauthRequired=!!result.reauthRequired;
  $('auth').hidden=true;document.body.classList.add('logged-in');
