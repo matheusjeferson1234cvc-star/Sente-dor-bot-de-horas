@@ -13,10 +13,10 @@
   <link rel="stylesheet" href="/site-preferences-v6.css?v=610">
   <link rel="stylesheet" href="/nero-theme.css?v=712">
   <link rel="stylesheet" href="/nero-v4.css?v=800">
-  <link rel="stylesheet" href="/nero-manager.css?v=1">
+  <link rel="stylesheet" href="/nero-manager.css?v=2">
   <script defer src="/nero-manager.js?v=1"></script>
-  <script defer src="/real.js?v=844"></script>
-  <script defer src="/nero-v4.js?v=844"></script>
+  <script defer src="/real.js?v=845"></script>
+  <script defer src="/nero-v4.js?v=845"></script>
   <script defer src="/site-preferences-v6.js?v=670"></script>
   <script defer src="/quick-navigation-v6.js?v=670"></script>
 </head>
@@ -48,7 +48,7 @@
     <aside id="sidebar" class="sidebar" hidden aria-label="Menu principal">
       <div class="sidebar-brand">
         <span class="brand-mark"><svg class="ico"><use href="#ico-clock"/></svg></span>
-        <div class="brand-wordmark"><strong>Nero Manager <span class="v4-brand-badge">V4</span></strong><small>GESTÃO DE SERVIDORES</small></div>
+        <div class="brand-wordmark"><strong>Nero Manager</strong><small>Gestão de servidores</small></div>
         <button class="sidebar-close icon-btn" type="button" id="closeSidebar" aria-label="Fechar menu"><svg class="ico"><use href="#ico-x"/></svg></button>
       </div>
       <div class="sidebar-scroll">
@@ -84,8 +84,9 @@
         <div class="top-left">
           <button id="openSidebar" class="menu-button icon-btn" type="button" aria-label="Abrir menu" aria-expanded="false" hidden><svg class="ico"><use href="#ico-menu"/></svg></button>
           <div class="brand"><span class="brand-ico"><svg class="ico"><use href="#ico-clock"/></svg></span><div><strong>NERO BOT</strong><small id="headerContext">Plataforma de sistemas</small></div></div>
+          <button type="button" id="managerGuild" class="manager-guild" data-tab="servidores" hidden><svg class="ico"><use href="#ico-users"/></svg><span><small>Servidor atual</small><strong id="managerGuildName">Selecionar servidor</strong></span><span aria-hidden="true">⌄</span></button>
         </div>
-        <div class="top-right"><button type="button" id="managerGuild" class="manager-guild" data-tab="servidores" hidden><svg class="ico"><use href="#ico-users"/></svg><span><small>Servidor atual</small><strong id="managerGuildName">Selecionar servidor</strong></span><span aria-hidden="true">⌄</span></button><button type="button" id="managerTheme" class="manager-theme" aria-label="Alternar tema">☾ Tema escuro</button><span id="syncStatus" class="status">Verificando conexão</span><span id="userBadge" class="user-badge" hidden>Discord conectado</span><span id="managerOwner" class="manager-owner" hidden>DONO</span><button type="button" id="logout" class="button ghost logout-btn" hidden>Sair</button></div>
+        <div class="top-right"><button type="button" id="managerTheme" class="manager-theme" aria-label="Alternar tema">☾ Tema escuro</button><span id="syncStatus" class="status">Verificando conexão</span><div class="manager-account"><span id="userBadge" class="user-badge" hidden>Discord conectado</span><span id="managerOwner" class="manager-owner" hidden>DONO</span></div><button type="button" id="logout" class="button ghost logout-btn" hidden>Sair</button></div>
       </header>
 
       <main class="page-content">

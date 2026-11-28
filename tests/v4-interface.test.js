@@ -32,3 +32,8 @@ test('Manager mantém módulos reais e selo do proprietário validado pela API',
  assert.match(html,/nero-manager\.css/);assert.match(html,/id="managerOwner"/);assert.match(manager,/me\.isBotOwner===true/);assert.match(real,/data\?\.isBotOwner/);
  for(const tab of ['bateponto','bot-reunioes','bot-atendimento','justificativas','bot-boasvindas'])assert.ok(html.includes('data-tab="'+tab+'"'));
 });
+
+test('Manager compacto mantém perfil e acesso ao bate-ponto',()=>{
+ const html=fs.readFileSync('index.html','utf8'),css=fs.readFileSync('nero-manager.css','utf8'),ui=fs.readFileSync('nero-v4.js','utf8');
+ assert.match(html,/id="managerGuild"/);assert.match(html,/class="manager-account"/);assert.match(css,/repeat\(6,minmax\(0,1fr\)\)/);assert.match(ui,/manager-dashboard-details/);assert.match(ui,/requiredHours\(\)/);assert.match(ui,/\['bateponto','Sistema de Bate-ponto'/);
+});

@@ -28,7 +28,7 @@
    return wrap;
  }
  function metric(label,value,small,icon){
-   const x=node('article','v4-metric'),top=node('div','v4-metric-top');
+   const x=node('article','v4-metric');x.dataset.metricIcon=icon;const top=node('div','v4-metric-top');
    top.append(node('span','v4-metric-label',label));
    const i=node('span','v4-metric-icon');i.append(svg(icon));top.append(i);
    x.append(top,node('strong','v4-metric-value',value),node('span','v4-metric-note',small));
@@ -37,7 +37,7 @@
  function tool(ctx,tab,title,description,icon,tag,primary){
    if(ctx.allowedFeature&&!ctx.allowedFeature(tab))return null;
    const b=node('button','v4-tool'+(primary?' v4-tool-primary':''));
-   b.type='button';b.setAttribute('aria-label','Abrir '+title);
+   b.type='button';b.dataset.module=tab;b.setAttribute('aria-label','Abrir '+title);
    const i=node('span','v4-tool-icon');i.append(svg(icon));
    const content=node('span','v4-tool-content');
    content.append(node('strong','',title),node('small','',description));
@@ -90,10 +90,7 @@
    const pending=(data.justifications||[]).filter(x=>x.status==='pending').length;
    const guild=state.guilds.find(g=>String(g.guild_id)===String(state.guild));
    const dash=node('div','v4-dashboard');
-   const welcome=node('p','manager-dashboard-description',guild?.name?'Visão geral de '+guild.name+' · Selecione um sistema para começar.':'Visão geral dos sistemas disponíveis.');
-   dash.append(welcome);
-   const section=node('section');
-   section.append(head('Resumo do servidor','Dados sincronizados com o Nero.'));
+   const section=node('section','manager-metrics-section');
    const metrics=node('div','v4-metrics');
    metrics.append(metric('Servidores',state.guilds.length,'Ambientes disponíveis','users'));
    metrics.append(metric('Registros de ponto',all.length,'Registros disponíveis','clock'));
@@ -102,7 +99,9 @@
    metrics.append(metric('Horas normais',fmt(totaled(normal)),'Horas validadas no período','clock'));
    metrics.append(metric('Justificativas',pending,'Solicitações aguardando análise','file'));
    section.append(metrics);dash.append(section);
-   const modules=group(ctx,[['bateponto','Sistema de Bate-ponto','Jornada, equipes, cartões, turnos e relatórios.','clock'],['recrutamento','Recrutamento','Provas, candidatos e resultados.','users'],['bot-reunioes','Reuniões','Presenças, faltas e justificativas.','calendar'],['bot-atendimento','Atendimento','Tickets e histórico.','users'],['justificativas','Justificativas','Solicitações e decisões.','file'],['bot-boasvindas','Boas-vindas e saída','Mensagens e painéis personalizáveis.','users'],['configuracoes','Configurações','Regras do ponto, canais, cargos e permissões.','settings']],'Seus sistemas','Abra um módulo para acessar suas ferramentas.');if(modules){modules.classList.add('manager-modules');dash.append(modules);}
+   const modules=group(ctx,[['bateponto','Sistema de Bate-ponto','Jornada, equipes, cartões, turnos e relatórios.','clock'],['recrutamento','Recrutamento','Provas, candidatos e resultados.','users'],['bot-reunioes','Reuniões','Presenças, faltas e justificativas.','calendar'],['bot-atendimento','Atendimento','Tickets e histórico.','users'],['justificativas','Justificativas','Solicitações e decisões.','file'],['bot-boasvindas','Boas-vindas e saída','Mensagens e painéis personalizáveis.','users'],['configuracoes','Configurações','Regras do ponto, canais, cargos e permissões.','settings']],'Sistemas disponíveis','');if(modules){modules.classList.add('manager-modules');dash.append(modules);}
+   const details=node('details','manager-dashboard-details');
+   details.append(node('summary','','Acompanhamento do bate-ponto'));
    const cols=node('div','v4-columns');
    const first=node('section','v4-surface');
    first.append(head('Cartões em andamento','Acompanhe os registros ativos',button('Ver todos','ativos',ctx)));
@@ -124,10 +123,10 @@
      const arrow=node('span','v4-arrow','›');link.append(arrow);link.onclick=()=>ctx.openTab(tab);
      links.append(link);
    }
-   second.append(links);cols.append(first,second);dash.append(cols);
+   second.append(links);cols.append(first,second);details.append(cols);
    const rule=node('div','v4-bottom-note');
    rule.append(svg('clock'),node('span','', 'Meta obrigatória atual: '+requiredHours()+'h para todos os turnos. Alterações podem ser feitas nas configurações do bate-ponto.'));
-   dash.append(rule);root.append(dash);return true;
+   details.append(rule);dash.append(details);root.append(dash);return true;
  }
  function renderHub(key,ctx){
    const root=$('rows');if(!root)return false;

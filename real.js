@@ -1117,7 +1117,8 @@ function renderWorkspaceShortcuts(){
 }
 function renderNav(){
  const [title,description]=tabInfo[state.tab]||tabInfo.inicio, parent=parentTab(state.tab);
- $('pageTitle').textContent=title;$('pageDescription').textContent=description;
+ $('pageTitle').textContent=state.tab==='inicio'?'Painel de Controle':title;$('pageDescription').textContent=state.tab==='inicio'?'Visão geral dos sistemas do Nero Manager':description;
+ document.body.classList.toggle('manager-overview',state.tab==='inicio');
  $('pageEyebrow').textContent=pointPages.has(state.tab)?'NERO BOT / BATE-PONTO':'NERO BOT / SISTEMAS';
  $('headerContext').textContent='Servidor · '+title;
  $('ownerBadge').hidden=true;window.NeroManager?.owner(!!state.data?.isBotOwner);
