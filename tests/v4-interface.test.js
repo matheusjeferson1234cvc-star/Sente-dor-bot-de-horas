@@ -47,3 +47,9 @@ test('Manager usa avatar de servidor e contagens reais, sem expor dados de outro
  const ui=fs.readFileSync('nero-v4.js','utf8'),manager=fs.readFileSync('nero-manager.js','utf8'),real=fs.readFileSync('real.js','utf8');
  assert.match(manager,/cdn\.discordapp\.com\/icons\//);assert.match(manager,/entries\.map/);assert.match(ui,/moduleReports\?\.guild===state\.guild/);assert.match(ui,/manager-card-summary/);assert.match(real,/request!==managerLoadSequence\|\|state\.guild!==guild/);
 });
+
+test('Navegação de cada módulo e seletor interno mantêm formulários originais',()=>{
+ const real=fs.readFileSync('real.js','utf8'),manager=fs.readFileSync('nero-manager.js','utf8');
+ assert.match(real,/function renderWorkspaceShortcuts\(\)\{[\s\S]*?if\(nav\)nav.remove\(\)/);
+ assert.match(manager,/s.selectedIndex=index/);assert.match(manager,/dispatchEvent\(new Event\('change'/);assert.match(manager,/s.id==='guild'\|\|s.multiple/);assert.match(manager,/MutationObserver/);
+});

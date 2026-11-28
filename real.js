@@ -1093,34 +1093,14 @@ function openTab(tab){
  if(window.innerWidth<=950)window.scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
 }
 function renderWorkspaceShortcuts(){
- let nav=$('workspaceShortcuts');
- if(!nav){nav=el('nav',undefined,'nero-workspace-shortcuts');nav.id='workspaceShortcuts';nav.setAttribute('aria-label','Navegação permanente dos sistemas');$('moduleBack').after(nav)}
- nav.replaceChildren();
- if(!state.guild||['inicio','sistemas'].includes(state.tab)){nav.hidden=true;return}
- nav.hidden=false;
- const point=pointPages.has(state.tab),switcher=el('div',undefined,'nero-workspace-switch');
- for(const [tab,label] of [['bateponto','⏰ Bate-ponto'],['recrutamento','📝 Recrutamento'],['bot-reunioes','📅 Reuniões'],['bot-atendimento','🎫 Atendimento'],['bot-boasvindas','👋 Boas-vindas']]){
-  if(!allowedFeature(tab))continue;
-  const button=el('button',label,'nero-workspace-pill');button.type='button';
-  button.setAttribute('aria-current',String((tab==='bateponto'&&point)||(tab==='recrutamento'&&state.tab==='recrutamento')));
-  button.onclick=()=>openTab(tab);switcher.append(button);
- }
- nav.append(switcher);
- if(point){
-  const quick=el('div',undefined,'nero-point-quick');
-  for(const [tab,label] of [['bateponto','Todas as funções'],['ativos','Cartões ativos'],['presenca','Presença'],['ranking','Ranking'],['justificativas','Justificativas'],['relatorios','Relatórios'],['configuracoes','Configurações']]){
-   if(!allowedFeature(tab))continue;
-   const button=el('button',label,'nero-quick-link');button.type='button';
-   button.setAttribute('aria-current',String(state.tab===tab));button.onclick=()=>openTab(tab);quick.append(button);
-  }
-  nav.append(quick);
- }
+ // Cada módulo tem sua própria navegação; os demais sistemas ficam no menu lateral.
+ const nav=$('workspaceShortcuts');if(nav)nav.remove();
 }
 function renderNav(){
- const [title,description]=tabInfo[state.tab]||tabInfo.inicio, parent=parentTab(state.tab);
+ const [title,description]=tabInfo[state.tab]||tabInfo.inicio, adminPages=new Set(['administracao','advertencias','folgas','cancelados','justificativas']), configPages=new Set(['configuracoes','bot-geral','bot-turnos','bot-canais','bot-painel','bot-painel-just','bot-alertas','permissoes','site-preferencias','laboratorio']), admin=adminPages.has(state.tab)&&(!['justificativas','cancelados'].includes(state.tab)||state.navOrigin==='administracao'), config=configPages.has(state.tab), parent=state.tab==='administracao'||state.tab==='configuracoes'?'inicio':admin?'administracao':config?'configuracoes':parentTab(state.tab);
  $('pageTitle').textContent=state.tab==='inicio'?'🏠 Painel de Controle':title;$('pageDescription').textContent=state.tab==='inicio'?'Visão geral dos sistemas do Nero Manager':description;
  document.body.classList.toggle('manager-overview',state.tab==='inicio');
- $('pageEyebrow').textContent=pointPages.has(state.tab)?'NERO BOT / BATE-PONTO':'NERO BOT / SISTEMAS';
+ $('pageEyebrow').textContent=admin?'NERO BOT / ADMINISTRAÇÃO':config?'NERO BOT / CONFIGURAÇÕES':pointPages.has(state.tab)?'NERO BOT / BATE-PONTO':'NERO BOT / SISTEMAS';
  $('headerContext').textContent='Servidor · '+title;
  $('ownerBadge').hidden=true;window.NeroManager?.owner(!!state.data?.isBotOwner);
  const guildName=state.guilds.find(g=>g.guild_id===state.guild)?.name||'Servidor atual';
@@ -1132,9 +1112,9 @@ function renderNav(){
    const addCrumb=(name,tab,current=false)=>{const c=el(current?'span':'button',name,current?'breadcrumb-current':'breadcrumb-link');if(!current){c.type='button';c.onclick=()=>openTab(tab)}else c.setAttribute('aria-current','page');crumbs.append(c)};
    addCrumb('Início','inicio');
    crumbs.append(el('span','/','breadcrumb-divider'));
-   if(state.tab!=='sistemas'&&parent!=='sistemas'){addCrumb('Sistemas','sistemas');crumbs.append(el('span','/','breadcrumb-divider'))}
-   if(pointPages.has(state.tab)&&state.tab!=='bateponto'&&parent!=='bateponto'){addCrumb('Bate-ponto','bateponto');crumbs.append(el('span','/','breadcrumb-divider'))}
-   if(parent){addCrumb(tabInfo[parent][0],parent);crumbs.append(el('span','/','breadcrumb-divider'))}
+   if(!admin&&!config&&state.tab!=='sistemas'&&parent!=='sistemas'){addCrumb('Sistemas','sistemas');crumbs.append(el('span','/','breadcrumb-divider'))}
+   if(!admin&&!config&&pointPages.has(state.tab)&&state.tab!=='bateponto'&&parent!=='bateponto'){addCrumb('Bate-ponto','bateponto');crumbs.append(el('span','/','breadcrumb-divider'))}
+   if(parent&&parent!=='inicio'&&parent!==state.tab){addCrumb(tabInfo[parent][0],parent);crumbs.append(el('span','/','breadcrumb-divider'))}
    addCrumb(title,state.tab,true);
   }
  }
