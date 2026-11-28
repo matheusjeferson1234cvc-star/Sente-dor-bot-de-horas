@@ -2,6 +2,7 @@
 (function(){
  'use strict';
  const $=id=>document.getElementById(id);
+ const emojis={"inicio":"🏠","sistemas":"🧩","bateponto":"⏱️","ativos":"🟢","presenca":"✅","recrutamento":"📋","bot-reunioes":"📅","bot-atendimento":"🎫","justificativas":"📝","bot-boasvindas":"👋","ranking":"🏆","relatorios":"📊","administracao":"🛡️","configuracoes":"⚙️","servidores":"🔄","atualizacoes":"📢","comunicados":"💬"};
  const node=(tag,cls,content)=>{
    const x=document.createElement(tag);
    if(cls)x.className=cls;
@@ -38,7 +39,7 @@
    if(ctx.allowedFeature&&!ctx.allowedFeature(tab))return null;
    const b=node('button','v4-tool'+(primary?' v4-tool-primary':''));
    b.type='button';b.dataset.module=tab;b.setAttribute('aria-label','Abrir '+title);
-   const i=node('span','v4-tool-icon');i.append(svg(icon));
+   const i=node('span','v4-tool-icon manager-module-emoji',emojis[tab]||({clock:'⏱️',file:'📄',calendar:'📅',users:'👥',settings:'⚙️',shield:'🛡️',bar:'📊',activity:'📈',check:'✅'})[icon]||'📌');i.setAttribute('aria-hidden','true');
    const content=node('span','v4-tool-content');
    content.append(node('strong','',title),node('small','',description));
    if(tag)content.append(node('span','v4-tool-tag',tag));
@@ -47,7 +48,7 @@
  }
  function group(ctx,items,title,description){
    const section=node('section','v4-surface');
-   section.append(head(title,description));
+   if(title||description)section.append(head(title,description));
    const grid=node('div','v4-tool-grid');
    for(const item of items){const b=tool(ctx,...item);if(b)grid.append(b)}
    if(!grid.childElementCount)return null;
@@ -99,8 +100,8 @@
    metrics.append(metric('Horas normais',fmt(totaled(normal)),'Horas validadas no período','clock'));
    metrics.append(metric('Justificativas',pending,'Solicitações aguardando análise','file'));
    section.append(metrics);dash.append(section);
-   const modules=group(ctx,[['bateponto','Sistema de Bate-ponto','Jornada, equipes, cartões, turnos e relatórios.','clock'],['recrutamento','Recrutamento','Provas, candidatos e resultados.','users'],['bot-reunioes','Reuniões','Presenças, faltas e justificativas.','calendar'],['bot-atendimento','Atendimento','Tickets e histórico.','users'],['justificativas','Justificativas','Solicitações e decisões.','file'],['bot-boasvindas','Boas-vindas e saída','Mensagens e painéis personalizáveis.','users'],['configuracoes','Configurações','Regras do ponto, canais, cargos e permissões.','settings']],'Sistemas disponíveis','');if(modules){modules.classList.add('manager-modules');dash.append(modules);}
-   const details=node('details','manager-dashboard-details');
+   const modules=group(ctx,[['bateponto','Sistema de Bate-ponto','Jornada, equipes, cartões, turnos e relatórios.','clock'],['recrutamento','Recrutamento','Provas, candidatos e resultados.','users'],['bot-reunioes','Reuniões','Presenças, faltas e justificativas.','calendar'],['bot-atendimento','Atendimento','Tickets e histórico.','users'],['justificativas','Justificativas','Solicitações e decisões.','file'],['bot-boasvindas','Boas-vindas e saída','Mensagens e painéis personalizáveis.','users'],['configuracoes','Configurações','Regras do ponto, canais, cargos e permissões.','settings']],'','');if(modules){modules.classList.add('manager-modules');dash.append(modules);}
+   const details=node('details','manager-dashboard-details');details.open=!!state.managerDetailsOpen;details.addEventListener('toggle',()=>{state.managerDetailsOpen=details.open;});
    details.append(node('summary','','Acompanhamento do bate-ponto'));
    const cols=node('div','v4-columns');
    const first=node('section','v4-surface');

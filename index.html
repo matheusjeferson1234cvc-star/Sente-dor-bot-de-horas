@@ -13,10 +13,10 @@
   <link rel="stylesheet" href="/site-preferences-v6.css?v=610">
   <link rel="stylesheet" href="/nero-theme.css?v=712">
   <link rel="stylesheet" href="/nero-v4.css?v=800">
-  <link rel="stylesheet" href="/nero-manager.css?v=2">
-  <script defer src="/nero-manager.js?v=1"></script>
-  <script defer src="/real.js?v=845"></script>
-  <script defer src="/nero-v4.js?v=845"></script>
+  <link rel="stylesheet" href="/nero-manager.css?v=3">
+  <script defer src="/nero-manager.js?v=3"></script>
+  <script defer src="/real.js?v=846"></script>
+  <script defer src="/nero-v4.js?v=846"></script>
   <script defer src="/site-preferences-v6.js?v=670"></script>
   <script defer src="/quick-navigation-v6.js?v=670"></script>
 </head>
@@ -53,27 +53,25 @@
       </div>
       <div class="sidebar-scroll">
         <nav class="tabs v4-nav" aria-label="Navegação principal do Nero">
-          <span class="nav-group">VISÃO GERAL</span>
-          <button type="button" data-tab="inicio" class="active"><svg class="ico"><use href="#ico-home"/></svg><span>Dashboard</span></button>
-          <button type="button" data-tab="sistemas"><svg class="ico"><use href="#ico-spark"/></svg><span>Meus sistemas</span></button>
-          <span class="nav-group">OPERAÇÃO</span>
-          <button type="button" data-tab="bateponto"><svg class="ico"><use href="#ico-clock"/></svg><span>Bate-ponto</span></button>
-          <button type="button" data-tab="ativos"><svg class="ico"><use href="#ico-activity"/></svg><span>Cartões ativos</span></button>
-          <button type="button" data-tab="presenca"><svg class="ico"><use href="#ico-check"/></svg><span>Presença</span></button>
-          <button type="button" data-tab="recrutamento"><svg class="ico"><use href="#ico-users"/></svg><span>Recrutamento</span></button>
-          <button type="button" data-tab="bot-reunioes"><svg class="ico"><use href="#ico-calendar"/></svg><span>Reuniões</span></button>
-          <button type="button" data-tab="bot-atendimento"><svg class="ico"><use href="#ico-users"/></svg><span>Atendimento</span></button>
-          <button type="button" data-tab="justificativas"><svg class="ico"><use href="#ico-file"/></svg><span>Justificativas</span></button>
-          <button type="button" data-tab="bot-boasvindas"><svg class="ico"><use href="#ico-users"/></svg><span>Boas-vindas e saída</span></button>
-          <span class="nav-group">BATE-PONTO · RESULTADOS</span>
-          <button type="button" data-tab="ranking"><svg class="ico"><use href="#ico-bar"/></svg><span>Ranking</span></button>
-          <button type="button" data-tab="relatorios"><svg class="ico"><use href="#ico-file"/></svg><span>Relatórios</span></button>
-          <button type="button" data-tab="administracao"><svg class="ico"><use href="#ico-shield"/></svg><span>Administração</span></button>
-          <span class="nav-group">ADMINISTRAR</span>
-          <button type="button" data-tab="configuracoes"><svg class="ico"><use href="#ico-settings"/></svg><span>Configurações</span></button>
-          <button type="button" data-tab="servidores"><svg class="ico"><use href="#ico-users"/></svg><span>Trocar servidor</span></button>
-          <button type="button" data-tab="atualizacoes" hidden><svg class="ico"><use href="#ico-file"/></svg><span>Atualizações do Nero</span></button>
-          <button type="button" data-tab="comunicados" hidden><svg class="ico"><use href="#ico-plus"/></svg><span>Publicar comunicado</span></button>
+          <button type="button" data-tab="inicio" class="active"><span class="manager-nav-emoji" aria-hidden="true">🏠</span><span>Dashboard</span></button>
+          <button type="button" data-tab="sistemas"><span class="manager-nav-emoji" aria-hidden="true">🧩</span><span>Meus sistemas</span></button>
+          <button type="button" data-tab="bateponto"><span class="manager-nav-emoji" aria-hidden="true">⏱️</span><span>Bate-ponto</span></button>
+          <button type="button" data-tab="ativos"><span class="manager-nav-emoji" aria-hidden="true">🟢</span><span>Cartões ativos</span></button>
+          <button type="button" data-tab="presenca"><span class="manager-nav-emoji" aria-hidden="true">✅</span><span>Presença</span></button>
+          <button type="button" data-tab="recrutamento"><span class="manager-nav-emoji" aria-hidden="true">📋</span><span>Recrutamento</span></button>
+          <button type="button" data-tab="bot-reunioes"><span class="manager-nav-emoji" aria-hidden="true">📅</span><span>Reuniões</span></button>
+          <button type="button" data-tab="bot-atendimento"><span class="manager-nav-emoji" aria-hidden="true">🎫</span><span>Atendimento</span></button>
+          <button type="button" data-tab="justificativas"><span class="manager-nav-emoji" aria-hidden="true">📝</span><span>Justificativas</span></button>
+          <button type="button" data-tab="bot-boasvindas"><span class="manager-nav-emoji" aria-hidden="true">👋</span><span>Boas-vindas e saída</span></button>
+          <span class="nav-group">RELATÓRIOS</span>
+          <button type="button" data-tab="ranking"><span class="manager-nav-emoji" aria-hidden="true">🏆</span><span>Ranking</span></button>
+          <button type="button" data-tab="relatorios"><span class="manager-nav-emoji" aria-hidden="true">📊</span><span>Relatórios</span></button>
+          <button type="button" data-tab="administracao"><span class="manager-nav-emoji" aria-hidden="true">🛡️</span><span>Administração</span></button>
+          <span class="nav-group">ADMINISTRAÇÃO</span>
+          <button type="button" data-tab="configuracoes"><span class="manager-nav-emoji" aria-hidden="true">⚙️</span><span>Configurações</span></button>
+          <button type="button" data-tab="servidores"><span class="manager-nav-emoji" aria-hidden="true">🔄</span><span>Trocar servidor</span></button>
+          <button type="button" data-tab="atualizacoes" hidden><span class="manager-nav-emoji" aria-hidden="true">📢</span><span>Atualizações do Nero</span></button>
+          <button type="button" data-tab="comunicados" hidden><span class="manager-nav-emoji" aria-hidden="true">💬</span><span>Publicar comunicado</span></button>
         </nav>
       </div>
       <div class="sidebar-footer"><div class="sidebar-server"><small>AMBIENTE ATUAL</small><strong id="sidebarGuildName">Servidor vinculado</strong><button type="button" data-tab="servidores" id="sidebarSwitchServer">Gerenciar acesso <svg class="ico"><use href="#ico-arrow"/></svg></button></div><span class="footer-status"><span class="connected-dot"></span> Plataforma integrada</span><small>Discord · Discloud · Supabase</small><a class="sidebar-add-bot" href="/api/invite" target="_blank" rel="noopener noreferrer"><svg class="ico"><use href="#ico-plus"/></svg> Adicionar Nero Bot</a><a class="sidebar-support" href="https://discord.gg/SWTnKfXJ8R" target="_blank" rel="noopener noreferrer"><svg class="ico"><use href="#ico-users"/></svg> Servidor oficial e suporte <svg class="ico ico-external"><use href="#ico-external"/></svg></a><button type="button" id="sidebarLogout" class="button ghost sidebar-logout" hidden>Sair da conta</button></div>
@@ -84,9 +82,9 @@
         <div class="top-left">
           <button id="openSidebar" class="menu-button icon-btn" type="button" aria-label="Abrir menu" aria-expanded="false" hidden><svg class="ico"><use href="#ico-menu"/></svg></button>
           <div class="brand"><span class="brand-ico"><svg class="ico"><use href="#ico-clock"/></svg></span><div><strong>NERO BOT</strong><small id="headerContext">Plataforma de sistemas</small></div></div>
-          <button type="button" id="managerGuild" class="manager-guild" data-tab="servidores" hidden><svg class="ico"><use href="#ico-users"/></svg><span><small>Servidor atual</small><strong id="managerGuildName">Selecionar servidor</strong></span><span aria-hidden="true">⌄</span></button>
+          <div class="manager-guild-wrap" id="managerGuildWrap" hidden><button type="button" id="managerGuild" class="manager-guild" aria-expanded="false" aria-controls="managerGuildList"><span class="manager-server-avatar" id="managerGuildAvatar" aria-hidden="true">N</span><span><small>SERVIDOR ATUAL</small><strong id="managerGuildName">Selecionar servidor</strong></span><span class="manager-chevron" aria-hidden="true">⌄</span></button><div id="managerGuildList" class="manager-guild-list" hidden aria-label="Servidores disponíveis"></div></div>
         </div>
-        <div class="top-right"><button type="button" id="managerTheme" class="manager-theme" aria-label="Alternar tema">☾ Tema escuro</button><span id="syncStatus" class="status">Verificando conexão</span><div class="manager-account"><span id="userBadge" class="user-badge" hidden>Discord conectado</span><span id="managerOwner" class="manager-owner" hidden>DONO</span></div><button type="button" id="logout" class="button ghost logout-btn" hidden>Sair</button></div>
+        <div class="top-right"><button type="button" class="manager-header-settings" data-tab="configuracoes" title="Configurações" aria-label="Configurações">⚙️</button><button type="button" id="managerTheme" class="manager-theme" aria-label="Alternar tema">☾ Tema escuro</button><span id="syncStatus" class="status">Verificando conexão</span><div class="manager-account"><span id="userBadge" class="user-badge" hidden>Discord conectado</span><span id="managerOwner" class="manager-owner" hidden>DONO</span></div><button type="button" id="logout" class="button ghost logout-btn" hidden>Sair</button></div>
       </header>
 
       <main class="page-content">

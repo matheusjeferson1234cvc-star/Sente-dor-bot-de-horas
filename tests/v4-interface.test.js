@@ -37,3 +37,8 @@ test('Manager compacto mantém perfil e acesso ao bate-ponto',()=>{
  const html=fs.readFileSync('index.html','utf8'),css=fs.readFileSync('nero-manager.css','utf8'),ui=fs.readFileSync('nero-v4.js','utf8');
  assert.match(html,/id="managerGuild"/);assert.match(html,/class="manager-account"/);assert.match(css,/repeat\(6,minmax\(0,1fr\)\)/);assert.match(ui,/manager-dashboard-details/);assert.match(ui,/requiredHours\(\)/);assert.match(ui,/\['bateponto','Sistema de Bate-ponto'/);
 });
+
+test('Manager usa emojis e seletor restrito aos servidores autorizados',()=>{
+ const html=fs.readFileSync('index.html','utf8'),manager=fs.readFileSync('nero-manager.js','utf8'),real=fs.readFileSync('real.js','utf8');
+ assert.match(html,/manager-nav-emoji/);assert.match(html,/id="managerGuildList"/);assert.match(manager,/guildSelection\.entries/);assert.match(real,/guild\(guildName,state\.guilds,state\.guild,chooseServer,showServerPicker\)/);assert.match(real,/state\.guilds\.some/);assert.doesNotThrow(()=>new vm.Script(manager));
+});
